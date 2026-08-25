@@ -103,7 +103,7 @@ export default function Sidebar() {
 
       <div className="border-t border-slate-800 p-3">
         <Link
-          href="/settings"
+          href="/dashboard/settings"
           className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-400 transition hover:bg-slate-900 hover:text-white"
         >
           <Settings className="h-5 w-5" />
