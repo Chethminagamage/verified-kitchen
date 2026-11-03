@@ -1,10 +1,19 @@
 import {
   Bell,
   CircleUserRound,
+  LogOut,
   Wifi,
 } from "lucide-react";
 
-export default function TopHeader() {
+import { logoutAction } from "@/modules/auth/controller/auth.controller";
+import { getCurrentUser } from "@/modules/auth/controller/auth.query";
+
+export default async function TopHeader() {
+  const user = await getCurrentUser();
+
+  const operatorEmail =
+    user?.email ?? "Unknown User";
+
   return (
     <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6 lg:px-8">
       <div>
@@ -18,11 +27,13 @@ export default function TopHeader() {
       </div>
 
       <div className="flex items-center gap-3">
+        {/* System Status */}
         <div className="hidden items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 sm:flex">
           <Wifi className="h-4 w-4" />
           System Online
         </div>
 
+        {/* Notifications */}
         <button
           type="button"
           aria-label="Notifications"
@@ -33,6 +44,7 @@ export default function TopHeader() {
           <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
         </button>
 
+        {/* Authenticated Operator */}
         <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
           <CircleUserRound className="h-9 w-9 text-slate-400" />
 
@@ -41,11 +53,23 @@ export default function TopHeader() {
               Kitchen Operator
             </p>
 
-            <p className="text-xs text-slate-500">
-              Operator
+            <p className="max-w-48 truncate text-xs text-slate-500">
+              {operatorEmail}
             </p>
           </div>
         </div>
+
+        {/* Logout */}
+        <form action={logoutAction}>
+          <button
+            type="submit"
+            title="Sign out"
+            aria-label="Sign out"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </form>
       </div>
     </header>
   );
