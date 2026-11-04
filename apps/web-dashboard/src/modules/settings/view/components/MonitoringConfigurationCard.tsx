@@ -1,5 +1,3 @@
-import type { ComponentType } from "react";
-
 import {
   BrainCircuit,
   Blocks,

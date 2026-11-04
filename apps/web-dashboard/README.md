@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Verified Kitchen — Web Dashboard
 
-## Getting Started
+Operator console for Verified Kitchen, built with Next.js 16 (App Router), TypeScript, Tailwind CSS, Recharts and Supabase.
 
-First, run the development server:
+## Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local   # NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+npm install
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The database must already have the migrations in `infrastructure/supabase` applied (see the root README).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script | Purpose |
+|---|---|
+| `npm run dev` | Development server |
+| `npm run build` | Production build |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | TypeScript, no emit |
+| `npm test` | Vitest unit tests (`tests/unit`) |
 
-## Learn More
+## Structure
 
-To learn more about Next.js, take a look at the following resources:
+Each feature is a module with MVC-style layers:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```text
+src/modules/<feature>/
+├── model/        types and pure rules (unit-tested, no I/O)
+├── repository/   Supabase queries (RLS applies; runs as the signed-in user)
+├── service/      maps rows to view models, enforces UI-level rules
+├── controller/   entry points for pages and server actions
+└── view/         React components
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Folder | Contents |
+|---|---|
+| `src/app` | Routes and the `(dashboard)` layout, which handles sign-in redirects and the "no kitchen assigned" screen |
+| `src/infrastructure/supabase` | Browser, server and proxy clients, typed with `src/shared/types/database.types.ts` |
+| `src/shared` | Layout (sidebar, mobile navigation, header), feedback components (live refresh, empty and error states) and utilities |
 
-## Deploy on Vercel
+After a schema change, regenerate the types:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npx supabase gen types typescript --project-id <ref> > src/shared/types/database.types.ts
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Conventions
+
+- The dashboard never computes scores or applies safety thresholds. It displays what the edge service stored.
+- Dates are shown in the kitchen's time zone (`kitchens.timezone`) and built from `Intl` parts, so server and client render the same HTML.
+- Live pages use `LiveRefresh`, which subscribes to Supabase Realtime and refreshes the page at most once every 5 s.

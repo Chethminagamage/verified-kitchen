@@ -5,6 +5,7 @@ import {
   CircleCheck,
   TriangleAlert,
   CircleX,
+  type LucideIcon,
 } from "lucide-react";
 
 import type {
@@ -15,44 +16,26 @@ interface EnvironmentSummaryCardProps {
   sensor: EnvironmentalSensor;
 }
 
-function getSensorIcon(type: EnvironmentalSensor["type"]) {
-  if (type === "humidity") {
-    return Droplets;
-  }
+const SENSOR_ICONS: Record<EnvironmentalSensor["type"], LucideIcon> = {
+  temperature: Thermometer,
+  humidity: Droplets,
+  refrigerator: Refrigerator,
+};
 
-  if (type === "refrigerator") {
-    return Refrigerator;
-  }
-
-  return Thermometer;
-}
-
-function getStatusStyle(status: EnvironmentalSensor["status"]) {
-  if (status === "Safe") {
-    return {
-      wrapper: "bg-emerald-50 text-emerald-700",
-      Icon: CircleCheck,
-    };
-  }
-
-  if (status === "Warning") {
-    return {
-      wrapper: "bg-amber-50 text-amber-700",
-      Icon: TriangleAlert,
-    };
-  }
-
-  return {
-    wrapper: "bg-red-50 text-red-700",
-    Icon: CircleX,
-  };
-}
+const STATUS_STYLES: Record<
+  EnvironmentalSensor["status"],
+  { wrapper: string; Icon: LucideIcon }
+> = {
+  Safe: { wrapper: "bg-emerald-50 text-emerald-700", Icon: CircleCheck },
+  Warning: { wrapper: "bg-amber-50 text-amber-700", Icon: TriangleAlert },
+  Critical: { wrapper: "bg-red-50 text-red-700", Icon: CircleX },
+};
 
 export default function EnvironmentSummaryCard({
   sensor,
 }: EnvironmentSummaryCardProps) {
-  const SensorIcon = getSensorIcon(sensor.type);
-  const statusStyle = getStatusStyle(sensor.status);
+  const SensorIcon = SENSOR_ICONS[sensor.type];
+  const statusStyle = STATUS_STYLES[sensor.status];
   const StatusIcon = statusStyle.Icon;
 
   return (

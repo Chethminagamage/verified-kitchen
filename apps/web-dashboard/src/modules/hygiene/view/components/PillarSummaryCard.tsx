@@ -2,6 +2,7 @@ import {
   UsersRound,
   UtensilsCrossed,
   ThermometerSun,
+  type LucideIcon,
 } from "lucide-react";
 
 interface PillarSummaryCardProps {
@@ -9,17 +10,10 @@ interface PillarSummaryCardProps {
   score: number;
 }
 
-function getPillarIcon(name: string) {
-  if (name === "Personal Hygiene") {
-    return UsersRound;
-  }
-
-  if (name === "Food Preparation Hygiene") {
-    return UtensilsCrossed;
-  }
-
-  return ThermometerSun;
-}
+const PILLAR_ICONS: Record<string, LucideIcon> = {
+  "Personal Hygiene": UsersRound,
+  "Food Preparation Hygiene": UtensilsCrossed,
+};
 
 function getScoreLabel(score: number) {
   if (score >= 85) return "Good";
@@ -31,7 +25,7 @@ export default function PillarSummaryCard({
   name,
   score,
 }: PillarSummaryCardProps) {
-  const Icon = getPillarIcon(name);
+  const Icon = PILLAR_ICONS[name] ?? ThermometerSun;
   const label = getScoreLabel(score);
 
   return (

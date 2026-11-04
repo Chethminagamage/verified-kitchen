@@ -12,7 +12,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata = {
+export const metadata: Metadata = {
   title: {
     default: "Verified Kitchen",
     template: "%s | Verified Kitchen",
@@ -20,7 +20,6 @@ export const metadata = {
   description:
     "Verified Kitchen real-time hygiene monitoring and compliance dashboard.",
 };
-
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

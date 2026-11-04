@@ -10,6 +10,8 @@ import { ROLE_LABELS, type OperatorSession } from "@/modules/auth/model/session.
 import { SystemStatusService } from "@/modules/system-status/service/system-status.service";
 import SystemStatusBadge from "@/modules/system-status/view/SystemStatusBadge";
 
+import MobileNav from "./MobileNav";
+
 const systemStatusService = new SystemStatusService();
 
 interface TopHeaderProps {
@@ -32,14 +34,18 @@ export default async function TopHeader({
 
   return (
     <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6 lg:px-8">
-      <div className="min-w-0">
-        <p className="truncate text-sm text-slate-500">
-          {kitchen?.location ?? "Kitchen Operations"}
-        </p>
+      <div className="flex min-w-0 items-center">
+        <MobileNav />
 
-        <h1 className="truncate text-lg font-semibold text-slate-900">
-          {kitchen?.name ?? "Monitoring Dashboard"}
-        </h1>
+        <div className="min-w-0">
+          <p className="truncate text-sm text-slate-500">
+            {kitchen?.location ?? "Kitchen Operations"}
+          </p>
+
+          <h1 className="truncate text-lg font-semibold text-slate-900">
+            {kitchen?.name ?? "Monitoring Dashboard"}
+          </h1>
+        </div>
       </div>
 
       <div className="flex items-center gap-3">
