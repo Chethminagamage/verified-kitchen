@@ -268,6 +268,7 @@ export type Database = {
           is_public: boolean
           location: string | null
           name: string
+          timezone: string
         }
         Insert: {
           code: string
@@ -276,6 +277,7 @@ export type Database = {
           is_public?: boolean
           location?: string | null
           name: string
+          timezone?: string
         }
         Update: {
           code?: string
@@ -284,6 +286,7 @@ export type Database = {
           is_public?: boolean
           location?: string | null
           name?: string
+          timezone?: string
         }
         Relationships: []
       }
@@ -612,6 +615,22 @@ export type Database = {
         Returns: Database["public"]["Enums"]["user_role"]
       }
       has_kitchen_access: { Args: { p_kitchen: string }; Returns: boolean }
+      hygiene_score_series: {
+        Args: {
+          p_bucket?: string
+          p_from: string
+          p_kitchen: string
+          p_to: string
+        }
+        Returns: {
+          bucket: string
+          environmental_score: number
+          food_prep_score: number
+          overall_score: number
+          personal_score: number
+          samples: number
+        }[]
+      }
       verify_audit_chain: {
         Args: { p_kitchen: string }
         Returns: {

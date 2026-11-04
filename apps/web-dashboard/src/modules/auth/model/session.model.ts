@@ -8,6 +8,8 @@ export interface KitchenSummary {
   code: string;
   name: string;
   location: string | null;
+  /** IANA time zone, e.g. Asia/Colombo. */
+  timezone: string;
 }
 
 export interface OperatorSession {

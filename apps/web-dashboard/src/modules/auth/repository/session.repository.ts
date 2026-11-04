@@ -32,7 +32,7 @@ export class SessionRepository {
           .maybeSingle(),
         supabase
           .from("kitchens")
-          .select("id, code, name, location")
+          .select("id, code, name, location, timezone")
           .order("code"),
       ]);
 
