@@ -1,11 +1,13 @@
-import { createClient } from "@/infrastructure/supabase/server";
+import { cache } from "react";
 
-export async function getCurrentUser() {
-  const supabase = await createClient();
+import { SessionRepository } from "../repository/session.repository";
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+const sessionRepository = new SessionRepository();
 
-  return user;
-}
+/**
+ * The current operator session, de-duplicated per request so the layout,
+ * header and pages can all call it without extra round trips.
+ */
+export const getCurrentSession = cache(() =>
+  sessionRepository.getSession()
+);

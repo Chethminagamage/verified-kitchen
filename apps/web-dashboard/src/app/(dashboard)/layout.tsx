@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 
 import { redirect } from "next/navigation";
 
-import { createClient } from "@/infrastructure/supabase/server";
-
+import { getCurrentSession } from "@/modules/auth/controller/auth.query";
+import NoKitchenAssigned from "@/shared/components/feedback/NoKitchenAssigned";
 import DashboardShell from "@/shared/components/layout/DashboardShell";
 
 interface DashboardLayoutProps {
@@ -13,18 +13,19 @@ interface DashboardLayoutProps {
 export default async function DashboardLayout({
   children,
 }: DashboardLayoutProps) {
-  const supabase = await createClient();
+  const session = await getCurrentSession();
 
-  const { data } =
-    await supabase.auth.getClaims();
-
-  if (!data?.claims) {
+  if (!session) {
     redirect("/login");
   }
 
   return (
-    <DashboardShell>
-      {children}
+    <DashboardShell session={session}>
+      {session.kitchen ? (
+        children
+      ) : (
+        <NoKitchenAssigned email={session.email} />
+      )}
     </DashboardShell>
   );
 }

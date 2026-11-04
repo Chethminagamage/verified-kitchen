@@ -1,12 +1,17 @@
 import type { ReactNode } from "react";
+
+import type { OperatorSession } from "@/modules/auth/model/session.model";
+
 import Sidebar from "./Sidebar";
 import TopHeader from "./TopHeader";
 
 interface DashboardShellProps {
+  session: OperatorSession;
   children: ReactNode;
 }
 
 export default function DashboardShell({
+  session,
   children,
 }: DashboardShellProps) {
   return (
@@ -14,7 +19,7 @@ export default function DashboardShell({
       <Sidebar />
 
       <div className="lg:pl-64">
-        <TopHeader />
+        <TopHeader session={session} />
 
         <main className="p-4 sm:p-6 lg:p-8">
           {children}
