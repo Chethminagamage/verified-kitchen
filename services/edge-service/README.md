@@ -29,7 +29,7 @@ uv run edge-service check  # verifies the connection and seed data
 | Command | What it does |
 |---|---|
 | `uv run edge-service scenarios` | List the five evaluation scenarios |
-| `uv run edge-service simulate --scenario ppe` | Run one scenario live, in real time (10 s ticks) |
+| `uv run edge-service simulate --scenario ppe` | Run one scenario live, in real time (stops by itself) |
 | `uv run edge-service simulate --scenario baseline --loop` | Keep the dashboard live until Ctrl+C |
 | `uv run edge-service backfill` | Write a realistic 7-day history for charts and reports |
 | `... --dry-run` | Run without connecting or writing anything |
@@ -52,6 +52,25 @@ Scenarios: `baseline` (S1), `ppe` (S2), `food_prep` (S3), `fridge` (S4), `multip
 Every number above lives in `scoring_configs.thresholds` and can be overridden without
 code changes. Each score row records the config version and a per-indicator breakdown
 (`details`).
+
+## Data volume
+
+The free Supabase plan has 500 MB. Writes are paced so the database stays small:
+
+| What | Default cadence | Rows per day (24 h) |
+|---|---|---|
+| Sensor reading (ESP32) | every 30 s | 2,880 |
+| AI detection, per indicator (7) | every 15 s | 40,320 |
+| Hygiene score | stored every 60 s; scoring and violation checks still run on every message | 1,440 |
+
+Retention is handled by migration `20261104030000`, which runs hourly through pg_cron:
+
+- Raw readings, detections and scores older than **7 days** are deleted.
+- Scores are first rolled up into `hygiene_scores_hourly`, so charts for older periods are unchanged.
+- Evidence that a violation points to is kept.
+- Violations and audit records are never deleted.
+
+Steady state is roughly 50 MB, however long the service runs. Stop `--loop` runs with Ctrl+C when you are not watching the dashboard.
 
 ## Development
 

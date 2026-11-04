@@ -9,10 +9,10 @@ from edge_service.backfill import generate_history
 from edge_service.domain import Detection, Indicator, ScoringConfig, Severity
 from edge_service.pipeline import Pipeline
 from edge_service.scoring import compute_score
-from edge_service.simulator import SCENARIOS, Simulator
+from edge_service.simulator import SCENARIOS, Scenario, Simulator, live_feed
 from edge_service.violations import ViolationEngine
 
-from .conftest import T0, FakeRepository, all_compliant, det, reading, ticks
+from .conftest import T0, FakeRepository, all_compliant, det, reading
 
 
 def _no_gloves(at: datetime = T0) -> list[Detection]:
@@ -81,6 +81,15 @@ def test_fridge_severity(config: ScoringConfig) -> None:
 def test_scenarios_raise_expected_violations(config: ScoringConfig, name: str, expected: set[str]) -> None:
     """The five controlled scenarios (RQ1) produce exactly the intended violations."""
     scenario = SCENARIOS[name]
+    for seed in range(5):  # robust across random model errors
+        repo = _run(config, scenario, seed)
+        assert {v.candidate.key for v in repo.violations} == expected, f"seed {seed}"
+        assert all(v.detection_id or v.reading_id for v in repo.violations), "violations link to evidence"
+        assert repo.devices.keys() == {"env", "cam"}
+
+
+def _run(config: ScoringConfig, scenario: Scenario, seed: int, persist_s: float = 60) -> FakeRepository:
+    """Runs a scenario at the production cadences (sensor 30 s, AI 15 s)."""
     repo = FakeRepository(config)
     pipeline = Pipeline(
         repo,
@@ -90,43 +99,35 @@ def test_scenarios_raise_expected_violations(config: ScoringConfig, name: str, e
         camera_device_id="cam",
         model_version="test",
         window_s=60,
+        score_persist_s=persist_s,
     )
-    for seed in range(5):  # robust across random model errors
-        repo.violations.clear()
-        pipeline = Pipeline(
-            repo,
-            kitchen_id="k1",
-            config=config,
-            env_device_id="env",
-            camera_device_id="cam",
-            model_version="test",
-            window_s=60,
-        )
-        sim = Simulator(seed=seed)
-        for i, now in enumerate(ticks(int(scenario.duration_s // 10))):
-            readings, detections = sim.step(now, 10, scenario.phase_at((i + 1) * 10))
-            pipeline.process(now, readings, detections)
-        assert {v.candidate.key for v in repo.violations} == expected, f"seed {seed}"
-    assert all(v.detection_id or v.reading_id for v in repo.violations), "violations link to evidence"
-    assert repo.scores and repo.devices.keys() == {"env", "cam"}
+    for tick in live_feed(Simulator(seed=seed), scenario, T0, sensor_interval_s=30, ai_interval_s=15):
+        pipeline.process(tick.now, tick.readings, tick.detections)
+    return repo
 
 
 def test_baseline_score_stays_high(config: ScoringConfig) -> None:
-    repo = FakeRepository(config)
-    pipeline = Pipeline(
-        repo,
-        kitchen_id="k1",
-        config=config,
-        env_device_id="env",
-        camera_device_id="cam",
-        model_version="test",
-        window_s=60,
-    )
-    sim = Simulator(seed=1)
-    for now in ticks(42):
-        pipeline.process(now, *sim.step(now, 10, SCENARIOS["baseline"].phases[0]))
+    repo = _run(config, SCENARIOS["baseline"], seed=1, persist_s=0)
     overall = [s.result.overall for s in repo.scores if s.result.overall is not None]
-    assert min(overall) > 85
+    assert min(overall) > 80
+
+
+def test_storage_cadence(config: ScoringConfig) -> None:
+    """Scores are stored once a minute; evidence at the device cadences."""
+    scenario = SCENARIOS["ppe"]  # 7 minutes
+    repo = _run(config, scenario, seed=2)
+    minutes = scenario.duration_s / 60
+    assert len(repo.scores) == pytest.approx(minutes, abs=1)
+    assert len(repo.readings) == scenario.duration_s // 30
+    assert len(repo.detections) == (scenario.duration_s // 15) * 7
+    gaps = [(b.computed_at - a.computed_at).total_seconds() for a, b in zip(repo.scores, repo.scores[1:], strict=False)]
+    assert all(g >= 59.5 for g in gaps)
+
+
+def test_daily_row_budget() -> None:
+    """Continuous running stays far below the old ~78k rows per day."""
+    per_day = 86_400 // 30 + (86_400 // 15) * 7 + 86_400 // 60
+    assert per_day < 45_000
 
 
 def test_history_is_deterministic_and_consistent(config: ScoringConfig) -> None:

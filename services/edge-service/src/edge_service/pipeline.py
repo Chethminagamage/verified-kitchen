@@ -83,6 +83,7 @@ class Pipeline:
         camera_device_id: str,
         model_version: str,
         window_s: float,
+        score_persist_s: float = 0.0,
     ) -> None:
         self._repo = repo
         self._kitchen_id = kitchen_id
@@ -91,8 +92,16 @@ class Pipeline:
         self._camera_device = camera_device_id
         self._model_version = model_version
         self._window_s = window_s
+        self._score_persist_s = score_persist_s
+        self._last_persisted: datetime | None = None
         self.window = EvidenceWindow(timedelta(seconds=window_s))
         self.engine = ViolationEngine(config.thresholds, window_s)
+
+    def _due_to_persist(self, now: datetime) -> bool:
+        if self._last_persisted is None:
+            return True
+        # Small tolerance so a 60 s period is not skipped by timer jitter.
+        return (now - self._last_persisted).total_seconds() >= self._score_persist_s - 0.5
 
     def process(
         self,
@@ -121,12 +130,13 @@ class Pipeline:
             [r for r, _ in self.window.readings],
             self._config,
         )
-        if result.overall is not None:
+        if result.overall is not None and self._due_to_persist(now):
             self._repo.insert_hygiene_scores(
                 self._kitchen_id,
                 self._config.id,
                 [ScoreRow(now, now - self.window.length, now, result)],
             )
+            self._last_persisted = now
 
         open_keys = self._repo.open_violation_keys(self._kitchen_id)
         evaluation = self.engine.evaluate(now, result, open_keys)

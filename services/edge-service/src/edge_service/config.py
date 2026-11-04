@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     # Scoring window: the score at time T uses the evidence from (T - window, T].
     score_window_s: float = Field(default=60.0, gt=0)
 
+    # Storage cadences (see README "Data volume"). Scoring and violation checks
+    # still run on every evidence message; only what is stored is thinned.
+    sensor_interval_s: int = Field(default=30, ge=1)  # ESP32 message period
+    ai_interval_s: int = Field(default=15, ge=1)  # one aggregated detection per indicator
+    score_persist_s: float = Field(default=60.0, ge=0)  # store at most one score per period
+
     log_level: str = "INFO"
 
     @field_validator("supabase_url")

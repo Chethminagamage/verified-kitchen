@@ -12,8 +12,9 @@ from __future__ import annotations
 
 import math
 import random
+from collections.abc import Iterator
 from dataclasses import dataclass, field, replace
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from .domain import (
     FOOD_PREP_INDICATORS,
@@ -147,12 +148,22 @@ class Simulator:
     rng: random.Random = field(init=False)
     _env: _EnvState | None = field(init=False, default=None)
     _seq: int = field(init=False, default=0)
+    _last_reading_at: datetime | None = field(init=False, default=None)
 
     def __post_init__(self) -> None:
         self.rng = random.Random(self.seed)
 
     def step(self, now: datetime, dt_s: float, phase: Phase) -> tuple[list[SensorReading], list[Detection]]:
-        return [self._reading(now, dt_s, phase)], self._detections(now, dt_s, phase)
+        """One sensor reading and one aggregated detection per indicator for the last `dt_s`."""
+        return [self.reading(now, phase)], self.detections(now, dt_s, phase)
+
+    def reading(self, now: datetime, phase: Phase) -> SensorReading:
+        dt_s = 30.0 if self._last_reading_at is None else (now - self._last_reading_at).total_seconds()
+        self._last_reading_at = now
+        return self._reading(now, max(dt_s, 0.0), phase)
+
+    def detections(self, now: datetime, dt_s: float, phase: Phase) -> list[Detection]:
+        return self._detections(now, dt_s, phase)
 
     # -- environmental node ------------------------------------------------
     def _reading(self, now: datetime, dt_s: float, phase: Phase) -> SensorReading:
@@ -210,3 +221,36 @@ class Simulator:
                 )
             )
         return out
+
+
+@dataclass(frozen=True, slots=True)
+class FeedTick:
+    elapsed_s: int
+    now: datetime
+    phase: Phase
+    readings: list[SensorReading]
+    detections: list[Detection]
+
+
+def live_feed(
+    sim: Simulator,
+    scenario: Scenario,
+    start: datetime,
+    *,
+    sensor_interval_s: int,
+    ai_interval_s: int,
+    loop: bool = False,
+) -> Iterator[FeedTick]:
+    """Evidence as the real devices would send it: the ESP32 every `sensor_interval_s`,
+    the camera service every `ai_interval_s`. Yields one tick per message time."""
+    tick_s = math.gcd(sensor_interval_s, ai_interval_s)
+    elapsed = 0
+    while True:
+        elapsed += tick_s
+        if not loop and elapsed > scenario.duration_s:
+            return
+        phase = scenario.phase_at(elapsed % scenario.duration_s if loop else elapsed)
+        now = start + timedelta(seconds=elapsed)
+        readings = [sim.reading(now, phase)] if elapsed % sensor_interval_s == 0 else []
+        detections = sim.detections(now, ai_interval_s, phase) if elapsed % ai_interval_s == 0 else []
+        yield FeedTick(elapsed, now, phase, readings, detections)

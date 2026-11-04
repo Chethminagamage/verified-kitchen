@@ -15,7 +15,7 @@ import signal
 import sys
 import time
 from collections.abc import Sequence
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from types import FrameType
 from typing import Any
 
@@ -115,6 +115,9 @@ def _defaults(settings: Settings | None) -> Settings:
         camera_device_id="vk-cam-01",
         model_version="simulator-v1",
         score_window_s=60.0,
+        sensor_interval_s=30,
+        ai_interval_s=15,
+        score_persist_s=60.0,
     )
 
 
@@ -156,11 +159,13 @@ def cmd_scenarios(_: argparse.Namespace) -> int:
 
 def cmd_simulate(args: argparse.Namespace) -> int:
     from .pipeline import Pipeline
-    from .simulator import SCENARIOS, Simulator
+    from .simulator import SCENARIOS, Simulator, live_feed
 
     scenario = SCENARIOS[args.scenario]
     repo, settings = _connect(args.dry_run)
     s = _defaults(settings)
+    sensor_s = args.sensor_interval or s.sensor_interval_s
+    ai_s = args.ai_interval or s.ai_interval_s
     kitchen_id = repo.get_kitchen_id(s.kitchen_code)
     config = repo.get_active_config()
     pipeline = Pipeline(
@@ -171,8 +176,8 @@ def cmd_simulate(args: argparse.Namespace) -> int:
         camera_device_id=s.camera_device_id,
         model_version=s.model_version,
         window_s=s.score_window_s,
+        score_persist_s=s.score_persist_s,
     )
-    sim = Simulator(seed=args.seed)
 
     stopping = False
 
@@ -185,41 +190,42 @@ def cmd_simulate(args: argparse.Namespace) -> int:
     signal.signal(signal.SIGTERM, _stop)
 
     log.info(
-        "scenario %s — %s (%s, config %s%s)",
+        "scenario %s — %s (%s; sensor every %ds, AI every %ds, score stored every %.0fs; config %s%s)",
         scenario.name,
         scenario.title,
-        "looping" if args.loop else f"{scenario.duration_s / 60:.0f} min",
+        "looping until Ctrl+C" if args.loop else f"{scenario.duration_s / 60:.0f} min",
+        sensor_s,
+        ai_s,
+        s.score_persist_s,
         config.version,
         ", DRY RUN" if args.dry_run else "",
     )
-    speed = 0 if args.fast else 1
     started = time.monotonic()
-    sim_start = datetime.now(UTC)
-    tick = 0
+    feed = live_feed(
+        Simulator(seed=args.seed),
+        scenario,
+        datetime.now(UTC),
+        sensor_interval_s=sensor_s,
+        ai_interval_s=ai_s,
+        loop=args.loop,
+    )
     last_phase = ""
-    while not stopping:
-        tick += 1
-        elapsed = tick * args.tick
-        if not args.loop and elapsed > scenario.duration_s:
-            break
-        if speed:
-            delay = started + elapsed - time.monotonic()
+    for tick in feed:
+        if not args.fast:
+            delay = started + tick.elapsed_s - time.monotonic()
             if delay > 0:
                 time.sleep(delay)
-            if stopping:
-                break
-        now = sim_start + timedelta(seconds=elapsed)
-        phase = scenario.phase_at(elapsed % scenario.duration_s if args.loop else elapsed)
-        if phase.label != last_phase:
-            log.info("── phase: %s", phase.label)
-            last_phase = phase.label
-        readings, detections = sim.step(now, args.tick, phase)
+        if stopping:
+            break
+        if tick.phase.label != last_phase:
+            log.info("── phase: %s", tick.phase.label)
+            last_phase = tick.phase.label
         try:
-            outcome = pipeline.process(now, readings, detections)
+            outcome = pipeline.process(tick.now, tick.readings, tick.detections)
         except RepositoryError as exc:
-            log.error("tick %d not stored: %s", tick, exc)
+            log.error("evidence at t+%ds not stored: %s", tick.elapsed_s, exc)
             continue
-        log.info("t+%4.0fs  %s", elapsed, _fmt(outcome.result))
+        log.info("t+%4ds  %s", tick.elapsed_s, _fmt(outcome.result))
     log.info("done.")
     return 0
 
@@ -267,7 +273,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("simulate", help="run a scenario live")
     p.add_argument("--scenario", choices=sorted(SCENARIOS), default="baseline")
-    p.add_argument("--tick", type=float, default=10.0, help="seconds between evidence messages (default 10)")
+    p.add_argument("--sensor-interval", type=int, help="seconds between ESP32 readings (default from .env: 30)")
+    p.add_argument("--ai-interval", type=int, help="seconds between AI detections (default from .env: 15)")
     p.add_argument("--loop", action="store_true", help="repeat the scenario until stopped (Ctrl+C)")
     p.add_argument("--fast", action="store_true", help="do not wait in real time (testing)")
     p.add_argument("--seed", type=int, default=None)
