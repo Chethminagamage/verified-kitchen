@@ -1,176 +1,139 @@
-import type {
-  ViolationData,
+import { createClient } from "@/infrastructure/supabase/server";
+
+import {
+  PAGE_SIZE,
+  type AuditStatus,
+  type EvidenceSource,
+  type PillarId,
+  type TargetStatus,
+  type ViolationCounts,
+  type ViolationFilters,
+  type ViolationSeverity,
+  type ViolationStatus,
 } from "../model/violation.model";
 
+export interface ViolationRow {
+  id: string;
+  occurred_at: string;
+  pillar: PillarId;
+  source: EvidenceSource;
+  title: string;
+  description: string | null;
+  severity: ViolationSeverity;
+  status: ViolationStatus;
+  score_impact: number | null;
+  ai_confidence: number | null;
+  sensor_value: number | null;
+  sensor_unit: string | null;
+  acknowledged_by: string | null;
+  acknowledged_at: string | null;
+  resolved_at: string | null;
+  audit_records: { event_type: string; status: AuditStatus }[];
+}
+
+export type UpdateOutcome =
+  | { kind: "updated" }
+  | { kind: "not_found_or_forbidden" }
+  | { kind: "invalid_transition" }
+  | { kind: "error"; message: string };
+
+const STATUS_SETS: Record<ViolationFilters["status"], ViolationStatus[] | null> = {
+  open: ["active", "acknowledged"],
+  active: ["active"],
+  acknowledged: ["acknowledged"],
+  resolved: ["resolved"],
+  all: null,
+};
+
 export class ViolationRepository {
-  async getViolationData(): Promise<ViolationData> {
-    return {
-      kitchenName: "Verified Kitchen - Test Kitchen",
+  async list(
+    kitchenId: string,
+    filters: ViolationFilters
+  ): Promise<{ rows: ViolationRow[]; total: number }> {
+    const supabase = await createClient();
+    const from = (filters.page - 1) * PAGE_SIZE;
 
-      summary: {
-        total: 7,
-        active: 2,
-        resolved: 5,
-        highSeverity: 1,
-      },
+    let query = supabase
+      .from("violations")
+      .select(
+        `id, occurred_at, pillar, source, title, description, severity, status,
+         score_impact, ai_confidence, sensor_value, sensor_unit,
+         acknowledged_by, acknowledged_at, resolved_at,
+         audit_records ( event_type, status )`,
+        { count: "exact" }
+      )
+      .eq("kitchen_id", kitchenId);
 
-      violations: [
-        {
-          id: "VIO-001",
-          timestamp: "25 Aug 2026, 15:46",
+    const statuses = STATUS_SETS[filters.status];
+    if (statuses) query = query.in("status", statuses);
+    if (filters.severity) query = query.eq("severity", filters.severity);
+    if (filters.source) query = query.eq("source", filters.source);
+    if (filters.pillar) query = query.eq("pillar", filters.pillar);
 
-          pillar: "Personal Hygiene",
-          source: "AI",
+    const { data, error, count } = await query
+      .order("occurred_at", { ascending: false })
+      .order("id")
+      .range(from, from + PAGE_SIZE - 1);
 
-          title: "Gloves Missing",
+    if (error) {
+      // Asking for a page past the end is not an error for the user.
+      if (error.code === "PGRST103") return { rows: [], total: count ?? 0 };
+      throw new Error(`Could not load violations: ${error.message}`);
+    }
 
-          description:
-            "AI monitoring detected a food handler without required gloves.",
+    return { rows: data, total: count ?? data.length };
+  }
 
-          severity: "Medium",
-          status: "Active",
+  async counts(kitchenId: string): Promise<ViolationCounts> {
+    const supabase = await createClient();
 
-          scoreImpact: -8,
+    const count = async (
+      statuses: ViolationStatus[],
+      severities?: ViolationSeverity[]
+    ) => {
+      let q = supabase
+        .from("violations")
+        .select("id", { count: "exact", head: true })
+        .eq("kitchen_id", kitchenId)
+        .in("status", statuses);
 
-          confidence: 91,
+      if (severities) q = q.in("severity", severities);
 
-          blockchainStatus: "Pending",
-        },
-
-        {
-          id: "VIO-002",
-          timestamp: "25 Aug 2026, 15:42",
-
-          pillar: "Food Preparation Hygiene",
-          source: "AI",
-
-          title: "Food Spill Detected",
-
-          description:
-            "Food spill detected on the preparation surface.",
-
-          severity: "Medium",
-          status: "Active",
-
-          scoreImpact: -6,
-
-          confidence: 89,
-
-          blockchainStatus: "Pending",
-        },
-
-        {
-          id: "VIO-003",
-          timestamp: "25 Aug 2026, 13:15",
-
-          pillar: "Environmental Hygiene",
-          source: "Sensor",
-
-          title: "Refrigerator Temperature Warning",
-
-          description:
-            "Refrigerator temperature exceeded the configured monitoring range.",
-
-          severity: "High",
-          status: "Resolved",
-
-          scoreImpact: -12,
-
-          sensorValue: 8.1,
-          sensorUnit: "°C",
-
-          blockchainStatus: "Anchored",
-        },
-
-        {
-          id: "VIO-004",
-          timestamp: "25 Aug 2026, 11:22",
-
-          pillar: "Personal Hygiene",
-          source: "AI",
-
-          title: "Mask Non-Compliance",
-
-          description:
-            "Mask compliance was not detected during monitoring.",
-
-          severity: "Medium",
-          status: "Resolved",
-
-          scoreImpact: -7,
-
-          confidence: 87,
-
-          blockchainStatus: "Anchored",
-        },
-
-        {
-          id: "VIO-005",
-          timestamp: "25 Aug 2026, 10:08",
-
-          pillar: "Food Preparation Hygiene",
-          source: "AI",
-
-          title: "Dirty Surface Detected",
-
-          description:
-            "Preparation surface was classified as requiring attention.",
-
-          severity: "Medium",
-          status: "Resolved",
-
-          scoreImpact: -5,
-
-          confidence: 88,
-
-          blockchainStatus: "Anchored",
-        },
-
-        {
-          id: "VIO-006",
-          timestamp: "25 Aug 2026, 09:31",
-
-          pillar: "Environmental Hygiene",
-          source: "Sensor",
-
-          title: "Humidity Warning",
-
-          description:
-            "Kitchen humidity exceeded the configured monitoring range.",
-
-          severity: "Low",
-          status: "Resolved",
-
-          scoreImpact: -3,
-
-          sensorValue: 74,
-          sensorUnit: "%",
-
-          blockchainStatus: "Not Required",
-        },
-
-        {
-          id: "VIO-007",
-          timestamp: "24 Aug 2026, 18:47",
-
-          pillar: "Personal Hygiene",
-          source: "AI",
-
-          title: "Hairnet Non-Compliance",
-
-          description:
-            "Hairnet compliance was not detected.",
-
-          severity: "Low",
-          status: "Resolved",
-
-          scoreImpact: -4,
-
-          confidence: 84,
-
-          blockchainStatus: "Not Required",
-        },
-      ],
+      const { count: n, error } = await q;
+      if (error) throw new Error(`Could not count violations: ${error.message}`);
+      return n ?? 0;
     };
+
+    const [active, acknowledged, resolved, openHighSeverity] = await Promise.all([
+      count(["active"]),
+      count(["acknowledged"]),
+      count(["resolved"]),
+      count(["active", "acknowledged"], ["high", "critical"]),
+    ]);
+
+    return { active, acknowledged, resolved, openHighSeverity };
+  }
+
+  /**
+   * Requests a status change as the signed-in user. Row Level Security
+   * decides whether the user may change this row, and the workflow trigger
+   * rejects invalid transitions and records who acted and when.
+   */
+  async updateStatus(id: string, status: TargetStatus): Promise<UpdateOutcome> {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from("violations")
+      .update({ status })
+      .eq("id", id)
+      .select("id");
+
+    if (error) {
+      if (error.code === "23514") return { kind: "invalid_transition" };
+      if (error.code === "42501") return { kind: "not_found_or_forbidden" };
+      return { kind: "error", message: error.message };
+    }
+
+    return data.length === 0 ? { kind: "not_found_or_forbidden" } : { kind: "updated" };
   }
 }
