@@ -79,3 +79,23 @@ jobs:
       - uses: actions/checkout@v4
       - name: Apply migrations + seed and run assertions
         run: ./infrastructure/supabase/tests/run.sh
+
+  firmware:
+    name: ESP32 firmware
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: iot/esp32
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-${{ hashFiles('iot/esp32/platformio.ini') }}
+      - run: pip install platformio==6.2.0
+      - name: Use placeholder secrets (CI never needs real credentials)
+        run: cp include/secrets.example.h include/secrets.h
+      - run: pio run

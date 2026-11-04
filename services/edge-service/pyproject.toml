@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Verified Kitchen edge service: evidence ingestion, hygiene scoring, violations and audit writes"
 requires-python = ">=3.12,<3.14"
 dependencies = [
+    "paho-mqtt>=2.1",
     "pydantic>=2.14.2",
     "pydantic-settings>=2.16.2",
     "supabase>=2.34.0",

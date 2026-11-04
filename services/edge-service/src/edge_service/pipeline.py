@@ -84,6 +84,7 @@ class Pipeline:
         model_version: str,
         window_s: float,
         score_persist_s: float = 0.0,
+        report_env_device: bool = True,
     ) -> None:
         self._repo = repo
         self._kitchen_id = kitchen_id
@@ -94,6 +95,8 @@ class Pipeline:
         self._window_s = window_s
         self._score_persist_s = score_persist_s
         self._last_persisted: datetime | None = None
+        # False when a real ESP32 reports its own health over MQTT (EdgeRunner does it).
+        self._report_env_device = report_env_device
         self.window = EvidenceWindow(timedelta(seconds=window_s))
         self.engine = ViolationEngine(config.thresholds, window_s)
 
@@ -145,7 +148,7 @@ class Pipeline:
             for c in evaluation.new:
                 log.warning("VIOLATION [%s] %s — %s", c.severity.value, c.title, c.description)
 
-        if readings:
+        if readings and self._report_env_device:
             latest = max(readings, key=lambda r: r.device_ts)
             self._repo.touch_device(
                 self._env_device, now, {"rssi": latest.rssi, "sensors": latest.sensor_status, "seq": latest.seq}

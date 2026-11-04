@@ -52,6 +52,7 @@ class FakeRepository:
         self.scores: list[ScoreRow] = []
         self.violations: list[ViolationRow] = []
         self.devices: dict[str, dict[str, Any]] = {}
+        self.device_statuses: dict[str, dict[str, Any]] = {}
         self._next = 1
 
     def get_kitchen_id(self, code: str) -> str:
@@ -87,6 +88,12 @@ class FakeRepository:
 
     def touch_device(self, device_id: str, seen_at: datetime, status: dict[str, Any]) -> None:
         self.devices[device_id] = {"seen_at": seen_at, **status}
+
+    def set_device_status(self, device_id: str, status: dict[str, Any]) -> None:
+        self.device_statuses[device_id] = status
+
+    def list_devices(self, kitchen_id: str) -> dict[str, str]:
+        return {"vk-env-01": "env_node", "vk-cam-01": "camera"}
 
     def count_scores_between(self, kitchen_id: str, start: datetime, end: datetime) -> int:
         return sum(1 for s in self.scores if start <= s.computed_at <= end)

@@ -35,6 +35,12 @@ class Settings(BaseSettings):
     ai_interval_s: int = Field(default=15, ge=1)  # one aggregated detection per indicator
     score_persist_s: float = Field(default=60.0, ge=0)  # store at most one score per period
 
+    # Local MQTT broker (see infrastructure/mosquitto). Needed only for `edge-service run`.
+    mqtt_host: str = "127.0.0.1"
+    mqtt_port: int = Field(default=1883, ge=1, le=65535)
+    mqtt_username: str = "edge-service"
+    mqtt_password: SecretStr | None = None
+
     log_level: str = "INFO"
 
     @field_validator("supabase_url")

@@ -63,6 +63,8 @@ class Repository(Protocol):
     def open_violation_keys(self, kitchen_id: str) -> set[str]: ...
     def insert_violations(self, kitchen_id: str, rows: Sequence[ViolationRow]) -> None: ...
     def touch_device(self, device_id: str, seen_at: datetime, status: dict[str, Any]) -> None: ...
+    def set_device_status(self, device_id: str, status: dict[str, Any]) -> None: ...
+    def list_devices(self, kitchen_id: str) -> dict[str, str]: ...
     def count_scores_between(self, kitchen_id: str, start: datetime, end: datetime) -> int: ...
 
 
@@ -275,6 +277,26 @@ class SupabaseRepository:
             ),
             "update device status",
         )
+
+    def set_device_status(self, device_id: str, status: dict[str, Any]) -> None:
+        """Updates last_status without touching last_seen_at (e.g. the broker's 'offline' will)."""
+        with_retry(
+            lambda: (
+                self._db.table("devices")
+                .update({"last_status": status}, returning=_MINIMAL)
+                .eq("id", device_id)
+                .execute()
+            ),
+            "update device status",
+        )
+
+    def list_devices(self, kitchen_id: str) -> dict[str, str]:
+        """Registered devices of a kitchen: id -> type."""
+        res = with_retry(
+            lambda: self._db.table("devices").select("id, type").eq("kitchen_id", kitchen_id).execute(),
+            "load devices",
+        )
+        return {str(r["id"]): str(r["type"]) for r in _rows(res)}
 
     def count_scores_between(self, kitchen_id: str, start: datetime, end: datetime) -> int:
         res = with_retry(
