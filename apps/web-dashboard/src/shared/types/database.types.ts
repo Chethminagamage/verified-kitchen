@@ -260,6 +260,60 @@ export type Database = {
           },
         ]
       }
+      hygiene_scores_hourly: {
+        Row: {
+          bucket: string
+          environmental_n: number
+          environmental_sum: number
+          food_prep_n: number
+          food_prep_sum: number
+          kitchen_id: string
+          overall_sum: number
+          personal_n: number
+          personal_sum: number
+          samples: number
+        }
+        Insert: {
+          bucket: string
+          environmental_n?: number
+          environmental_sum?: number
+          food_prep_n?: number
+          food_prep_sum?: number
+          kitchen_id: string
+          overall_sum: number
+          personal_n?: number
+          personal_sum?: number
+          samples: number
+        }
+        Update: {
+          bucket?: string
+          environmental_n?: number
+          environmental_sum?: number
+          food_prep_n?: number
+          food_prep_sum?: number
+          kitchen_id?: string
+          overall_sum?: number
+          personal_n?: number
+          personal_sum?: number
+          samples?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hygiene_scores_hourly_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: false
+            referencedRelation: "kitchens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hygiene_scores_hourly_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: false
+            referencedRelation: "public_kitchen_scores"
+            referencedColumns: ["kitchen_id"]
+          },
+        ]
+      }
       kitchens: {
         Row: {
           code: string
@@ -629,6 +683,15 @@ export type Database = {
           overall_score: number
           personal_score: number
           samples: number
+        }[]
+      }
+      purge_old_evidence: {
+        Args: { p_keep?: string }
+        Returns: {
+          deleted_detections: number
+          deleted_readings: number
+          deleted_scores: number
+          rolled_up_rows: number
         }[]
       }
       sensor_reading_series: {
