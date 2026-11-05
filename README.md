@@ -100,17 +100,20 @@ npm install
 npm run dev                   # http://localhost:3000
 ```
 
-## Running continuously (edge computer)
+## Development session
 
-The broker and the edge service run as macOS background services. They start at login and restart if they stop:
+Start everything with one command when you begin working. **Ctrl+C stops it all**:
 
 ```bash
-infrastructure/macos/install-services.sh     # install, or update after code changes
-infrastructure/macos/uninstall-services.sh   # remove
-tail -f ~/Library/Logs/VerifiedKitchen/edge-service.log
+./dev.sh            # MQTT broker + edge service + website (http://localhost:3000)
+./dev.sh --no-web   # broker + edge service only
 ```
 
-`edge-service run` processes **real sensor data only**. Simulated camera evidence is added only with an explicit `--ai simulate` flag, for demos. Set the Mac to not sleep while monitoring (System Settings → Battery/Energy → *Prevent automatic sleeping*), because a sleeping Mac stops receiving data.
+In VS Code, use **Cmd+Shift+P → Tasks: Run Task → Verified Kitchen: start**. Then power on the ESP32; its readings appear within about 30 s. Logs from all three parts are shown in one terminal, each line labelled `mqtt`, `edge` or `web`.
+
+`edge-service run` processes **real sensor data only**. Simulated camera evidence is added only with an explicit `--ai simulate` flag, for demos.
+
+**Later (demo or deployment):** `infrastructure/macos/install-services.sh` installs the broker and edge service as macOS background services that run without a terminal and restart automatically. `uninstall-services.sh` removes them. This is not needed during development.
 
 ## Testing
 
