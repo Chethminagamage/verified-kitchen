@@ -25,6 +25,8 @@ MAX_AGE = timedelta(days=7)
 MAX_CLOCK_AHEAD = timedelta(minutes=2)
 # A live reading is published within seconds; older means the device clock is wrong.
 MAX_LIVE_DELAY = timedelta(minutes=2)
+# Indoor relative humidity below this is a corrupted BME280 read, not weather.
+MIN_PLAUSIBLE_HUMIDITY = 5.0
 
 
 class _Readings(BaseModel):
@@ -127,13 +129,21 @@ def parse_telemetry(topic: Topic, payload: bytes, received_at: datetime) -> Acce
 
     status: dict[str, Any] = dict(msg.sensors)
     status["time_source"] = msg.time_source if clock_trusted else "edge"
+    ambient, humidity, pressure = msg.readings.ambient_temp_c, msg.readings.humidity_pct, msg.readings.pressure_hpa
+    if msg.sensors.get("bme280") == "error" or ambient is None:
+        # One measurement: if the BME280 failed, none of its three values can be trusted.
+        ambient = humidity = pressure = None
+    elif humidity is not None and humidity < MIN_PLAUSIBLE_HUMIDITY:
+        # A corrupted read (seen on the real board as exactly 0 %); impossible indoors.
+        humidity = pressure = None
+        status["humidity_check"] = f"rejected: {msg.readings.humidity_pct} % is implausible"
     try:
         reading = SensorReading(
             device_ts=ts,
             seq=msg.seq,
-            ambient_temp_c=msg.readings.ambient_temp_c,
-            humidity_pct=msg.readings.humidity_pct,
-            pressure_hpa=msg.readings.pressure_hpa,
+            ambient_temp_c=ambient,
+            humidity_pct=humidity,
+            pressure_hpa=pressure,
             fridge_temp_c=msg.readings.fridge_temp_c,
             rssi=msg.rssi,
             sensor_status=status,

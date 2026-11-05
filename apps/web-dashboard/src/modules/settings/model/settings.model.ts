@@ -24,6 +24,7 @@ export interface SystemInformation {
   applicationVersion: string;
   aiModel: string;
   edgeDevice: string;
+  sensorNode: string;
   database: string;
   blockchainPlatform: string;
   lastSync: string;

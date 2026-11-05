@@ -23,10 +23,12 @@ export interface ViolationBreakdown {
 export interface EnvironmentalSummary {
   id: string;
   metric: string;
-  average: number;
-  minimum: number;
-  maximum: number;
+  average: number | null;
+  minimum: number | null;
+  maximum: number | null;
   unit: string;
+  decimals: number;
+  samples: number;
 }
 
 export interface ReportsData {

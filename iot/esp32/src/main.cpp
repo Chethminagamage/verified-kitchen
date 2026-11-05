@@ -157,19 +157,22 @@ static bool inRange(float v, float lo, float hi) { return !isnan(v) && v >= lo &
 
 static Reading readSensors() {
   Reading r;
-  if (bmeOk && bme.takeForcedMeasurement()) {
+  // A corrupted SPI read (noise or a loose jumper) can return NaN or an impossible
+  // humidity such as 0 %. Retry once before reporting the sensor as failed.
+  for (int attempt = 0; attempt < 2 && bmeOk && !r.bme; attempt++) {
+    if (attempt > 0) delay(50);
+    if (!bme.takeForcedMeasurement()) continue;
     r.ambient = bme.readTemperature();
     r.humidity = bme.readHumidity();
     r.pressure = bme.readPressure() / 100.0f;
     if (!inRange(r.ambient, -40, 85)) r.ambient = NAN;
-    if (!inRange(r.humidity, 0, 100)) r.humidity = NAN;
+    if (!inRange(r.humidity, 5, 100)) r.humidity = NAN;  // < 5 % is impossible indoors
     if (!inRange(r.pressure, 300, 1100)) r.pressure = NAN;
     r.bme = !isnan(r.ambient) && !isnan(r.humidity);
-    if (!r.bme) {
-      // One bad field means the whole measurement is suspect (e.g. a brown-out
-      // while hot-plugging returned temperature NaN but humidity 0 %).
-      r.ambient = r.humidity = r.pressure = NAN;
-    }
+  }
+  if (!r.bme) {
+    // One bad field means the whole measurement is suspect.
+    r.ambient = r.humidity = r.pressure = NAN;
   }
   if (!r.bme) bmeOk = false;  // re-initialised on the retry timer
 

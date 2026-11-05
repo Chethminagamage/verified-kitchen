@@ -1,4 +1,11 @@
+import { createClient } from "@/infrastructure/supabase/server";
+import {
+  METRICS,
+  combineStats,
+} from "@/modules/environment/model/environment.model";
+
 import type {
+  EnvironmentalSummary,
   ReportsData,
 } from "../model/reports.model";
 
@@ -77,32 +84,51 @@ export class ReportsRepository {
         },
       ],
 
-      environmentalSummary: [
-        {
-          id: "temperature",
-          metric: "Kitchen Temperature",
-          average: 26.8,
-          minimum: 24.9,
-          maximum: 29.2,
-          unit: "°C",
-        },
-        {
-          id: "humidity",
-          metric: "Humidity",
-          average: 60.7,
-          minimum: 54,
-          maximum: 68,
-          unit: "%",
-        },
-        {
-          id: "refrigerator",
-          metric: "Refrigerator Temperature",
-          average: 4.1,
-          minimum: 3.4,
-          maximum: 6.2,
-          unit: "°C",
-        },
-      ],
+      // Filled from real ESP32 readings by ReportsService.
+      environmentalSummary: [],
     };
+  }
+
+  /** Average / min / max of the real ESP32 readings over a period. */
+  async environmentalSummary(
+    kitchenId: string,
+    from: Date,
+    to: Date
+  ): Promise<EnvironmentalSummary[]> {
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("sensor_reading_series", {
+      p_kitchen: kitchenId,
+      p_from: from.toISOString(),
+      p_to: to.toISOString(),
+      p_bucket: "1 hour",
+    });
+
+    if (error) {
+      throw new Error(`Could not load environmental summary: ${error.message}`);
+    }
+
+    const key = { ambient_temp_c: "ambient", humidity_pct: "humidity", fridge_temp_c: "fridge" } as const;
+
+    return METRICS.map((m) => {
+      const k = key[m.id];
+      const stats = combineStats(
+        data.map((b) => ({
+          min: b[`${k}_min`] ?? null,
+          avg: b[`${k}_avg`] ?? null,
+          max: b[`${k}_max`] ?? null,
+          samples: Number(b.samples),
+        }))
+      );
+      return {
+        id: m.id,
+        metric: m.name,
+        average: stats?.avg ?? null,
+        minimum: stats?.min ?? null,
+        maximum: stats?.max ?? null,
+        unit: m.unit,
+        decimals: m.decimals,
+        samples: data.reduce((n, b) => n + Number(b.samples), 0),
+      };
+    });
   }
 }

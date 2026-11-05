@@ -82,6 +82,25 @@ def test_sentinel_or_impossible_values_are_rejected(value: float) -> None:
     assert "invalid reading" in rejected(telemetry(readings={"fridge_temp_c": value}))
 
 
+def test_zero_humidity_is_rejected_as_a_corrupted_read() -> None:
+    # Seen on the real board: temperature fine, humidity exactly 0 %.
+    r = accepted(telemetry(readings={"ambient_temp_c": 28.54, "humidity_pct": 0, "pressure_hpa": 963.0}))
+    assert r.reading.ambient_temp_c == 28.54
+    assert r.reading.humidity_pct is None and r.reading.pressure_hpa is None
+    assert "implausible" in r.reading.sensor_status["humidity_check"]
+
+
+def test_failed_bme280_blanks_all_its_values() -> None:
+    # Seen when hot-plugging the probe: temperature null but humidity 0 still sent.
+    r = accepted(
+        telemetry(
+            readings={"ambient_temp_c": None, "humidity_pct": 0, "pressure_hpa": 963.0},
+            sensors={"bme280": "error", "ds18b20": "ok"},
+        )
+    )
+    assert (r.reading.ambient_temp_c, r.reading.humidity_pct, r.reading.pressure_hpa) == (None, None, None)
+
+
 def test_untrusted_clock_uses_arrival_time() -> None:
     r = accepted(telemetry(time_source="none", ts="2000-01-01T00:00:00Z"))
     assert not r.clock_trusted

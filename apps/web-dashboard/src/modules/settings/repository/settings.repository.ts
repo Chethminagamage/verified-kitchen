@@ -1,40 +1,63 @@
-import type {
-  SettingsData,
-} from "../model/settings.model";
+import { createClient } from "@/infrastructure/supabase/server";
+import type { Json } from "@/shared/types/database.types";
+
+export interface DeviceRow {
+  id: string;
+  type: "env_node" | "camera";
+  name: string;
+  last_seen_at: string | null;
+  last_status: Json | null;
+}
+
+function fail(what: string, message: string): never {
+  throw new Error(`Could not load ${what}: ${message}`);
+}
 
 export class SettingsRepository {
-  async getSettingsData(): Promise<SettingsData> {
-    return {
-      kitchenProfile: {
-        kitchenId: "KITCHEN-001",
-        kitchenName: "Verified Kitchen - Test Kitchen",
-        location: "Kandy, Sri Lanka",
-        operatorName: "Kitchen Operator",
-      },
+  async devices(kitchenId: string): Promise<DeviceRow[]> {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("devices")
+      .select("id, type, name, last_seen_at, last_status")
+      .eq("kitchen_id", kitchenId)
+      .order("id");
+    if (error) fail("devices", error.message);
+    return data;
+  }
 
-      monitoring: {
-        aiMonitoringEnabled: true,
-        environmentalMonitoringEnabled: true,
-        auditLoggingEnabled: true,
-        scoreRefreshInterval: "Real-time",
-        privacyMode: "Edge processing enabled",
-      },
+  async latestReadingAt(kitchenId: string): Promise<string | null> {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("sensor_readings")
+      .select("device_ts")
+      .eq("kitchen_id", kitchenId)
+      .order("device_ts", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) fail("latest reading", error.message);
+    return data?.device_ts ?? null;
+  }
 
-      notifications: {
-        violationAlerts: true,
-        criticalAlerts: true,
-        sensorWarnings: true,
-        dailySummary: false,
-      },
+  async pendingAuditRecords(kitchenId: string): Promise<number> {
+    const supabase = await createClient();
+    const { count, error } = await supabase
+      .from("audit_records")
+      .select("id", { count: "exact", head: true })
+      .eq("kitchen_id", kitchenId)
+      .eq("status", "pending");
+    if (error) fail("audit records", error.message);
+    return count ?? 0;
+  }
 
-      system: {
-        applicationVersion: "0.1.0 Prototype",
-        aiModel: "YOLOv8n",
-        edgeDevice: "Local Edge Laptop",
-        database: "PostgreSQL / Supabase",
-        blockchainPlatform: "Hyperledger Fabric",
-        lastSync: "Development mode",
-      },
-    };
+  async activeConfigVersion(): Promise<string | null> {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("scoring_configs")
+      .select("version")
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle();
+    if (error) fail("scoring config", error.message);
+    return data?.version ?? null;
   }
 }

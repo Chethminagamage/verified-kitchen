@@ -17,8 +17,8 @@ export default function EnvironmentalSummaryTable({
         </h3>
 
         <p className="mt-1 text-sm text-slate-500">
-          Environmental monitoring statistics for the
-          selected reporting period.
+          Real ESP32 readings over the last 7 days
+          {data[0] && ` (${data[0].samples.toLocaleString("en-GB")} readings)`}.
         </p>
       </div>
 
@@ -54,19 +54,16 @@ export default function EnvironmentalSummaryTable({
                   {item.metric}
                 </td>
 
-                <td className="px-6 py-4">
-                  {item.average}
-                  {item.unit}
+                <td className="px-6 py-4 tabular-nums">
+                  {item.average === null ? "—" : `${item.average.toFixed(item.decimals)} ${item.unit}`}
                 </td>
 
-                <td className="px-6 py-4">
-                  {item.minimum}
-                  {item.unit}
+                <td className="px-6 py-4 tabular-nums">
+                  {item.minimum === null ? "—" : `${item.minimum.toFixed(item.decimals)} ${item.unit}`}
                 </td>
 
-                <td className="px-6 py-4">
-                  {item.maximum}
-                  {item.unit}
+                <td className="px-6 py-4 tabular-nums">
+                  {item.maximum === null ? "—" : `${item.maximum.toFixed(item.decimals)} ${item.unit}`}
                 </td>
               </tr>
             ))}

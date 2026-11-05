@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
-import { getHygieneMonitoringData } from "@/modules/hygiene/controller/hygiene.controller";
+import { getCurrentSession } from "@/modules/auth/controller/auth.query";
+import { getHygienePage } from "@/modules/hygiene/controller/hygiene.controller";
 import HygieneMonitoringView from "@/modules/hygiene/view/HygieneMonitoringView";
 
 export const metadata: Metadata = {
@@ -8,7 +9,15 @@ export const metadata: Metadata = {
 };
 
 export default async function HygieneMonitoringPage() {
-  const data = await getHygieneMonitoringData();
+  const session = await getCurrentSession();
+  const kitchen = session?.kitchen;
 
-  return <HygieneMonitoringView data={data} />;
+  // The layout handles signed-out users and users without a kitchen.
+  if (!kitchen) {
+    return null;
+  }
+
+  const data = await getHygienePage(kitchen);
+
+  return <HygieneMonitoringView data={data} kitchenId={kitchen.id} />;
 }
