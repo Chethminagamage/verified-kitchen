@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { metricStatus, missingPillars } from "@/modules/dashboard/model/metric-status";
 import { scoreBand } from "@/modules/dashboard/model/score-band";
-import { connectionState, isDeviceOnline } from "@/modules/system-status/model/connection";
+import { connectionState, installedDevices, isDeviceOnline } from "@/modules/system-status/model/connection";
 
 describe("scoreBand", () => {
   it.each([
@@ -62,6 +62,17 @@ describe("device status", () => {
     expect(isDeviceOnline(device("2026-11-04T09:58:30Z"), now)).toBe(true);
     expect(isDeviceOnline(device("2026-11-04T09:57:59Z"), now)).toBe(false);
     expect(isDeviceOnline(device(null), now)).toBe(false);
+  });
+
+  it("is offline at once when the broker reports the device's last will", () => {
+    expect(isDeviceOnline({ ...device("2026-11-04T09:59:50Z"), reportedOffline: true }, now)).toBe(false);
+  });
+
+  it("ignores devices that have never reported (not installed yet)", () => {
+    const devices = [device("2026-11-04T09:59:50Z"), { ...device(null), id: "camera" }];
+    const installed = installedDevices(devices);
+    expect(installed).toHaveLength(1);
+    expect(connectionState(installed.filter((d) => isDeviceOnline(d, now)).length, installed.length)).toBe("online");
   });
 
   it("summarises devices into online / degraded / offline", () => {

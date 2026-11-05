@@ -1,4 +1,4 @@
-import { connectionState, isDeviceOnline } from "../model/connection";
+import { connectionState, installedDevices, isDeviceOnline } from "../model/connection";
 import type { SystemStatus } from "../model/system-status.model";
 import { SystemStatusRepository } from "../repository/system-status.repository";
 
@@ -17,17 +17,18 @@ export class SystemStatusService {
       ]);
 
     const now = Date.now();
-    const onlineDevices = devices.filter((device) =>
+    const installed = installedDevices(devices);
+    const onlineDevices = installed.filter((device) =>
       isDeviceOnline(device, now)
     ).length;
 
     return {
       state: connectionState(
         onlineDevices,
-        devices.length
+        installed.length
       ),
       onlineDevices,
-      totalDevices: devices.length,
+      totalDevices: installed.length,
       activeViolations,
     };
   }

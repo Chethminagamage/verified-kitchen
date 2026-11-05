@@ -8,7 +8,7 @@ export function isDeviceOnline(
   device: DeviceHeartbeat,
   now: number
 ): boolean {
-  if (!device.lastSeenAt) {
+  if (!device.lastSeenAt || device.reportedOffline) {
     return false;
   }
 
@@ -27,4 +27,13 @@ export function connectionState(
   }
 
   return online > 0 ? "degraded" : "offline";
+}
+
+/**
+ * Devices that have reported at least once. A device that has never sent
+ * anything (e.g. a camera not installed yet) is "not installed", not "offline",
+ * and must not make the system look degraded.
+ */
+export function installedDevices<T extends DeviceHeartbeat>(devices: T[]): T[] {
+  return devices.filter((d) => d.lastSeenAt !== null);
 }

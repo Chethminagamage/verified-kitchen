@@ -29,7 +29,7 @@ export default function HygieneScoreTrendChart({
         </h3>
 
         <p className="mt-1 text-sm text-slate-500">
-          Historical overall hygiene score.
+          Overall hygiene score, 6-hour averages. Gaps mean no scores were recorded.
         </p>
       </div>
 
@@ -75,7 +75,7 @@ export default function HygieneScoreTrendChart({
 
             <Tooltip
               formatter={(value) => [
-                `${value}/100`,
+                value === null || value === undefined ? "No data" : `${value}/100`,
                 "Hygiene Score",
               ]}
               contentStyle={{
@@ -87,6 +87,7 @@ export default function HygieneScoreTrendChart({
             <Line
               type="monotone"
               dataKey="score"
+              connectNulls={false}
               stroke="#10b981"
               strokeWidth={3}
               dot={{

@@ -35,6 +35,16 @@ export default function AIMonitoringView({
         </p>
       </div>
 
+      <p
+        role="note"
+        className="mb-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+      >
+        <strong>Design preview, sample data only.</strong> The camera and YOLO service are not
+        connected yet, so nothing on this page comes from a real camera. Real AI evidence will
+        replace this preview when the AI layer is built; until then the hygiene score uses the
+        environmental pillar only.
+      </p>
+
       <div className="grid gap-6 xl:grid-cols-[1fr_2fr]">
         <AISystemStatusCard system={data.system} />
 

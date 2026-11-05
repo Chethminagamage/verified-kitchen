@@ -8,6 +8,8 @@ export interface DeviceHeartbeat {
   name: string;
   type: "env_node" | "camera";
   lastSeenAt: string | null;
+  /** The broker published the device's last will ("offline"). */
+  reportedOffline?: boolean;
 }
 
 export interface SystemStatus {

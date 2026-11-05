@@ -43,6 +43,10 @@ export class SettingsService {
       this.repository.activeConfigVersion(),
     ]);
     const t = now.getTime();
+    const camera = devices.find((d) => d.type === "camera");
+    const node = devices.find((d) => d.type === "env_node");
+    const online = (row: DeviceRow | undefined) =>
+      !!row && status(row).state !== "offline" && isDeviceOnline({ ...row, lastSeenAt: row.last_seen_at }, t);
 
     return {
       kitchenProfile: {
@@ -51,14 +55,15 @@ export class SettingsService {
         location: kitchen.location ?? "—",
         operatorName: session.fullName ?? session.email,
       },
-      // Monitoring and notification preferences are not stored yet (UI only).
+      // Reflects what is actually running, not a stored preference.
       monitoring: {
-        aiMonitoringEnabled: true,
-        environmentalMonitoringEnabled: true,
+        aiMonitoringEnabled: online(camera),
+        environmentalMonitoringEnabled: online(node),
         auditLoggingEnabled: true,
         scoreRefreshInterval: `Live · scoring config ${configVersion ?? "—"}`,
         privacyMode: "Edge processing; no video stored",
       },
+      // Notifications are not delivered yet; the UI shows these as planned defaults.
       notifications: {
         violationAlerts: true,
         criticalAlerts: true,
@@ -67,9 +72,9 @@ export class SettingsService {
       },
       system: {
         applicationVersion: `${packageJson.version} (prototype)`,
-        aiModel: describeCamera(devices.find((d) => d.type === "camera"), t),
+        aiModel: describeCamera(camera, t),
         edgeDevice: "MacBook Air M1 · edge service + Mosquitto MQTT broker",
-        sensorNode: describeNode(devices.find((d) => d.type === "env_node"), t),
+        sensorNode: describeNode(node, t),
         database: "PostgreSQL (Supabase) · Row Level Security",
         blockchainPlatform: `Hyperledger Fabric · not connected yet (${pending} audit record${pending === 1 ? "" : "s"} waiting to be anchored)`,
         lastSync: lastReading

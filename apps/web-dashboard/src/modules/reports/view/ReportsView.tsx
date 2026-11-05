@@ -55,30 +55,30 @@ export default function ReportsView({
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <ReportSummaryCard
           title="Average Hygiene Score"
-          value={`${data.summary.averageHygieneScore}/100`}
+          value={data.summary.averageHygieneScore === null ? "—" : `${data.summary.averageHygieneScore}/100`}
           icon={ChartNoAxesCombined}
-          description="Average overall hygiene score during the selected period."
+          description={`Mean of ${data.summary.scoredSamples.toLocaleString("en-GB")} stored scores (one per minute) in the period.`}
         />
 
         <ReportSummaryCard
           title="Compliance Rate"
-          value={`${data.summary.complianceRate}%`}
+          value={data.summary.complianceRate === null ? "—" : `${data.summary.complianceRate}%`}
           icon={CircleCheckBig}
-          description="Overall proportion of compliant monitoring outcomes."
+          description="Share of scored minutes rated Good or better (score 75 or above)."
         />
 
         <ReportSummaryCard
           title="Total Violations"
           value={`${data.summary.totalViolations}`}
           icon={TriangleAlert}
-          description="Total recorded hygiene violations during the reporting period."
+          description="Violations raised by the edge service during the period."
         />
 
         <ReportSummaryCard
           title="Verified Audit Records"
           value={`${data.summary.verifiedAuditRecords}`}
           icon={ShieldCheck}
-          description="Important events confirmed by the audit layer."
+          description={`Audit records anchored on Hyperledger Fabric (${data.summary.pendingAuditRecords} waiting; anchoring not connected yet).`}
         />
       </section>
 

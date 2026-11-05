@@ -452,9 +452,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("run", help="process real ESP32 telemetry from MQTT (the production service)")
     p.add_argument(
         "--ai",
-        choices=["simulate", "none"],
-        default="simulate",
-        help="AI evidence source until the camera service exists (default: simulate)",
+        choices=["none", "simulate"],
+        default="none",
+        help="AI evidence: 'none' = real sensors only (default); 'simulate' = add simulated camera "
+        "evidence for demos only, never during real operation",
     )
     p.add_argument("--ai-scenario", choices=sorted(SCENARIOS), default="baseline")
     p.add_argument("--seed", type=int, default=None)

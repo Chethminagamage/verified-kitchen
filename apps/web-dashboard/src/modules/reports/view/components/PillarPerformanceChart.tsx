@@ -29,7 +29,7 @@ export default function PillarPerformanceChart({
         </h3>
 
         <p className="mt-1 text-sm text-slate-500">
-          Average performance of the three hygiene pillars.
+          Average pillar scores over the period. A pillar without evidence has no bar.
         </p>
       </div>
 
@@ -75,7 +75,7 @@ export default function PillarPerformanceChart({
 
             <Tooltip
               formatter={(value) => [
-                `${value}%`,
+                value === null || value === undefined ? "No evidence" : `${value}%`,
                 "Average Score",
               ]}
             />

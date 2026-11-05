@@ -45,10 +45,10 @@ Only detection metadata leaves the edge device. **No video or images are stored 
 
 | Path | What it is | Status |
 |---|---|---|
-| `apps/web-dashboard` | Next.js 16 operator dashboard (TypeScript, Tailwind, Recharts) | Overview and Violations on live data; other pages in progress |
-| `services/edge-service` | Python 3.13 scoring engine, violation rules, Supabase writer, simulator | Working with the simulator; MQTT and camera inputs next |
-| `infrastructure/supabase` | SQL migrations, seed, database test suite | 4 migrations, 24 database assertions |
-| `iot/esp32` | ESP32 firmware (BME280 + DS18B20 → MQTT) | Planned |
+| `apps/web-dashboard` | Next.js 16 operator dashboard (TypeScript, Tailwind, Recharts) | All pages on live data except AI Monitoring (preview until the camera layer exists) |
+| `services/edge-service` | Python 3.13 MQTT ingestion, scoring engine, violation rules, Supabase writer, simulator | Live with the real ESP32; camera input next |
+| `infrastructure/supabase` | SQL migrations, seed, maintenance scripts, database test suite | 5 migrations, 28 database assertions |
+| `iot/esp32` | ESP32 firmware (BME280 + DS18B20 + PCF8563 → MQTT) | Live (firmware 1.0.1) |
 | `services/blockchain` | Hyperledger Fabric anchoring | Planned |
 | `apps/mobile-app` | Flutter consumer app | Planned |
 | `docs/` | Architecture, database, API and testing notes | — |
@@ -65,7 +65,8 @@ Run these in order, each one once:
 2. `infrastructure/supabase/migrations/20261104010000_violation_workflow_and_audit.sql`
 3. `infrastructure/supabase/migrations/20261104020000_score_series.sql`
 4. `infrastructure/supabase/migrations/20261104030000_evidence_retention.sql`
-5. `infrastructure/supabase/seed.sql`
+5. `infrastructure/supabase/migrations/20261105000000_sensor_series.sql`
+6. `infrastructure/supabase/seed.sql`
 
 Then create a user under **Authentication → Users** and give it admin access to the kitchen:
 
@@ -98,6 +99,18 @@ cp .env.example .env.local    # NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_
 npm install
 npm run dev                   # http://localhost:3000
 ```
+
+## Running continuously (edge computer)
+
+The broker and the edge service run as macOS background services. They start at login and restart if they stop:
+
+```bash
+infrastructure/macos/install-services.sh     # install, or update after code changes
+infrastructure/macos/uninstall-services.sh   # remove
+tail -f ~/Library/Logs/VerifiedKitchen/edge-service.log
+```
+
+`edge-service run` processes **real sensor data only**. Simulated camera evidence is added only with an explicit `--ai simulate` flag, for demos. Set the Mac to not sleep while monitoring (System Settings → Battery/Energy → *Prevent automatic sleeping*), because a sleeping Mac stops receiving data.
 
 ## Testing
 

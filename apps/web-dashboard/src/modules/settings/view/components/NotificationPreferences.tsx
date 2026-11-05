@@ -57,7 +57,10 @@ function ToggleRow({
         role="switch"
         aria-checked={enabled}
         onClick={onChange}
-        className={`relative h-6 w-11 shrink-0 rounded-full transition ${
+        // Notifications are not delivered yet: switches show the planned defaults only.
+        disabled
+        title="Notifications are not available yet"
+        className={`relative h-6 w-11 shrink-0 cursor-not-allowed rounded-full opacity-60 transition ${
           enabled
             ? "bg-emerald-500"
             : "bg-slate-300"
@@ -98,8 +101,10 @@ export default function NotificationPreferences({
         </h3>
 
         <p className="mt-1 text-sm text-slate-500">
-          Configure which monitoring events should generate
-          notifications.
+          Notifications are not sent yet. The switches show the
+          planned defaults and cannot be changed until delivery
+          (e.g. e-mail or SMS) is implemented. Alerts are visible
+          on the Violations page and the header bell.
         </p>
       </div>
 

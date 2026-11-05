@@ -1,42 +1,26 @@
-import {
-  CircleCheck,
-  Clock3,
-  CircleX,
-} from "lucide-react";
+import { CircleCheck, CircleX, Clock3, type LucideIcon } from "lucide-react";
 
-import type {
-  AuditVerificationStatus,
-} from "../../model/audit.model";
+import { AUDIT_STATUS_LABELS, type AuditStatus } from "../../model/audit.model";
+
+const STYLES: Record<AuditStatus, { className: string; icon: LucideIcon }> = {
+  verified: { className: "bg-emerald-50 text-emerald-700", icon: CircleCheck },
+  pending: { className: "bg-amber-50 text-amber-700", icon: Clock3 },
+  failed: { className: "bg-red-50 text-red-700", icon: CircleX },
+};
 
 interface VerificationBadgeProps {
-  status: AuditVerificationStatus;
+  status: AuditStatus;
 }
 
-export default function VerificationBadge({
-  status,
-}: VerificationBadgeProps) {
-  if (status === "Verified") {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-        <CircleCheck className="h-4 w-4" />
-        Verified
-      </span>
-    );
-  }
-
-  if (status === "Pending") {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
-        <Clock3 className="h-4 w-4" />
-        Pending
-      </span>
-    );
-  }
-
+export default function VerificationBadge({ status }: VerificationBadgeProps) {
+  const style = STYLES[status];
+  const Icon = style.icon;
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">
-      <CircleX className="h-4 w-4" />
-      Failed
+    <span
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${style.className}`}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {AUDIT_STATUS_LABELS[status]}
     </span>
   );
 }

@@ -10,7 +10,7 @@ export class SystemStatusRepository {
 
     const { data, error } = await supabase
       .from("devices")
-      .select("id, name, type, last_seen_at")
+      .select("id, name, type, last_seen_at, last_status")
       .eq("kitchen_id", kitchenId);
 
     if (error) {
@@ -24,6 +24,11 @@ export class SystemStatusRepository {
       name: device.name,
       type: device.type,
       lastSeenAt: device.last_seen_at,
+      reportedOffline:
+        typeof device.last_status === "object" &&
+        device.last_status !== null &&
+        !Array.isArray(device.last_status) &&
+        device.last_status.state === "offline",
     }));
   }
 
