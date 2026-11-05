@@ -95,13 +95,19 @@ def test_device_clock_far_ahead_is_not_trusted() -> None:
     assert not r.clock_trusted and r.reading.device_ts == NOW
 
 
+def test_live_reading_with_clock_far_behind_is_not_trusted() -> None:
+    # e.g. an RTC left on a test sketch's compile time (local time, hours off)
+    r = accepted(telemetry(ts="2026-11-03T11:20:00Z", buffered=False))
+    assert not r.clock_trusted and r.reading.device_ts == NOW
+
+
 def test_buffered_reading_keeps_its_original_time() -> None:
     r = accepted(telemetry(ts="2026-11-04T02:00:00Z", buffered=True))
     assert r.buffered and r.reading.device_ts.hour == 2
 
 
 def test_too_old_reading_is_dropped() -> None:
-    assert "older than" in rejected(telemetry(ts="2026-10-20T00:00:00Z"))
+    assert "older than" in rejected(telemetry(ts="2026-10-20T00:00:00Z", buffered=True))
 
 
 @pytest.mark.parametrize(
@@ -214,3 +220,18 @@ def test_runner_keeps_readings_when_supabase_is_down(config: ScoringConfig) -> N
     later = telemetry(seq=1843, ts="2026-11-04T08:35:30Z")
     runner.handle(_inbound("vk/kitchen-001/vk-env-01/telemetry", later, NOW + timedelta(seconds=30)))
     assert len(repo.readings) == 2 and len(runner._retry) == 0
+
+
+def test_counter_jump_after_reboot_is_not_counted_as_loss(config: ScoringConfig) -> None:
+    runner, _ = _runner(config)
+    t1 = NOW.replace(minute=30, second=0)
+    runner.handle(
+        _inbound("vk/kitchen-001/vk-env-01/telemetry", telemetry(seq=183, ts=t1.strftime("%Y-%m-%dT%H:%M:%SZ")), t1)
+    )
+    boot = b'{"v":1,"device_id":"vk-env-01","state":"online","uptime_s":16,"reset_reason":"poweron"}'
+    runner.handle(_inbound("vk/kitchen-001/vk-env-01/status", boot, t1 + timedelta(seconds=40)))
+    t2 = t1 + timedelta(seconds=60)
+    runner.handle(
+        _inbound("vk/kitchen-001/vk-env-01/telemetry", telemetry(seq=202, ts=t2.strftime("%Y-%m-%dT%H:%M:%SZ")), t2)
+    )
+    assert runner.stats.missing_seq == 0

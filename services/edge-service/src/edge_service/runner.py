@@ -29,6 +29,7 @@ log = logging.getLogger(__name__)
 
 MAX_RETRY_BACKLOG = 2_000  # readings kept in memory while Supabase is unreachable
 SUMMARY_EVERY = timedelta(minutes=5)
+FRESH_BOOT_S = 120  # a status with less uptime than this follows a reboot
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,6 +105,10 @@ class EdgeRunner:
         if isinstance(status, Rejected):
             self._reject(status.reason)
             return
+        uptime = status.get("uptime_s")
+        if isinstance(uptime, int) and uptime < FRESH_BOOT_S:
+            # The firmware skips its counter ahead after a reboot; that jump is not data loss.
+            self._last_seq.pop(topic.device, None)
         state = {**self._device_state.get(topic.device, {}), **status}
         self._device_state[topic.device] = state
         try:

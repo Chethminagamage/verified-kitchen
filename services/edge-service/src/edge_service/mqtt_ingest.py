@@ -23,6 +23,8 @@ _ID = re.compile(r"^[a-z0-9-]{1,32}$")
 MAX_AGE = timedelta(days=7)
 # A device clock this far ahead of the edge computer is not trusted.
 MAX_CLOCK_AHEAD = timedelta(minutes=2)
+# A live reading is published within seconds; older means the device clock is wrong.
+MAX_LIVE_DELAY = timedelta(minutes=2)
 
 
 class _Readings(BaseModel):
@@ -116,6 +118,9 @@ def parse_telemetry(topic: Topic, payload: bytes, received_at: datetime) -> Acce
     ts = msg.ts.astimezone(UTC) if (clock_trusted and msg.ts) else received_at
     if ts > received_at + MAX_CLOCK_AHEAD:
         # Device clock is ahead (bad RTC): fall back to the arrival time.
+        ts, clock_trusted = received_at, False
+    elif not msg.buffered and received_at - ts > MAX_LIVE_DELAY:
+        # A live (not re-sent) reading cannot be this old: the device clock is behind.
         ts, clock_trusted = received_at, False
     if received_at - ts > MAX_AGE:
         return Rejected(f"reading from {ts.isoformat()} is older than the {MAX_AGE.days}-day retention")

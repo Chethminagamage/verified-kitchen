@@ -70,11 +70,21 @@ static const char *timeSourceName() {
 
 static void onNtpSync(struct timeval *) { ntpJustSynced = true; }
 
+// The RTC is trusted only after NTP has set it at least once (flag in NVS).
+// An RTC set by other means (e.g. a test sketch's compile time) is not UTC.
+static bool rtcVerified = false;
+
 static void loadTimeFromRtc() {
   if (!rtcOk) return;
   if (rtc.lostPower()) {
     // Backup power failed: the RTC time is meaningless until NTP corrects it.
+    prefs.putBool("rtc_ntp", false);
     Serial.println("[time] RTC lost power; waiting for NTP");
+    return;
+  }
+  rtcVerified = prefs.getBool("rtc_ntp", false);
+  if (!rtcVerified) {
+    Serial.println("[time] RTC not yet verified by NTP; not trusting it");
     return;
   }
   const DateTime t = rtc.now();
@@ -94,6 +104,8 @@ static void handleNtpSync() {
   if (rtcOk) {
     rtc.adjust(DateTime((uint32_t)now));  // RTC stores UTC; also clears the "lost power" flag
     rtc.start();
+    if (!rtcVerified) prefs.putBool("rtc_ntp", true);
+    rtcVerified = true;
   }
   Serial.printf("[time] NTP sync OK (%ld); RTC updated\n", (long)now);
 }
@@ -236,6 +248,13 @@ static void initBuffer() {
   if (!any) {
     bufHead = bufTail = 0;
   }
+  if (any && !prefs.getBool("rtc_ntp", false)) {
+    // Readings buffered before the clock was ever verified carry untrusted times.
+    for (uint32_t n = bufHead; n <= bufTail; n++) LittleFS.remove(chunkPath(n));
+    Serial.println("[buffer] discarded readings timed by an unverified clock");
+    any = false;
+    bufHead = bufTail = 0;
+  }
   bufferedCount = 0;
   for (uint32_t n = bufHead; any && n <= bufTail; n++) bufferedCount += countLines(chunkPath(n));
   tailLines = any ? countLines(chunkPath(bufTail)) : 0;
@@ -262,6 +281,74 @@ static void bufferAppend(const String &json) {
     bufHead++;
     Serial.println("[buffer] full: dropped the oldest hour");
   }
+}
+
+// ---------------------------------------------------------------------
+// Wi-Fi diagnostics
+// ---------------------------------------------------------------------
+static volatile bool scanWanted = false;
+static uint32_t lastScan = 0;
+static uint8_t lastReason = 0;
+static uint32_t lastReasonLog = 0;
+
+static const char *wifiReason(uint8_t reason) {
+  switch (reason) {
+    case WIFI_REASON_NO_AP_FOUND: return "network not found (name wrong, 5 GHz only, or out of range)";
+    case WIFI_REASON_AUTH_FAIL:
+    case WIFI_REASON_4WAY_HANDSHAKE_TIMEOUT:
+    case WIFI_REASON_HANDSHAKE_TIMEOUT: return "wrong password";
+    case WIFI_REASON_AUTH_EXPIRE:
+    case WIFI_REASON_ASSOC_FAIL: return "access point refused the connection";
+    case WIFI_REASON_BEACON_TIMEOUT: return "signal lost";
+    default: return "disconnected";
+  }
+}
+
+static void onWifiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
+  if (event == ARDUINO_EVENT_WIFI_STA_GOT_IP) {
+    lastReason = 0;
+    Serial.printf("[wifi] connected, IP %s, RSSI %d dBm\n", WiFi.localIP().toString().c_str(), WiFi.RSSI());
+  } else if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED) {
+    const uint8_t reason = info.wifi_sta_disconnected.reason;
+    // Reconnect attempts repeat every few seconds: log only changes, or every 30 s.
+    if (reason != lastReason || millis() - lastReasonLog > 30000UL) {
+      Serial.printf("[wifi] not connected: %s (reason %u)\n", wifiReason(reason), reason);
+      lastReason = reason;
+      lastReasonLog = millis();
+    }
+    if (reason == WIFI_REASON_NO_AP_FOUND) scanWanted = true;
+  }
+}
+
+// When the network is not found, list what the ESP32 can see (non-ASCII bytes
+// shown as \xNN, e.g. an iPhone's curly apostrophe is \xE2\x80\x99).
+static void scanIfWanted() {
+  if (!scanWanted || (lastScan != 0 && millis() - lastScan < 60000UL)) return;
+  scanWanted = false;
+  lastScan = millis();
+  // A scan cannot run while the station keeps retrying: pause reconnects.
+  WiFi.setAutoReconnect(false);
+  WiFi.disconnect();
+  delay(200);
+  const int n = WiFi.scanNetworks();
+  Serial.printf("[wifi] looking for \"%s\"; %d network(s) visible (2.4 GHz only):\n", WIFI_SSID, n);
+  for (int i = 0; i < n; i++) {
+    String shown;
+    for (const char c : WiFi.SSID(i)) {
+      const uint8_t b = (uint8_t)c;
+      if (b >= 0x20 && b < 0x7f) {
+        shown += c;
+      } else {
+        char hex[5];
+        snprintf(hex, sizeof hex, "\\x%02X", b);
+        shown += hex;
+      }
+    }
+    Serial.printf("[wifi]   \"%s\" (%d dBm)\n", shown.c_str(), WiFi.RSSI(i));
+  }
+  WiFi.scanDelete();
+  WiFi.setAutoReconnect(true);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 }
 
 // ---------------------------------------------------------------------
@@ -382,7 +469,11 @@ static String telemetryJson(const Reading &r, uint32_t s, time_t now, bool buffe
   JsonObject sensors = doc["sensors"].to<JsonObject>();
   sensors["bme280"] = r.bme ? "ok" : "error";
   sensors["ds18b20"] = r.ds ? "ok" : "error";
-  doc["rssi"] = WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : 0;
+  if (WiFi.status() == WL_CONNECTED) {
+    doc["rssi"] = WiFi.RSSI();
+  } else {
+    doc["rssi"] = nullptr;  // no Wi-Fi when measured (0 dBm would read as a perfect signal)
+  }
   doc["buffered"] = buffered;
   String out;
   serializeJson(doc, out);
@@ -499,6 +590,8 @@ void setup() {
   initBuffer();
   loadTimeFromRtc();
 
+  WiFi.onEvent(onWifiEvent);
+  Serial.printf("[wifi] connecting to \"%s\"\n", WIFI_SSID);
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
   WiFi.setHostname(DEVICE_ID);
@@ -514,6 +607,7 @@ void loop() {
   esp_task_wdt_reset();
   handleNtpSync();
   retryFailedSensors();
+  scanIfWanted();
   maintainMqtt();
 
   if (firstSample || millis() - lastSample >= SAMPLE_INTERVAL_MS) {
