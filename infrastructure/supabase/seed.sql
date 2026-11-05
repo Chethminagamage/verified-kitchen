@@ -17,11 +17,16 @@ select d.id, k.id, d.type::public.device_type, d.name
  where k.code = 'kitchen-001'
 on conflict (id) do nothing;
 
--- PROVISIONAL weights and empty thresholds.
+-- PROVISIONAL weights; environmental safe ranges made explicit (same values as
+-- the edge service defaults and migration 20261105000000).
 -- These are placeholders so the pipeline can run end to end. The real
 -- weighting scheme and thresholds are defined and justified in the scoring
 -- step and validated with the five controlled scenarios (RQ1).
 insert into public.scoring_configs (version, w_personal, w_food_prep, w_environmental, thresholds, is_active, notes)
-values ('v0-provisional', 0.400, 0.350, 0.250, '{}'::jsonb, true,
+values ('v0-provisional', 0.400, 0.350, 0.250,
+        '{"environment": {"fridge_temp_c":  {"min": 0,  "max": 5,  "tolerance": 3},
+                          "ambient_temp_c": {"min": 16, "max": 32, "tolerance": 6},
+                          "humidity_pct":   {"min": 30, "max": 70, "tolerance": 15}}}'::jsonb,
+        true,
         'Placeholder for pipeline testing only. Replace with validated v1 before evaluation.')
 on conflict (version) do nothing;

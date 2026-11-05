@@ -631,6 +631,28 @@ export type Database = {
           samples: number
         }[]
       }
+      sensor_reading_series: {
+        Args: {
+          p_bucket?: string
+          p_from: string
+          p_kitchen: string
+          p_to: string
+        }
+        Returns: {
+          ambient_avg: number
+          ambient_max: number
+          ambient_min: number
+          bucket: string
+          fridge_avg: number
+          fridge_max: number
+          fridge_min: number
+          humidity_avg: number
+          humidity_max: number
+          humidity_min: number
+          pressure_avg: number
+          samples: number
+        }[]
+      }
       verify_audit_chain: {
         Args: { p_kitchen: string }
         Returns: {

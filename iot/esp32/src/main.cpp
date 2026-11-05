@@ -165,6 +165,11 @@ static Reading readSensors() {
     if (!inRange(r.humidity, 0, 100)) r.humidity = NAN;
     if (!inRange(r.pressure, 300, 1100)) r.pressure = NAN;
     r.bme = !isnan(r.ambient) && !isnan(r.humidity);
+    if (!r.bme) {
+      // One bad field means the whole measurement is suspect (e.g. a brown-out
+      // while hot-plugging returned temperature NaN but humidity 0 %).
+      r.ambient = r.humidity = r.pressure = NAN;
+    }
   }
   if (!r.bme) bmeOk = false;  // re-initialised on the retry timer
 

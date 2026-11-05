@@ -178,4 +178,33 @@ select pg_temp.check(
   (select count(*) = 1 from public.ai_detections where detected_at < now() - interval '8 days'),
   'other old evidence is purged');
 
+-- ---------------------------------------------------------------------
+-- Sensor history + explicit safe ranges (migration 20261105000000)
+-- ---------------------------------------------------------------------
+insert into public.sensor_readings (kitchen_id, device_id, device_ts, ambient_temp_c, humidity_pct, fridge_temp_c)
+select k.id, 'vk-env-01', t, 27 + (extract(minute from t)::int % 3), 60, case when extract(minute from t)::int % 10 = 0 then null else 4 end
+  from public.kitchens k, generate_series(date_trunc('hour', now()) - interval '2 hours', date_trunc('hour', now()) - interval '30 seconds', interval '30 seconds') t
+on conflict (device_id, device_ts) do nothing;
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select pg_temp.check(
+  (select count(*) = 24 and min(samples) = 10 and max(ambient_max) = 29 and min(ambient_min) = 27
+     from public.sensor_reading_series((select id from public.kitchens),
+                                        date_trunc('hour', now()) - interval '2 hours', date_trunc('hour', now()),
+                                        interval '5 minutes')),
+  'sensor series: 5-minute buckets with min / max');
+select pg_temp.check(
+  (select fridge_avg = 4 from public.sensor_reading_series((select id from public.kitchens),
+     date_trunc('hour', now()) - interval '1 hour', date_trunc('hour', now()), interval '1 hour')),
+  'sensor series: failed fridge readings (null) are ignored, not averaged as 0');
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select pg_temp.check(
+  (select count(*) = 0 from public.sensor_reading_series((select id from public.kitchens), now() - interval '1 day', now())),
+  'sensor series respects kitchen access');
+reset role;
+select pg_temp.check(
+  (select (thresholds -> 'environment' -> 'fridge_temp_c' ->> 'max')::numeric = 5
+     from public.scoring_configs where version = 'v0-provisional'),
+  'environmental safe ranges stored in the active config');
+
 \echo 'ALL DATABASE ASSERTIONS PASSED'
