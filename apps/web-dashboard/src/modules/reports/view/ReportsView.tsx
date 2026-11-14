@@ -104,11 +104,6 @@ export default function ReportsView({
         />
       </section>
 
-      <p className="mt-6 text-xs text-slate-400">
-        Report data shown during development is mock
-        historical information and will later be generated
-        from stored operational records.
-      </p>
     </div>
   );
 }

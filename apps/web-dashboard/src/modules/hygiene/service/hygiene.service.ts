@@ -1,4 +1,5 @@
-import { metricStatus } from "@/modules/dashboard/model/metric-status";
+import { liveMetricStatus, sensorFeedLive } from "@/modules/dashboard/model/metric-status";
+import { SystemStatusRepository } from "@/modules/system-status/repository/system-status.repository";
 import { METRICS, safeRangeFrom } from "@/modules/environment/model/environment.model";
 
 import {
@@ -15,16 +16,26 @@ import {
 import { HygieneRepository } from "../repository/hygiene.repository";
 
 export class HygieneService {
-  constructor(private readonly repository = new HygieneRepository()) {}
+  constructor(
+    private readonly repository = new HygieneRepository(),
+    private readonly devices = new SystemStatusRepository()
+  ) {}
 
   async getPage(kitchenId: string, timezone: string, now = new Date()): Promise<HygienePage> {
-    const [score, reading, detections, openKeys, thresholds] = await Promise.all([
+    const [score, reading, detections, openKeys, thresholds, devices] = await Promise.all([
       this.repository.latestScore(kitchenId),
       this.repository.latestReading(kitchenId),
       this.repository.latestDetections(kitchenId, new Date(now.getTime() - 60 * 60 * 1000)),
       this.repository.openViolationIndicators(kitchenId),
       this.repository.activeThresholds(),
+      this.devices.getDevices(kitchenId),
     ]);
+
+    const sensorsLive = sensorFeedLive(
+      reading?.device_ts ?? null,
+      devices.some((d) => d.type === "env_node" && d.reportedOffline),
+      now.getTime()
+    );
 
     const latestAi = [...detections.values()].sort().at(-1) ?? null;
     const aiConnected = latestAi !== null && now.getTime() - new Date(latestAi).getTime() <= AI_STALE_AFTER_MS;
@@ -55,7 +66,7 @@ export class HygieneService {
         id: m.id,
         name: m.name,
         source: "Sensor",
-        status: value === null ? "No data" : metricStatus(score?.details, m.id),
+        status: liveMetricStatus(value, score?.details, m.id, sensorsLive),
         compliancePct: null,
         confidence: null,
         samples: null,

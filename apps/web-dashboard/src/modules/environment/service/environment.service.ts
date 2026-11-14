@@ -1,11 +1,10 @@
-import { metricStatus } from "@/modules/dashboard/model/metric-status";
+import { liveMetricStatus, sensorFeedLive } from "@/modules/dashboard/model/metric-status";
 import { isDeviceOnline } from "@/modules/system-status/model/connection";
 import type { Json } from "@/shared/types/database.types";
 
 import {
   METRICS,
   RANGE_CONFIG,
-  READING_STALE_AFTER_MS,
   combineStats,
   safeRangeFrom,
   sensorHealth,
@@ -57,14 +56,16 @@ function deviceHealth(row: DeviceRow, now: number): DeviceHealth {
     if (name !== "time_source" && typeof state === "string") sensors[name] = state;
   }
   const timeSource = typeof s.time_source === "string" ? s.time_source : reported.time_source;
+  const reportedOffline = s.state === "offline";
   const online =
-    s.state !== "offline" &&
+    !reportedOffline &&
     isDeviceOnline({ id: row.id, name: row.name, type: "env_node", lastSeenAt: row.last_seen_at }, now);
 
   return {
     id: row.id,
     name: row.name,
     online,
+    reportedOffline,
     lastSeenAt: row.last_seen_at,
     firmware: typeof s.fw === "string" ? s.fw : null,
     uptimeS: asNumber(s.uptime_s),
@@ -100,6 +101,7 @@ export class EnvironmentService {
 
     const device = node ? deviceHealth(node, now.getTime()) : null;
     const sensors = device?.sensors ?? {};
+    const live = sensorFeedLive(latest?.device_ts ?? null, device?.reportedOffline ?? false, now.getTime());
 
     const metrics = METRICS.map((m) => {
       const points =
@@ -116,8 +118,9 @@ export class EnvironmentService {
         decimals: m.decimals,
         sensor: m.sensor,
         value,
-        // Status comes from the backend's metric score, never local thresholds.
-        status: value === null ? ("No data" as const) : metricStatus(score?.details, m.id),
+        // Status comes from the backend's metric score, never local thresholds,
+        // and only while the node is reporting.
+        status: liveMetricStatus(value, score?.details, m.id, live),
         safeRange: safeRangeFrom(thresholds ?? undefined, m.id),
         stats24h: combineStats(
           day.map((b) => ({
@@ -138,8 +141,7 @@ export class EnvironmentService {
       range,
       environmentalScore: score?.environmental_score ?? null,
       latestReadingAt: latest?.device_ts ?? null,
-      readingIsStale:
-        !latest || now.getTime() - new Date(latest.device_ts).getTime() > READING_STALE_AFTER_MS,
+      readingIsStale: !live,
       metrics,
       device,
       violations: violations.map((v) => ({

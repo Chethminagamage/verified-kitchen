@@ -26,7 +26,9 @@ export type MetricStatus =
   | "Safe"
   | "Warning"
   | "Critical"
-  | "No data";
+  | "No data"
+  /** The node stopped reporting: the value shown is the last one received. */
+  | "Offline";
 
 export interface OverallScore {
   value: number;
@@ -77,6 +79,8 @@ export interface DashboardOverview {
   pillars: PillarScore[];
   sensors: SensorSummary[];
   sensorsUpdatedAt: string | null;
+  /** False when the node is offline: the sensor values are the last ones received. */
+  sensorsLive: boolean;
   trend: TrendPoint[];
   openViolationCount: number;
   openViolations: ViolationSummary[];

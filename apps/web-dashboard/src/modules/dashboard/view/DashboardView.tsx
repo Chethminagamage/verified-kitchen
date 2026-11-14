@@ -59,7 +59,9 @@ export default function DashboardView({
 
           <p className="mt-1 text-sm text-slate-500">
             {data.sensorsUpdatedAt
-              ? `Latest ESP32 reading at ${formatClock(data.sensorsUpdatedAt, data.timezone)}.`
+              ? data.sensorsLive
+                ? `Latest ESP32 reading at ${formatClock(data.sensorsUpdatedAt, data.timezone)}.`
+                : `Sensor node offline. Last reading at ${formatClock(data.sensorsUpdatedAt, data.timezone)}.`
               : "No sensor readings yet."}
           </p>
         </div>

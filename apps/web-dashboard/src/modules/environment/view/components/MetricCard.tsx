@@ -6,6 +6,7 @@ import {
   Refrigerator,
   Thermometer,
   TriangleAlert,
+  WifiOff,
   type LucideIcon,
 } from "lucide-react";
 
@@ -22,6 +23,7 @@ const STATUS: Record<MetricStatus, { className: string; icon: LucideIcon }> = {
   Warning: { className: "bg-amber-50 text-amber-700", icon: TriangleAlert },
   Critical: { className: "bg-red-50 text-red-700", icon: CircleX },
   "No data": { className: "bg-slate-100 text-slate-500", icon: CircleDashed },
+  Offline: { className: "bg-slate-100 text-slate-600", icon: WifiOff },
 };
 
 function rangeText(range: SafeRange, unit: string): string {
@@ -69,7 +71,7 @@ export default function MetricCard({ metric, stale }: MetricCardProps) {
         )}
       </p>
 
-      {metric.sensorOk === false && (
+      {metric.sensorOk === false && !stale && (
         <p className="mt-1 text-xs font-medium text-red-600">
           {metric.sensor.toUpperCase()} sensor reports an error
         </p>

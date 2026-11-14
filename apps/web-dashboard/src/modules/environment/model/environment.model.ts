@@ -75,6 +75,8 @@ export interface DeviceHealth {
   id: string;
   name: string;
   online: boolean;
+  /** The broker published the node's "offline" last will (power or Wi-Fi lost). */
+  reportedOffline: boolean;
   lastSeenAt: string | null;
   firmware: string | null;
   uptimeS: number | null;
@@ -101,6 +103,7 @@ export interface EnvironmentPage {
   range: RangeId;
   environmentalScore: number | null;
   latestReadingAt: string | null;
+  /** True when the node is offline or its latest reading is old: values shown are last-known, not live. */
   readingIsStale: boolean;
   metrics: MetricSummary[];
   device: DeviceHealth | null;
@@ -108,7 +111,7 @@ export interface EnvironmentPage {
 }
 
 /** A reading older than this means the node has stopped reporting. */
-export const READING_STALE_AFTER_MS = 2 * 60 * 1000;
+export { SENSOR_FEED_STALE_AFTER_MS as READING_STALE_AFTER_MS } from "@/modules/dashboard/model/metric-status";
 
 // ---------------------------------------------------------------------
 // Pure helpers (unit-tested)

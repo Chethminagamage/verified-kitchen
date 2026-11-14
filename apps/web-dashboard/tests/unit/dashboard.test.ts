@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { metricStatus, missingPillars } from "@/modules/dashboard/model/metric-status";
+import { liveMetricStatus, metricStatus, missingPillars, sensorFeedLive } from "@/modules/dashboard/model/metric-status";
 import { scoreBand } from "@/modules/dashboard/model/score-band";
 import { connectionState, installedDevices, isDeviceOnline } from "@/modules/system-status/model/connection";
 
@@ -80,5 +80,24 @@ describe("device status", () => {
     expect(connectionState(1, 2)).toBe("degraded");
     expect(connectionState(0, 2)).toBe("offline");
     expect(connectionState(0, 0)).toBe("offline");
+  });
+});
+
+describe("sensor feed liveness", () => {
+  const now = Date.parse("2026-11-05T16:00:00Z");
+  const secondsAgo = (s: number) => new Date(now - s * 1000).toISOString();
+
+  it("is live only with a recent reading and no offline last will", () => {
+    expect(sensorFeedLive(secondsAgo(30), false, now)).toBe(true);
+    expect(sensorFeedLive(secondsAgo(30), true, now)).toBe(false); // unplugged: broker reported offline
+    expect(sensorFeedLive(secondsAgo(121), false, now)).toBe(false); // stopped reporting
+    expect(sensorFeedLive(null, false, now)).toBe(false);
+  });
+
+  it("never shows Safe/Critical for a value that is not live", () => {
+    const details = { environment: { fridge_temp_c: { score: 0 } } };
+    expect(liveMetricStatus(27.3, details, "fridge_temp_c", true)).toBe("Critical");
+    expect(liveMetricStatus(27.3, details, "fridge_temp_c", false)).toBe("Offline");
+    expect(liveMetricStatus(null, details, "fridge_temp_c", false)).toBe("No data");
   });
 });

@@ -53,8 +53,11 @@ export default function EnvironmentalMonitoringView({ data, kitchenId }: Environ
       {data.readingIsStale && data.latestReadingAt && (
         <p className="mb-6 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <Clock className="h-4 w-4 shrink-0" />
-          No new reading since {formatDateTime(data.latestReadingAt, data.timezone)}. Check that the sensor node is
-          powered and connected, and that the edge service is running.
+          {data.device && !data.device.online
+            ? "The sensor node is offline. "
+            : "No new reading is arriving. "}
+          The values below are the last ones received, at {formatDateTime(data.latestReadingAt, data.timezone)}. Check
+          that the sensor node is powered and connected, and that the edge service is running.
         </p>
       )}
 

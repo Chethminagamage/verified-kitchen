@@ -85,19 +85,26 @@ export default function DeviceHealthPanel({ device, timezone, generatedAt }: Dev
           const state = device.sensors[sensor];
           return (
             <Row key={sensor} label={SENSOR_LABELS[sensor]}>
-              <span
-                className={
-                  state === "ok" ? "text-emerald-700" : state === "error" ? "text-red-700" : "text-slate-400"
-                }
-              >
-                {state === "ok" ? "OK" : state === "error" ? "Error" : "Unknown"}
-              </span>
+              {device.online ? (
+                <span
+                  className={
+                    state === "ok" ? "text-emerald-700" : state === "error" ? "text-red-700" : "text-slate-400"
+                  }
+                >
+                  {state === "ok" ? "OK" : state === "error" ? "Error" : "Unknown"}
+                </span>
+              ) : (
+                // The node is not reporting, so its sensors' current state is unknown.
+                <span className="text-slate-400" title={state ? `Last reported: ${state}` : undefined}>
+                  Unknown{state ? ` (last: ${state === "ok" ? "OK" : "Error"})` : ""}
+                </span>
+              )}
             </Row>
           );
         })}
 
         <Row label="Wi-Fi signal">
-          {device.rssi === null ? "—" : `${signalQuality(device.rssi)} (${device.rssi} dBm)`}
+          {device.rssi === null || !device.online ? "—" : `${signalQuality(device.rssi)} (${device.rssi} dBm)`}
         </Row>
         <Row label="Clock">{device.timeSource ? (TIME_SOURCE_LABELS[device.timeSource] ?? device.timeSource) : "—"}</Row>
         <Row label="Waiting to send">{device.buffered === null ? "—" : `${device.buffered} reading(s)`}</Row>

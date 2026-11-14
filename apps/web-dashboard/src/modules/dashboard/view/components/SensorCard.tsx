@@ -22,6 +22,7 @@ const STATUS_STYLES: Record<MetricStatus, string> = {
   Warning: "bg-amber-50 text-amber-700",
   Critical: "bg-red-50 text-red-700",
   "No data": "bg-slate-100 text-slate-500",
+  Offline: "bg-slate-100 text-slate-600",
 };
 
 interface SensorCardProps {
@@ -44,7 +45,11 @@ export default function SensorCard({
           {sensor.name}
         </p>
 
-        <p className="mt-1 text-xl font-bold text-slate-950">
+        <p
+          className={`mt-1 text-xl font-bold ${
+            sensor.status === "Offline" ? "text-slate-400" : "text-slate-950"
+          }`}
+        >
           {sensor.value === null ? "—" : sensor.value.toFixed(1)}
           {sensor.value !== null && (
             <span className="ml-1 text-sm font-medium text-slate-500">

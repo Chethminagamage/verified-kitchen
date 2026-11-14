@@ -8,7 +8,9 @@ import {
   type SensorSummary,
 } from "../model/dashboard.model";
 import { scoreBand } from "../model/score-band";
-import { isRecord, metricStatus, missingPillars } from "../model/metric-status";
+import { SystemStatusRepository } from "@/modules/system-status/repository/system-status.repository";
+
+import { isRecord, liveMetricStatus, missingPillars, sensorFeedLive } from "../model/metric-status";
 import {
   DashboardRepository,
   type LatestReadingRow,
@@ -56,7 +58,8 @@ const METRICS: ReadonlyArray<{
 
 function sensors(
   reading: LatestReadingRow | null,
-  score: LatestScoreRow | null
+  score: LatestScoreRow | null,
+  live: boolean
 ): SensorSummary[] {
   return METRICS.map((metric) => {
     const value = reading?.[metric.id] ?? null;
@@ -64,17 +67,15 @@ function sensors(
     return {
       ...metric,
       value,
-      status:
-        value === null
-          ? "No data"
-          : metricStatus(score?.details, metric.id),
+      status: liveMetricStatus(value, score?.details, metric.id, live),
     };
   });
 }
 
 export class DashboardService {
   constructor(
-    private readonly repository = new DashboardRepository()
+    private readonly repository = new DashboardRepository(),
+    private readonly devices = new SystemStatusRepository()
   ) {}
 
   async getOverview(
@@ -84,13 +85,20 @@ export class DashboardService {
   ): Promise<DashboardOverview> {
     const from = new Date(now.getTime() - TREND_HOURS * 60 * 60 * 1000);
 
-    const [score, reading, series, violations] =
+    const [score, reading, series, violations, devices] =
       await Promise.all([
         this.repository.getLatestScore(kitchenId),
         this.repository.getLatestReading(kitchenId),
         this.repository.getScoreSeries(kitchenId, from, now, "1 hour"),
         this.repository.getOpenViolations(kitchenId, 5),
+        this.devices.getDevices(kitchenId),
       ]);
+
+    const live = sensorFeedLive(
+      reading?.device_ts ?? null,
+      devices.some((d) => d.type === "env_node" && d.reportedOffline),
+      now.getTime()
+    );
 
     const pillars: PillarScore[] = PILLARS.map((p) => ({
       id: p.id,
@@ -117,7 +125,8 @@ export class DashboardService {
             : null,
       },
       pillars,
-      sensors: sensors(reading, score),
+      sensors: sensors(reading, score, live),
+      sensorsLive: live,
       sensorsUpdatedAt: reading?.device_ts ?? null,
       trend: series.map((row) => ({
         bucket: row.bucket,

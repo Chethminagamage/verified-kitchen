@@ -5,6 +5,7 @@ import {
   CircleDashed,
   CircleX,
   RadioTower,
+  WifiOff,
   type LucideIcon,
 } from "lucide-react";
 
@@ -20,6 +21,7 @@ const STATUS: Record<CheckStatus, { className: string; icon: LucideIcon }> = {
   Critical: { className: "bg-red-50 text-red-700", icon: CircleX },
   "No evidence": { className: "bg-slate-100 text-slate-500", icon: CircleDashed },
   "No data": { className: "bg-slate-100 text-slate-500", icon: CircleDashed },
+  Offline: { className: "bg-slate-100 text-slate-600", icon: WifiOff },
 };
 
 interface HygieneCheckCardProps {
