@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/infrastructure/supabase/server";
 
+import { loginMessage } from "@/modules/auth/model/auth.model";
 import LoginView from "@/modules/auth/view/LoginView";
 
 export const metadata: Metadata = {
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 
 interface LoginPageProps {
   searchParams: Promise<{
-    error?: string;
+    error?: string | string[];
   }>;
 }
 
@@ -32,7 +33,7 @@ export default async function LoginPage({
 
   return (
     <LoginView
-      error={params.error}
+      error={loginMessage(params.error)}
     />
   );
 }

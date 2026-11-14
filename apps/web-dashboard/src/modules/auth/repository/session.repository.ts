@@ -1,4 +1,8 @@
+import { cookies } from "next/headers";
+
 import { createClient } from "@/infrastructure/supabase/server";
+
+import { SESSION_COOKIE, sessionStillValid } from "../model/auth.model";
 
 import type {
   KitchenSummary,
@@ -11,6 +15,13 @@ export class SessionRepository {
    * Security lets them see. Returns null when nobody is signed in.
    */
   async getSession(): Promise<OperatorSession | null> {
+    // Same session policy as the Proxy, so pages and Server Functions never
+    // trust a sign-in the Proxy would have ended (e.g. if a route is unmatched).
+    const signedInAt = (await cookies()).get(SESSION_COOKIE)?.value;
+    if (!sessionStillValid(signedInAt, Date.now())) {
+      return null;
+    }
+
     const supabase = await createClient();
 
     // getUser() validates the token with Supabase Auth (not just the cookie).

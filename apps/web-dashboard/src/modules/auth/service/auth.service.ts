@@ -1,7 +1,8 @@
 import { AuthRepository } from "../repository/auth.repository";
 
-import type {
-  LoginCredentials,
+import {
+  InvalidCredentialsError,
+  type LoginCredentials,
 } from "../model/auth.model";
 
 export class AuthService {
@@ -17,9 +18,7 @@ export class AuthService {
       credentials.email.trim().toLowerCase();
 
     if (!email || !credentials.password) {
-      throw new Error(
-        "Email and password are required."
-      );
+      throw new InvalidCredentialsError();
     }
 
     return this.authRepository.signIn({
