@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { liveMetricStatus, metricStatus, missingPillars, sensorFeedLive } from "@/modules/dashboard/model/metric-status";
+import { explainScore } from "@/modules/dashboard/model/score-details";
 import { scoreBand } from "@/modules/dashboard/model/score-band";
 import { connectionState, installedDevices, isDeviceOnline } from "@/modules/system-status/model/connection";
 
@@ -99,5 +100,33 @@ describe("sensor feed liveness", () => {
     expect(liveMetricStatus(27.3, details, "fridge_temp_c", true)).toBe("Critical");
     expect(liveMetricStatus(27.3, details, "fridge_temp_c", false)).toBe("Offline");
     expect(liveMetricStatus(null, details, "fridge_temp_c", false)).toBe("No data");
+  });
+});
+
+describe("score explanation (from the scoring engine's details)", () => {
+  it("reads grade, caps and the items costing the most points", () => {
+    const e = explainScore(
+      {
+        grade: "B",
+        uncapped_overall: 86.2,
+        caps_applied: [{ key: "fridge_temp_c", cap: 74, reason: "Refrigerator at or above 8 °C for 15 min", since: "2026-11-15T10:00:00Z" }],
+        impacts: [
+          { item: "hairnet", points: 3.1 },
+          { item: "fridge_temp_c", points: 12.9 },
+          { item: "mask", points: 0.4 },
+        ],
+      },
+      74
+    );
+    expect(e.grade).toBe("B");
+    expect(e.uncapped).toBe(86.2);
+    expect(e.caps[0]).toMatchObject({ key: "fridge_temp_c", cap: 74 });
+    expect(e.issues.map((i) => i.label)).toEqual(["Refrigerator temperature", "Hairnet"]); // sorted, <1 pt dropped
+  });
+
+  it("tolerates scores stored before the explanation existed", () => {
+    expect(explainScore({ config_version: "v0-provisional" }, 91)).toEqual({ grade: null, uncapped: null, caps: [], issues: [] });
+    expect(explainScore(null, 91).grade).toBeNull();
+    expect(explainScore({ grade: "Z", caps_applied: [{ cap: "x" }] }, 50)).toMatchObject({ grade: null, caps: [] });
   });
 });

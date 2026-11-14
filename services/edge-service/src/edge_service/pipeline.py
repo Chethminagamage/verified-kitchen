@@ -3,8 +3,9 @@
 Each `process()` call is one tick:
   1. store the new evidence,
   2. score the trailing window held in memory,
-  3. store the score,
-  4. raise violations whose conditions have persisted, linked to their evidence.
+  3. evaluate conditions (how long each has lasted, at which severity),
+  4. apply the non-compensatory caps and store the score,
+  5. raise violations whose conditions have persisted, linked to their evidence.
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ from datetime import datetime, timedelta
 
 from .domain import Detection, EnvMetric, Indicator, ScoringConfig, SensorReading
 from .repository import Repository, ScoreRow, ViolationRow, utc
-from .scoring import ScoreResult, compute_score
+from .scoring import ScoreResult, apply_caps, compute_score
 from .violations import ViolationCandidate, ViolationEngine
 
 log = logging.getLogger(__name__)
@@ -82,9 +83,10 @@ class Pipeline:
         env_device_id: str,
         camera_device_id: str,
         model_version: str,
-        window_s: float,
+        window_s: float | None = None,
         score_persist_s: float = 0.0,
         report_env_device: bool = True,
+        report_camera_device: bool = True,
     ) -> None:
         self._repo = repo
         self._kitchen_id = kitchen_id
@@ -92,11 +94,14 @@ class Pipeline:
         self._env_device = env_device_id
         self._camera_device = camera_device_id
         self._model_version = model_version
+        # The window is part of the versioned scoring rules; an explicit value overrides it (tests, tools).
+        window_s = window_s if window_s is not None else config.thresholds.window_s
         self._window_s = window_s
         self._score_persist_s = score_persist_s
         self._last_persisted: datetime | None = None
         # False when a real ESP32 reports its own health over MQTT (EdgeRunner does it).
         self._report_env_device = report_env_device
+        self._report_camera_device = report_camera_device
         self.window = EvidenceWindow(timedelta(seconds=window_s))
         self.engine = ViolationEngine(config.thresholds, window_s)
 
@@ -111,14 +116,19 @@ class Pipeline:
         now: datetime,
         readings: Sequence[SensorReading],
         detections: Sequence[Detection],
+        *,
+        model_version: str | None = None,
     ) -> TickOutcome:
+        """`model_version` overrides the configured one for these detections (the real
+        camera reports the exact model that produced each window)."""
         now = utc(now)
+        model_version = model_version or self._model_version
 
         reading_ids = (
             self._repo.insert_sensor_readings(self._kitchen_id, self._env_device, readings) if readings else {}
         )
         detection_ids = (
-            self._repo.insert_detections(self._kitchen_id, self._camera_device, self._model_version, detections)
+            self._repo.insert_detections(self._kitchen_id, self._camera_device, model_version, detections)
             if detections
             else {}
         )
@@ -128,11 +138,17 @@ class Pipeline:
         )
         self.window.prune(now)
 
-        result = compute_score(
+        raw = compute_score(
             [d for d, _ in self.window.detections],
             [r for r, _ in self.window.readings],
             self._config,
         )
+        open_keys = self._repo.open_violation_keys(self._kitchen_id)
+        evaluation = self.engine.evaluate(now, raw, open_keys)
+        result = apply_caps(raw, evaluation.active, now, self._config.thresholds)
+        for cap in result.caps_applied:
+            log.warning("score capped at %.0f: %s", cap.cap, cap.reason)
+
         if result.overall is not None and self._due_to_persist(now):
             self._repo.insert_hygiene_scores(
                 self._kitchen_id,
@@ -141,8 +157,6 @@ class Pipeline:
             )
             self._last_persisted = now
 
-        open_keys = self._repo.open_violation_keys(self._kitchen_id)
-        evaluation = self.engine.evaluate(now, result, open_keys)
         if evaluation.new:
             self._repo.insert_violations(self._kitchen_id, [link_evidence(c, self.window) for c in evaluation.new])
             for c in evaluation.new:
@@ -153,12 +167,12 @@ class Pipeline:
             self._repo.touch_device(
                 self._env_device, now, {"rssi": latest.rssi, "sensors": latest.sensor_status, "seq": latest.seq}
             )
-        if detections:
+        if detections and self._report_camera_device:
             ms = [d.inference_ms for d in detections if d.inference_ms is not None]
             self._repo.touch_device(
                 self._camera_device,
                 now,
-                {"model_version": self._model_version, "inference_ms": round(sum(ms) / len(ms), 1) if ms else None},
+                {"model_version": model_version, "inference_ms": round(sum(ms) / len(ms), 1) if ms else None},
             )
 
         return TickOutcome(result, evaluation.new, len(reading_ids), len(detection_ids))

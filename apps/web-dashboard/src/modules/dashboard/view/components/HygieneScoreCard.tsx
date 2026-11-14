@@ -1,5 +1,6 @@
 import {
   Clock,
+  Lock,
   ShieldAlert,
   ShieldCheck,
   ShieldX,
@@ -12,6 +13,11 @@ import type {
   OverallScore,
   ScoreBand,
 } from "../../model/dashboard.model";
+import type { Grade } from "../../model/score-details";
+
+// H-800 grade -> the same visual language as the bands.
+const GRADE_BAND: Record<Grade, ScoreBand> = { A: "Excellent", B: "Moderate", C: "Poor", D: "Poor" };
+const GRADE_LABEL: Record<Grade, string> = { A: "Good", B: "Satisfactory", C: "Unsatisfactory", D: "Very unsatisfactory" };
 
 const BAND_STYLES: Record<
   ScoreBand,
@@ -58,7 +64,8 @@ export default function HygieneScoreCard({
     );
   }
 
-  const style = BAND_STYLES[score.band];
+  const { grade, caps, uncapped, issues } = score.explanation;
+  const style = BAND_STYLES[grade ? GRADE_BAND[grade] : score.band];
   const Icon = style.icon;
 
   return (
@@ -87,7 +94,7 @@ export default function HygieneScoreCard({
             className={`mt-4 inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold ${style.pill}`}
           >
             <Icon className="h-4 w-4" />
-            {score.band}
+            {grade ? `Grade ${grade} · ${GRADE_LABEL[grade]}` : score.band}
           </div>
         </div>
 
@@ -97,6 +104,35 @@ export default function HygieneScoreCard({
           <Icon className="h-7 w-7 text-white" />
         </div>
       </div>
+
+      {caps.length > 0 && (
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          <p className="flex items-center gap-1.5 font-semibold">
+            <Lock className="h-3.5 w-3.5" />
+            Capped at {Math.round(Math.min(...caps.map((c) => c.cap)))}
+            {uncapped !== null && <span className="font-normal">(would be {Math.round(uncapped)})</span>}
+          </p>
+          <ul className="mt-1 list-disc pl-5">
+            {caps.map((c) => (
+              <li key={c.key}>{c.reason}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {issues.length > 0 && (
+        <div className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Fix first</p>
+          <ul className="mt-2 space-y-1.5">
+            {issues.slice(0, 3).map((i) => (
+              <li key={i.item} className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-slate-700">{i.label}</span>
+                <span className="font-semibold tabular-nums text-red-700">−{Math.round(i.points)} pts</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {score.missingPillars.length > 0 && (
         <p className="mt-4 text-xs text-slate-500">

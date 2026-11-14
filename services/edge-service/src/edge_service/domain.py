@@ -7,9 +7,9 @@ evidence is rejected here before it reaches the network.
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class Pillar(StrEnum):
@@ -46,6 +46,21 @@ INDICATOR_PILLAR: dict[Indicator, Pillar] = {
 
 PERSONAL_INDICATORS = tuple(i for i in Indicator if i.pillar is Pillar.PERSONAL)
 FOOD_PREP_INDICATORS = tuple(i for i in Indicator if i.pillar is Pillar.FOOD_PREP)
+
+# ---------------------------------------------------------------------------
+# Scored items. A pillar is the weighted mean of its items. An AI item can pool
+# several indicators: "surface" combines the clean-surface and dirty-surface
+# classifications, which describe the same board, so one smear is not counted twice.
+# ---------------------------------------------------------------------------
+AI_ITEM_INDICATORS: dict[str, tuple[Indicator, ...]] = {
+    "gloves": (Indicator.GLOVES,),
+    "hairnet": (Indicator.HAIRNET,),
+    "mask": (Indicator.MASK,),
+    "surface": (Indicator.CLEAN_SURFACE, Indicator.DIRTY_SURFACE),
+    "food_spill": (Indicator.FOOD_SPILL,),
+    "food_waste": (Indicator.FOOD_WASTE,),
+}
+INDICATOR_ITEM: dict[Indicator, str] = {i: item for item, inds in AI_ITEM_INDICATORS.items() for i in inds}
 
 
 class EnvMetric(StrEnum):
@@ -146,6 +161,14 @@ class Range(BaseModel):
         return max(0.0, 100.0 * (1.0 - abs(self.deviation(value)) / self.tolerance))
 
 
+PILLAR_ITEMS: dict[Pillar, tuple[str, ...]] = {
+    Pillar.PERSONAL: ("gloves", "hairnet", "mask"),
+    Pillar.FOOD_PREP: ("surface", "food_spill", "food_waste"),
+    Pillar.ENVIRONMENTAL: tuple(m.value for m in EnvMetric),
+}
+ITEM_PILLAR: dict[str, Pillar] = {item: p for p, items in PILLAR_ITEMS.items() for item in items}
+
+
 def _default_environment() -> dict[EnvMetric, Range]:
     # PROVISIONAL thresholds — to be justified in the scoring chapter.
     #  * Refrigerator: keep at or below 5 °C (common food-safety guidance); the
@@ -171,14 +194,87 @@ def _default_ai_severity() -> dict[Indicator, Severity]:
     }
 
 
+def _default_item_weights() -> dict[str, float]:
+    # Rank-order-centroid weights (Barron & Barrett 1996) over food-safety risk tiers
+    # (FDA Food Code 2022): one top-tier item per pillar, two lower-tier items tied.
+    #   personal:  gloves (no bare-hand contact, Priority) > hairnet (Core) = mask
+    #   food prep: food-contact surface clean (Priority Foundation) > spills = waste
+    #   environ.:  refrigerator cold holding (Priority) > kitchen temperature = humidity
+    # Weights are relative within a pillar; they are re-normalised over the items
+    # that have evidence.
+    top, tied = 0.611, 0.1945
+    return {
+        "gloves": top, "hairnet": tied, "mask": tied,
+        "surface": top, "food_spill": tied, "food_waste": tied,
+        "fridge_temp_c": top, "ambient_temp_c": tied, "humidity_pct": tied,
+    }  # fmt: skip
+
+
+SensorAggregation = Literal["median", "time_weighted", "mean"]
+
+
+def _default_sensor_aggregation() -> dict[EnvMetric, SensorAggregation]:
+    # Refrigerator: time-at-temperature (each reading = equal time), so a door
+    # opening is a small, short dent and sustained warming is the full penalty.
+    # Kitchen air: median, robust to single corrupted sensor reads.
+    return {
+        EnvMetric.FRIDGE_TEMP_C: "time_weighted",
+        EnvMetric.AMBIENT_TEMP_C: "median",
+        EnvMetric.HUMIDITY_PCT: "median",
+    }
+
+
+class CapRule(BaseModel):
+    """Non-compensatory rule: while a condition has been at `min_severity` (or worse)
+    for `after_s`, the overall score cannot exceed `cap`."""
+
+    model_config = _FROZEN
+
+    key: str  # an Indicator or EnvMetric value (the violation key)
+    min_severity: Severity
+    after_s: float = Field(ge=0)
+    cap: float = Field(ge=0, le=100)
+    reason: str = Field(min_length=1, max_length=120)
+    # AI evidence may only cap the score once that indicator has been validated
+    # on the site's own camera (see Thresholds.ai_validated).
+    enabled: bool = True
+
+
+def _default_caps() -> list[CapRule]:
+    return [
+        CapRule(
+            key=EnvMetric.FRIDGE_TEMP_C.value,
+            min_severity=Severity.CRITICAL,  # at or above 8 °C (max 5 + tolerance 3)
+            after_s=900,
+            cap=74,  # below grade A
+            reason="Refrigerator at or above 8 °C for 15 min",
+        ),
+        CapRule(
+            key=Indicator.GLOVES.value,
+            min_severity=Severity.HIGH,
+            after_s=120,
+            cap=74,
+            reason="Gloves not worn for 2 min",
+        ),
+    ]
+
+
+def _default_grade_bands() -> dict[str, float]:
+    # Sri Lanka PHI grading of food premises (H-800): A >= 75 %, B >= 50 %, C >= 25 %, else D.
+    return {"A": 75.0, "B": 50.0, "C": 25.0}
+
+
 class Thresholds(BaseModel):
     """Scoring and violation rules. Stored as JSON in scoring_configs.thresholds;
     any key left out falls back to the defaults below."""
 
     model_config = _FROZEN
 
-    # Detections below this confidence are ignored when scoring.
+    # Detections below this confidence are ignored when scoring. Evidence of a breach
+    # needs more confidence than evidence of compliance, because it lowers the score
+    # (a misdetection must not penalise a compliant kitchen).
     min_confidence: float = Field(default=0.5, ge=0, le=1)
+    min_confidence_noncompliant: float = Field(default=0.6, ge=0, le=1)
     # An indicator needs at least this many confident detections in the window to be
     # scored; with fewer, a single misdetection would swing the score (e.g. at start-up).
     min_samples: int = Field(default=3, ge=1)
@@ -190,6 +286,50 @@ class Thresholds(BaseModel):
 
     environment: dict[EnvMetric, Range] = Field(default_factory=_default_environment)
     ai_severity: dict[Indicator, Severity] = Field(default_factory=_default_ai_severity)
+
+    # Live-score window: the score at time T uses the evidence from (T - window, T].
+    window_s: float = Field(default=300.0, ge=30, le=3600)
+    item_weights: dict[str, float] = Field(default_factory=_default_item_weights)
+    sensor_aggregation: dict[EnvMetric, SensorAggregation] = Field(default_factory=_default_sensor_aggregation)
+    caps: list[CapRule] = Field(default_factory=_default_caps)
+    # Indicators whose model has been validated on the site's own camera. Until
+    # then their evidence counts in the live score but cannot cap it.
+    ai_validated: dict[Indicator, bool] = Field(default_factory=lambda: dict.fromkeys(Indicator, False))
+    grade_bands: dict[str, float] = Field(default_factory=_default_grade_bands)
+
+    @field_validator("item_weights")
+    @classmethod
+    def _known_items(cls, value: dict[str, float]) -> dict[str, float]:
+        unknown = set(value) - set(ITEM_PILLAR)
+        if unknown:
+            raise ValueError(f"unknown items in item_weights: {sorted(unknown)}")
+        if any(w <= 0 for w in value.values()):
+            raise ValueError("item weights must be positive")
+        return value
+
+    @field_validator("grade_bands")
+    @classmethod
+    def _bands(cls, value: dict[str, float]) -> dict[str, float]:
+        if set(value) != {"A", "B", "C"} or not value["A"] > value["B"] > value["C"] >= 0:
+            raise ValueError("grade_bands needs A > B > C >= 0")
+        return value
+
+    def item_weight(self, item: str) -> float:
+        return self.item_weights.get(item, 1.0)
+
+    def grade(self, score: float) -> str:
+        for grade in ("A", "B", "C"):
+            if score >= self.grade_bands[grade]:
+                return grade
+        return "D"
+
+    def cap_active(self, rule: CapRule) -> bool:
+        """A cap applies only if enabled and, for AI evidence, validated."""
+        if not rule.enabled:
+            return False
+        if rule.key in Indicator._value2member_map_:
+            return self.ai_validated.get(Indicator(rule.key), False)
+        return True
 
     @classmethod
     def from_json(cls, raw: dict[str, Any] | None) -> Thresholds:

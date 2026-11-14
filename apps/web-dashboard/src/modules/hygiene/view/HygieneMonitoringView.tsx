@@ -43,9 +43,9 @@ export default function HygieneMonitoringView({ data, kitchenId }: HygieneMonito
         <p className="mb-6 flex items-start gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
           <Camera className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
-            The camera / YOLO service is not connected yet, so Pillars 1 and 2 have no evidence. The overall
-            score currently uses the environmental pillar only (weights are re-normalised over pillars with
-            evidence).
+            No recent camera evidence (start it with <code className="rounded bg-sky-100 px-1">./dev.sh --vision</code>),
+            so the AI pillars have no evidence right now. The overall score uses the pillars that do (weights are
+            re-normalised; missing evidence is never counted as 100). Food preparation has no trained model yet.
           </span>
         </p>
       )}

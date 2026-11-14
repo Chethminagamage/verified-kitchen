@@ -18,7 +18,7 @@ from zoneinfo import ZoneInfo
 from .domain import Detection, EnvMetric, Indicator, ScoringConfig, SensorReading
 from .pipeline import EvidenceWindow
 from .repository import Repository, ScoreRow, ViolationRow, utc
-from .scoring import compute_score
+from .scoring import apply_caps, compute_score
 from .simulator import Phase, Simulator
 from .violations import ViolationCandidate, ViolationEngine
 
@@ -144,7 +144,7 @@ def generate_history(
     sim = Simulator(seed=seed + 1)
     incidents = _plan_incidents(rng, start, end, zone)
 
-    window_s = 5 * step_s  # enough samples per indicator to satisfy min_samples
+    window_s = max(config.thresholds.window_s, 5 * step_s)  # enough samples per indicator for min_samples
     window = EvidenceWindow(timedelta(seconds=window_s))
     engine = ViolationEngine(config.thresholds, window_s)
     open_: dict[str, _OpenViolation] = {}
@@ -158,11 +158,12 @@ def generate_history(
         window.add([(r, None) for r in readings], [(d, None) for d in detections])
         window.prune(t)
 
-        result = compute_score([d for d, _ in window.detections], [r for r, _ in window.readings], config)
+        raw = compute_score([d for d, _ in window.detections], [r for r, _ in window.readings], config)
+        evaluation = engine.evaluate(t, raw, open_.keys())
+        result = apply_caps(raw, evaluation.active, t, config.thresholds)
         if result.overall is not None:
             history.scores.append(ScoreRow(t, t - window.length, t, result))
 
-        evaluation = engine.evaluate(t, result, open_.keys())
         for key in [k for k in open_ if k not in evaluation.failing]:
             # Condition cleared: an operator closes it a few minutes later.
             open_.pop(key).resolved_at = t + timedelta(minutes=rng.randint(2, 15))

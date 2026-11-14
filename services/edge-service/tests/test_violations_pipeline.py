@@ -29,7 +29,8 @@ def test_violation_requires_persistence(config: ScoringConfig) -> None:
     assert [v.key for v in new] == ["gloves"]
     assert new[0].severity is Severity.HIGH
     assert new[0].occurred_at == T0
-    assert new[0].score_impact == pytest.approx(0.4 * 100 / 3, abs=0.01)
+    # Gloves carry 0.611 of the personal pillar (risk-tier weights).
+    assert new[0].score_impact == pytest.approx(0.4 * 0.611 * 100, abs=0.01)
 
 
 def test_brief_glitch_does_not_raise(config: ScoringConfig) -> None:

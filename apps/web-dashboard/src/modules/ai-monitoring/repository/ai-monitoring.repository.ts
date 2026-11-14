@@ -1,118 +1,65 @@
-import type {
-  AIMonitoringData,
-} from "../model/ai-monitoring.model";
+import { createClient } from "@/infrastructure/supabase/server";
+import type { Json } from "@/shared/types/database.types";
 
+import type { DetectionRow } from "../model/ai-monitoring.model";
+
+export interface CameraRow {
+  id: string;
+  name: string;
+  last_seen_at: string | null;
+  last_status: Json | null;
+}
+
+export interface PersonalScoreRow {
+  personal_score: number | null;
+  computed_at: string;
+}
+
+function fail(what: string, message: string): never {
+  throw new Error(`Could not load ${what}: ${message}`);
+}
+
+/** Reads AI evidence with the signed-in user's session: Row Level Security limits it to their kitchens. */
 export class AIMonitoringRepository {
-  async getMonitoringData(): Promise<AIMonitoringData> {
-    return {
-      kitchenName: "Verified Kitchen - Test Kitchen",
+  async camera(kitchenId: string): Promise<CameraRow | null> {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("devices")
+      .select("id, name, last_seen_at, last_status")
+      .eq("kitchen_id", kitchenId)
+      .eq("type", "camera")
+      .order("id")
+      .limit(1)
+      .maybeSingle();
+    if (error) fail("camera", error.message);
+    return data;
+  }
 
-      system: {
-        modelName: "YOLOv8n",
-        modelVersion: "Prototype v1",
-        modelStatus: "Online",
-        cameraStatus: "Online",
-        edgeDeviceStatus: "Online",
-        inferenceLatency: 74,
-        lastInference: "Just now",
-      },
+  /** Newest first. One hour of 5-s windows is at most 720 per indicator. */
+  async detections(kitchenId: string, since: Date): Promise<DetectionRow[]> {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("ai_detections")
+      .select("detected_at, indicator, compliant, confidence, inference_ms, model_version, metadata")
+      .eq("kitchen_id", kitchenId)
+      .eq("pillar", "personal")
+      .gte("detected_at", since.toISOString())
+      .order("detected_at", { ascending: false })
+      .limit(2500);
+    if (error) fail("AI detections", error.message);
+    return data;
+  }
 
-      personalHygieneDetections: [
-        {
-          id: "hairnet",
-          name: "Hairnet",
-          category: "Personal Hygiene",
-          status: "Compliant",
-          confidence: 96,
-          lastChecked: "Just now",
-        },
-        {
-          id: "mask",
-          name: "Mask",
-          category: "Personal Hygiene",
-          status: "Compliant",
-          confidence: 94,
-          lastChecked: "Just now",
-        },
-        {
-          id: "gloves",
-          name: "Gloves",
-          category: "Personal Hygiene",
-          status: "Non-Compliant",
-          confidence: 91,
-          lastChecked: "Just now",
-        },
-      ],
-
-      foodPreparationDetections: [
-        {
-          id: "clean-preparation-surface",
-          name: "Clean Preparation Surface",
-          category: "Food Preparation Hygiene",
-          status: "Compliant",
-          confidence: 92,
-          lastChecked: "Just now",
-        },
-        {
-          id: "food-spills",
-          name: "Food Spills",
-          category: "Food Preparation Hygiene",
-          status: "Detected",
-          confidence: 89,
-          lastChecked: "Just now",
-        },
-        {
-          id: "food-waste",
-          name: "Food Waste",
-          category: "Food Preparation Hygiene",
-          status: "Clear",
-          confidence: 93,
-          lastChecked: "Just now",
-        },
-        {
-          id: "dirty-surfaces",
-          name: "Dirty Surfaces",
-          category: "Food Preparation Hygiene",
-          status: "Clear",
-          confidence: 90,
-          lastChecked: "Just now",
-        },
-      ],
-
-      recentEvents: [
-        {
-          id: "EVT-AI-001",
-          timestamp: "15:46",
-          detection: "Gloves",
-          category: "Personal Hygiene",
-          confidence: 91,
-          result: "Non-Compliant",
-        },
-        {
-          id: "EVT-AI-002",
-          timestamp: "15:42",
-          detection: "Food Spills",
-          category: "Food Preparation Hygiene",
-          confidence: 89,
-          result: "Detected",
-        },
-        {
-          id: "EVT-AI-003",
-          timestamp: "15:39",
-          detection: "Hairnet",
-          category: "Personal Hygiene",
-          confidence: 96,
-          result: "Compliant",
-        },
-        {
-          id: "EVT-AI-004",
-          timestamp: "15:35",
-          detection: "Mask",
-          category: "Personal Hygiene",
-          confidence: 94,
-          result: "Compliant",
-        },
-      ],
-    };
+  async latestPersonalScore(kitchenId: string): Promise<PersonalScoreRow | null> {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("hygiene_scores")
+      .select("personal_score, computed_at")
+      .eq("kitchen_id", kitchenId)
+      .order("computed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) fail("hygiene score", error.message);
+    return data;
   }
 }

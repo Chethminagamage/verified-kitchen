@@ -1,4 +1,8 @@
-"""Long-running edge service: real ESP32 telemetry over MQTT -> pipeline -> Supabase.
+"""Long-running edge service: device messages over MQTT -> pipeline -> Supabase.
+
+Sources: the ESP32 environmental node (telemetry) and the camera process
+(`edge-service vision`, aggregated PPE detections). Both report health on a
+retained `status` topic with an "offline" last will.
 
 Threading model: paho-mqtt's network thread only enqueues raw messages; all
 validation, scoring and database writes happen on the single main thread.
@@ -20,7 +24,15 @@ from paho.mqtt.enums import CallbackAPIVersion
 
 from .config import Settings
 from .domain import Detection, SensorReading
-from .mqtt_ingest import AcceptedReading, Rejected, Topic, parse_status, parse_telemetry, parse_topic
+from .mqtt_ingest import (
+    AcceptedReading,
+    Rejected,
+    Topic,
+    parse_detections,
+    parse_status,
+    parse_telemetry,
+    parse_topic,
+)
 from .pipeline import Pipeline
 from .repository import Repository, RepositoryError
 from .simulator import Scenario, Simulator
@@ -43,6 +55,7 @@ class Inbound:
 class Stats:
     accepted: int = 0
     buffered: int = 0
+    windows: int = 0  # camera detection windows
     rejected: Counter[str] = field(default_factory=Counter)
     missing_seq: int = 0
     stored_scores_since: int = 0
@@ -52,6 +65,7 @@ class Stats:
         top = ", ".join(f"{r} ×{n}" for r, n in self.rejected.most_common(3))
         return (
             f"accepted {self.accepted} readings ({self.buffered} from device buffer), "
+            f"{self.windows} camera windows, "
             f"rejected {rejected}{f' [{top}]' if top else ''}, missed messages {self.missing_seq}"
         )
 
@@ -92,11 +106,15 @@ class EdgeRunner:
         if topic.kitchen != self._kitchen_code:
             self._reject(f"message for another kitchen ({topic.kitchen})")
             return
-        if self._devices.get(topic.device) != "env_node":
-            self._reject(f"unknown environmental device {topic.device!r}")
+        device_type = self._devices.get(topic.device)
+        expected = {"telemetry": "env_node", "detections": "camera"}.get(topic.kind)
+        if device_type is None or (expected is not None and device_type != expected):
+            self._reject(f"device {topic.device!r} is not registered for {topic.kind}")
             return
         if topic.kind == "status":
             self._handle_status(topic, msg)
+        elif topic.kind == "detections":
+            self._handle_detections(topic, msg)
         else:
             self._handle_telemetry(topic, msg)
 
@@ -140,9 +158,37 @@ class EdgeRunner:
         except RepositoryError as exc:
             log.error("device status not stored: %s", exc)
 
+    def _handle_detections(self, topic: Topic, msg: Inbound) -> None:
+        result = parse_detections(topic, msg.payload, msg.received_at)
+        if isinstance(result, Rejected):
+            self._reject(result.reason)
+            return
+        self._track_seq_value(topic.device, result.seq)
+        self.stats.windows += 1
+        state = self._device_state.setdefault(topic.device, {})
+        state.update(
+            {
+                "state": "online",
+                "model_version": result.model_version,
+                "inference_ms": result.inference_ms,
+                "seq": result.seq,
+            }
+        )
+        if result.detections:
+            # Scored together with the sensor readings in the trailing window.
+            self._process([], result.detections, msg.received_at, model_version=result.model_version)
+        try:
+            self._repo.touch_device(topic.device, msg.received_at, state)
+        except RepositoryError as exc:
+            log.error("device status not stored: %s", exc)
+
     def _track_seq(self, device: str, result: AcceptedReading) -> None:
-        seq = result.reading.seq
-        if seq is None or result.buffered:
+        if result.buffered:
+            return
+        self._track_seq_value(device, result.reading.seq)
+
+    def _track_seq_value(self, device: str, seq: int | None) -> None:
+        if seq is None:
             return
         last = self._last_seq.get(device)
         if last is not None and seq > last + 1:
@@ -175,12 +221,21 @@ class EdgeRunner:
         self._process([], detections, now)
 
     # -- pipeline with retry -------------------------------------------------
-    def _process(self, readings: list[SensorReading], detections: list[Detection], now: datetime) -> None:
+    def _process(
+        self,
+        readings: list[SensorReading],
+        detections: list[Detection],
+        now: datetime,
+        *,
+        model_version: str | None = None,
+    ) -> None:
         backlog = list(self._retry)
         self._retry.clear()
         try:
-            self._pipeline.process(now, backlog + readings, detections)
+            self._pipeline.process(now, backlog + readings, detections, model_version=model_version)
         except RepositoryError as exc:
+            # Sensor readings are kept and retried. A lost 5-s detection window is not:
+            # the next window arrives within seconds and old windows age out of scoring.
             self._retry.extend(backlog + readings)
             log.error("Supabase write failed (%d readings kept for retry): %s", len(self._retry), exc)
 
@@ -203,7 +258,7 @@ class EdgeRunner:
                 log.error("MQTT connection refused: %s", reason)
                 return
             log.info("connected to MQTT broker %s:%d", settings.mqtt_host, settings.mqtt_port)
-            c.subscribe([(f"{base}/telemetry", 1), (f"{base}/status", 1)])
+            c.subscribe([(f"{base}/telemetry", 1), (f"{base}/status", 1), (f"{base}/detections", 1)])
 
         def on_disconnect(_c: mqtt.Client, _u: Any, _f: Any, reason: Any, _p: Any) -> None:
             if not stop.is_set():

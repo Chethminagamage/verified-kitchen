@@ -12,8 +12,8 @@ from collections.abc import Collection
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from .domain import EnvMetric, EvidenceSource, Indicator, Pillar, Severity, Thresholds
-from .scoring import ScoreResult
+from .domain import INDICATOR_ITEM, EnvMetric, EvidenceSource, Indicator, Pillar, Severity, Thresholds
+from .scoring import SEVERITY_ORDER, ActiveCondition, ScoreResult
 
 AI_TITLES: dict[Indicator, str] = {
     Indicator.HAIRNET: "Hairnet not detected",
@@ -45,6 +45,9 @@ class ViolationCandidate:
 class Evaluation:
     new: list[ViolationCandidate] = field(default_factory=list)
     failing: set[str] = field(default_factory=set)
+    # Every failing condition with its current severity and since when it has been
+    # at each severity level (drives the non-compensatory caps).
+    active: dict[str, ActiveCondition] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,6 +68,7 @@ class ViolationEngine:
         self._t = thresholds
         self._window_s = window_s
         self._first_failing: dict[str, datetime] = {}
+        self._since_level: dict[str, dict[Severity, datetime]] = {}
         # Keys already raised during the current failing episode. Guards against
         # duplicates even if the database read of open violations is stale.
         self._raised: set[str] = set()
@@ -74,11 +78,22 @@ class ViolationEngine:
         for key in list(self._first_failing):
             if key not in conditions:
                 del self._first_failing[key]
+                self._since_level.pop(key, None)
                 self._raised.discard(key)
 
         out = Evaluation(failing=set(conditions))
         for key, c in conditions.items():
             started = self._first_failing.setdefault(key, now)
+            # Track since when the condition has been at (or above) each severity;
+            # dropping below a level resets that level's clock.
+            levels = self._since_level.setdefault(key, {})
+            current = SEVERITY_ORDER[c.severity]
+            for level, rank in SEVERITY_ORDER.items():
+                if rank <= current:
+                    levels.setdefault(level, started if rank == 0 else now)
+                else:
+                    levels.pop(level, None)
+            out.active[key] = ActiveCondition(c.severity, dict(levels))
             persistence = self._t.ai_persistence_s if c.source is EvidenceSource.AI else self._t.sensor_persistence_s
             if key in self._raised or key in open_keys:
                 continue
@@ -120,15 +135,15 @@ class ViolationEngine:
                     f"({r.confident_samples} confident observations)."
                 ),
                 severity=self._t.ai_severity[indicator],
-                score_impact=_impact(result, pillar, r.score, _peers(result, pillar)),
+                score_impact=_impact(result, INDICATOR_ITEM[indicator]),
                 ai_confidence=None if r.mean_confidence is None else round(r.mean_confidence, 3),
             )
 
         for metric, m in result.metrics.items():
-            if m.mean is None or m.score is None:
+            if m.value is None or m.score is None:
                 continue
             band = self._t.environment[metric]
-            deviation = band.deviation(m.mean)
+            deviation = band.deviation(m.value)
             if deviation == 0:
                 continue
             above = deviation > 0
@@ -138,29 +153,21 @@ class ViolationEngine:
                 source=EvidenceSource.SENSOR,
                 title=f"{metric.label} {'above' if above else 'below'} safe limit",
                 description=(
-                    f"Mean {metric.label.lower()} was {m.mean:.1f}{metric.unit} over the last "
-                    f"{window} (limit {limit:.1f}{metric.unit})."
+                    f"{'Median' if m.aggregation == 'median' else 'Average'} {metric.label.lower()} was "
+                    f"{m.value:.1f}{metric.unit} over the last {window} (limit {limit:.1f}{metric.unit})."
                 ),
                 severity=_sensor_severity(metric, abs(deviation), band.tolerance, above),
-                score_impact=_impact(result, Pillar.ENVIRONMENTAL, m.score, _peers(result, Pillar.ENVIRONMENTAL)),
-                sensor_value=round(m.mean, 2),
+                score_impact=_impact(result, metric.value),
+                sensor_value=round(m.value, 2),
                 sensor_unit=metric.unit,
             )
         return conditions
 
 
-def _peers(result: ScoreResult, pillar: Pillar) -> int:
-    if pillar is Pillar.ENVIRONMENTAL:
-        return sum(1 for m in result.metrics.values() if m.score is not None)
-    return sum(1 for i, r in result.indicators.items() if i.pillar is pillar and r.score is not None)
-
-
-def _impact(result: ScoreResult, pillar: Pillar, score: float, peers: int) -> float | None:
-    """Overall-score points lost because of this one indicator in the window."""
-    weight = result.weights_used.get(pillar)
-    if weight is None or peers == 0:
-        return None
-    return round(weight * (100.0 - score) / peers, 2)
+def _impact(result: ScoreResult, item: str) -> float | None:
+    """Overall-score points lost because of this item in the window (before caps)."""
+    r = result.items.get(item)
+    return None if r is None or r.impact is None else round(r.impact, 2)
 
 
 def _sensor_severity(metric: EnvMetric, deviation: float, tolerance: float, above: bool) -> Severity:

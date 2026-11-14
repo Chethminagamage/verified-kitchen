@@ -121,7 +121,7 @@ def _defaults(settings: Settings | None) -> Settings:
         env_device_id="vk-env-01",
         camera_device_id="vk-cam-01",
         model_version="simulator-v1",
-        score_window_s=60.0,
+        score_window_s=None,
         sensor_interval_s=30,
         ai_interval_s=15,
         score_persist_s=60.0,
@@ -135,8 +135,10 @@ def _fmt(result: ScoreResult) -> str:
     p = result.pillars
     from .domain import Pillar
 
+    grade = f" ({result.grade})" if result.grade else ""
+    capped = " CAPPED" if result.caps_applied else ""
     return (
-        f"overall {f(result.overall)} | personal {f(p[Pillar.PERSONAL])} | "
+        f"overall {f(result.overall)}{grade}{capped} | personal {f(p[Pillar.PERSONAL])} | "
         f"food prep {f(p[Pillar.FOOD_PREP])} | environment {f(p[Pillar.ENVIRONMENTAL])}"
     )
 
@@ -267,7 +269,7 @@ def cmd_backfill(args: argparse.Namespace) -> int:
 
 
 def cmd_run(args: argparse.Namespace) -> int:
-    """Real ESP32 telemetry over MQTT (+ simulated AI until the camera service exists)."""
+    """Real device evidence over MQTT: ESP32 telemetry and camera detections (`vision`)."""
     import threading
 
     from .pipeline import Pipeline
@@ -288,7 +290,8 @@ def cmd_run(args: argparse.Namespace) -> int:
         model_version=settings.model_version,
         window_s=settings.score_window_s,
         score_persist_s=settings.score_persist_s,
-        report_env_device=False,
+        report_env_device=False,  # the ESP32 reports its own health
+        report_camera_device=args.ai != "none",  # the real camera process reports its own health
     )
     ai = None if args.ai == "none" else (Simulator(seed=args.seed), SCENARIOS[args.ai_scenario])
     runner = EdgeRunner(
@@ -313,10 +316,153 @@ def cmd_run(args: argparse.Namespace) -> int:
         settings.kitchen_code,
         config.version,
         ", ".join(f"{d} ({t})" for d, t in sorted(devices.items())),
-        "none" if ai is None else f"SIMULATED ({args.ai_scenario})",
+        "camera process over MQTT (edge-service vision)" if ai is None else f"SIMULATED ({args.ai_scenario})",
     )
     runner.run(settings, stop)
     return 0
+
+
+def cmd_vision(args: argparse.Namespace) -> int:
+    """Camera process: video -> YOLO (CoreML) -> 5-s PPE evidence over MQTT. Stores no images."""
+    import threading
+
+    try:
+        from .vision.capture import LatestFrameCamera
+        from .vision.detector import YoloDetector
+        from .vision.publisher import VisionPublisher
+        from .vision.roi import Roi
+        from .vision.service import VisionService
+        from .vision.settings import VisionSettings
+    except ImportError as exc:  # pragma: no cover - depends on the optional extra
+        log.error("vision packages missing (%s). Install them with: uv sync --extra vision", exc)
+        return 1
+
+    try:
+        vs = VisionSettings()
+    except ValidationError as exc:
+        log.error("vision settings invalid:\n%s", exc)
+        return 1
+
+    source_text = args.source or vs.vision_source
+    source: int | str
+    if source_text == "rtsp":
+        if vs.vk_rtsp_url is None:
+            log.error("VISION_SOURCE=rtsp needs VK_RTSP_URL in .env (rtsp://user:pass@ip:554/stream1)")
+            return 1
+        source = vs.vk_rtsp_url.get_secret_value()
+    elif source_text.isdigit():
+        source = int(source_text)
+    else:
+        source = source_text
+
+    password = vs.vision_mqtt_password
+    if password is None:
+        log.error(
+            "VISION_MQTT_PASSWORD is not set; run: infrastructure/mosquitto/add-device.sh %s", vs.camera_device_id
+        )
+        return 1
+
+    roi = Roi.parse(args.roi) if args.roi is not None else vs.roi
+    detector = YoloDetector(vs.model_path, imgsz=vs.vision_imgsz, conf=vs.vision_conf)
+    camera = LatestFrameCamera(source)
+    publisher = VisionPublisher(
+        host=vs.mqtt_host,
+        port=vs.mqtt_port,
+        kitchen=vs.kitchen_code,
+        device_id=vs.camera_device_id,
+        password=password.get_secret_value(),
+    )
+    service = VisionService(
+        camera=camera,
+        detector=detector,
+        publisher=publisher,
+        device_id=vs.camera_device_id,
+        fps=args.fps or vs.vision_fps,
+        window_s=vs.vision_window_s,
+        min_frames=vs.vision_min_frames,
+        roi=roi,
+        status_interval_s=vs.vision_status_interval_s,
+        preview=_preview_window() if args.preview else None,
+    )
+
+    stop = threading.Event()
+
+    def _stop(signum: int, frame: FrameType | None) -> None:
+        log.info("stopping…")
+        stop.set()
+
+    signal.signal(signal.SIGINT, _stop)
+    signal.signal(signal.SIGTERM, _stop)
+    log.info(
+        "camera %s -> %s | model %s | %.0f fps, %.0f s windows | region %s | %s",
+        camera.description,
+        vs.camera_device_id,
+        detector.model_version,
+        service.period and 1 / service.period,
+        vs.vision_window_s,
+        roi or "full frame",
+        "PREVIEW ON (screen only, nothing saved)" if args.preview else "no images stored or shown",
+    )
+    publisher.start()
+    try:
+        stats = service.run(stop, max_windows=args.windows)
+    finally:
+        camera.stop()
+        publisher.stop({"state": "offline", "camera": "stopped"})
+        if args.preview:
+            import importlib
+
+            importlib.import_module("cv2").destroyAllWindows()
+    elapsed = max(1e-9, time.monotonic() - stats.started)
+    log.info(
+        "stopped: %d frames analysed (%.1f fps), %d windows published",
+        stats.frames,
+        stats.frames / elapsed,
+        stats.windows,
+    )
+    return 0
+
+
+def _preview_window() -> Any:
+    """On-screen preview for camera / region setup. Displays only; never writes a file."""
+    import importlib
+
+    cv2: Any = importlib.import_module("cv2")
+
+    def show(frame: Any, roi: Any, states: dict[str, str]) -> bool:
+        view = frame.copy()
+        h, w = view.shape[:2]
+        if roi is not None:
+            x0, y0, x1, y1 = roi.pixels(w, h)
+            cv2.rectangle(view, (x0, y0), (x1, y1), (0, 200, 255), 2)
+        colours = {"OK": (60, 200, 60), "MISSING": (40, 40, 230), "unknown": (180, 180, 180)}
+        for n, (indicator, state) in enumerate(sorted(states.items())):
+            cv2.putText(
+                view,
+                f"{indicator}: {state}",
+                (12, 30 + 28 * n),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.8,
+                colours.get(state, (255, 255, 255)),
+                2,
+            )
+        cv2.putText(
+            view,
+            "Verified Kitchen preview - nothing is saved - Q closes the preview",
+            (12, h - 14),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.55,
+            (255, 255, 255),
+            1,
+        )
+        cv2.imshow("Verified Kitchen camera", view)
+        if (cv2.waitKey(1) & 0xFF) == ord("q"):
+            cv2.destroyWindow("Verified Kitchen camera")
+            cv2.waitKey(1)  # let macOS process the close
+            return False
+        return True
+
+    return show
 
 
 def _firmware_secret(name: str) -> str | None:
@@ -460,6 +606,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--ai-scenario", choices=sorted(SCENARIOS), default="baseline")
     p.add_argument("--seed", type=int, default=None)
     p.set_defaults(fn=cmd_run)
+
+    p = sub.add_parser("vision", help="camera process: PPE detection -> MQTT (needs: uv sync --extra vision)")
+    p.add_argument("--source", help="'0' = webcam, 'rtsp' = $VK_RTSP_URL, or a video file (default VISION_SOURCE)")
+    p.add_argument("--roi", help="worker region 'x,y,w,h' as fractions 0-1 ('' = full frame; default VISION_ROI)")
+    p.add_argument("--fps", type=float, help="frames analysed per second (default VISION_FPS = 5)")
+    p.add_argument("--preview", action="store_true", help="show the camera on screen for setup (nothing saved)")
+    p.add_argument("--windows", type=int, help="stop after N windows (testing)")
+    p.set_defaults(fn=cmd_vision)
 
     p = sub.add_parser("fake-device", help="publish like the ESP32 (testing without hardware)")
     p.add_argument("--device", default="vk-env-01")

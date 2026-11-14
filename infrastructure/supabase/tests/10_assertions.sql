@@ -208,4 +208,38 @@ select pg_temp.check(
      from public.scoring_configs where version = 'v0-provisional'),
   'environmental safe ranges stored in the active config');
 
+-- ---------------------------------------------------------------------
+-- Real camera evidence is idempotent (migration 20261114000000)
+-- ---------------------------------------------------------------------
+insert into public.ai_detections (kitchen_id, device_id, detected_at, pillar, indicator, compliant, confidence, model_version)
+select id, 'vk-cam-01', '2026-11-14T10:00:05Z', 'personal', 'mask', true, 0.8, 'ppe@abc' from public.kitchens;
+insert into public.ai_detections (kitchen_id, device_id, detected_at, pillar, indicator, compliant, confidence, model_version)
+select id, 'vk-cam-01', '2026-11-14T10:00:05Z', 'personal', 'mask', true, 0.8, 'ppe@abc' from public.kitchens
+on conflict (device_id, indicator, detected_at) do nothing;
+select pg_temp.check(
+  (select count(*) = 1 from public.ai_detections where detected_at = '2026-11-14T10:00:05Z' and indicator = 'mask'),
+  'redelivered camera window (MQTT QoS 1) is ignored');
+insert into public.ai_detections (kitchen_id, device_id, detected_at, pillar, indicator, compliant, confidence, model_version)
+select id, 'vk-cam-01', '2026-11-14T10:00:05Z', 'personal', 'gloves', false, 0.7, 'ppe@abc' from public.kitchens
+on conflict (device_id, indicator, detected_at) do nothing;
+select pg_temp.check(
+  (select count(*) = 2 from public.ai_detections where detected_at = '2026-11-14T10:00:05Z'),
+  'other indicators of the same window are stored');
+
+-- ---------------------------------------------------------------------
+-- Scoring config v1-live (migration 20261115000000)
+-- ---------------------------------------------------------------------
+select pg_temp.check(
+  (select count(*) = 1 from public.scoring_configs where is_active and version = 'v1-live'),
+  'v1-live is the only active scoring config');
+select pg_temp.check(
+  (select (thresholds ->> 'window_s')::numeric = 300
+          and (thresholds -> 'item_weights' ->> 'gloves')::numeric > (thresholds -> 'item_weights' ->> 'hairnet')::numeric
+          and jsonb_array_length(thresholds -> 'caps') = 2
+     from public.scoring_configs where version = 'v1-live'),
+  'v1-live stores its rules explicitly (window, item weights, caps)');
+select pg_temp.check(
+  (select count(*) = 1 from public.scoring_configs where version = 'v0-provisional'),
+  'earlier config kept for traceability of older scores');
+
 \echo 'ALL DATABASE ASSERTIONS PASSED'

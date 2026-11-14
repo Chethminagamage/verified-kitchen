@@ -45,8 +45,8 @@ Only detection metadata leaves the edge device. **No video or images are stored 
 
 | Path | What it is | Status |
 |---|---|---|
-| `apps/web-dashboard` | Next.js 16 operator dashboard (TypeScript, Tailwind, Recharts) | All pages on live data except AI Monitoring (preview until the camera layer exists) |
-| `services/edge-service` | Python 3.13 MQTT ingestion, scoring engine, violation rules, Supabase writer, simulator | Live with the real ESP32; camera input next |
+| `apps/web-dashboard` | Next.js 16 operator dashboard (TypeScript, Tailwind, Recharts) | All pages on live data, including AI Monitoring (PPE camera) |
+| `services/edge-service` | Python 3.13 MQTT ingestion, scoring engine, violation rules, Supabase writer, simulator | Live with the real ESP32 and the PPE camera (`edge-service vision`, YOLO on CoreML) |
 | `infrastructure/supabase` | SQL migrations, seed, maintenance scripts, database test suite | 5 migrations, 28 database assertions |
 | `iot/esp32` | ESP32 firmware (BME280 + DS18B20 + PCF8563 → MQTT) | Live (firmware 1.0.1) |
 | `services/blockchain` | Hyperledger Fabric anchoring | Planned |
@@ -105,8 +105,10 @@ npm run dev                   # http://localhost:3000
 Start everything with one command when you begin working. **Ctrl+C stops it all**:
 
 ```bash
-./dev.sh            # MQTT broker + edge service + website (http://localhost:3000)
-./dev.sh --no-web   # broker + edge service only
+./dev.sh                     # MQTT broker + edge service + website (http://localhost:3000)
+./dev.sh --vision            # ... plus the camera / PPE detection (webcam or RTSP camera)
+./dev.sh --vision --preview  # ... and show the camera on screen to position it (nothing is saved)
+./dev.sh --no-web            # broker + edge service only
 ```
 
 In VS Code, use **Cmd+Shift+P → Tasks: Run Task → Verified Kitchen: start**. Then power on the ESP32; its readings appear within about 30 s. Logs from all three parts are shown in one terminal, each line labelled `mqtt`, `edge` or `web`.

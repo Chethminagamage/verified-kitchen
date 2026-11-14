@@ -7,6 +7,7 @@ import {
   type PillarScore,
   type SensorSummary,
 } from "../model/dashboard.model";
+import { explainScore } from "../model/score-details";
 import { scoreBand } from "../model/score-band";
 import { SystemStatusRepository } from "@/modules/system-status/repository/system-status.repository";
 
@@ -118,6 +119,7 @@ export class DashboardService {
           now.getTime() - new Date(score.computed_at).getTime() >
           SCORE_STALE_AFTER_MS,
         missingPillars: missingPillars(score.details),
+        explanation: explainScore(score.details, score.overall_score),
         configVersion:
           isRecord(score.details) &&
           typeof score.details.config_version === "string"

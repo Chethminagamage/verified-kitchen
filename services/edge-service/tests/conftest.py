@@ -49,6 +49,7 @@ class FakeRepository:
         self.config = config
         self.readings: list[SensorReading] = []
         self.detections: list[Detection] = []
+        self.detection_model_versions: list[str] = []
         self.scores: list[ScoreRow] = []
         self.violations: list[ViolationRow] = []
         self.devices: dict[str, dict[str, Any]] = {}
@@ -75,6 +76,7 @@ class FakeRepository:
             out[(d.indicator, d.detected_at.astimezone(UTC))] = self._next
             self._next += 1
             self.detections.append(d)
+            self.detection_model_versions.append(mv)
         return out
 
     def insert_hygiene_scores(self, kitchen_id: str, config_id: int, rows: Any) -> None:

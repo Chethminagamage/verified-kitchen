@@ -197,7 +197,12 @@ class SupabaseRepository:
             for d in detections
         ]
         for chunk in _chunks(payload):
-            for row in self._write("ai_detections", chunk, "insert AI detections"):
+            # ignore_duplicates: an MQTT QoS 1 redelivery of the same window is not an error
+            # (unique key from migration 20261114000000_ai_detection_dedupe.sql).
+            rows = self._write(
+                "ai_detections", chunk, "insert AI detections", upsert_on="device_id,indicator,detected_at"
+            )
+            for row in rows:
                 key = (Indicator(row["indicator"]), utc(datetime.fromisoformat(row["detected_at"])))
                 ids[key] = int(row["id"])
         return ids

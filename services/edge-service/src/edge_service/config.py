@@ -26,8 +26,9 @@ class Settings(BaseSettings):
     # Identifies the evidence source in ai_detections.model_version.
     model_version: str = "simulator-v1"
 
-    # Scoring window: the score at time T uses the evidence from (T - window, T].
-    score_window_s: float = Field(default=60.0, gt=0)
+    # Scoring window override in seconds. Normally empty: the window is part of the
+    # versioned scoring config (thresholds.window_s, default 5 min).
+    score_window_s: float | None = Field(default=None, gt=0)
 
     # Storage cadences (see README "Data volume"). Scoring and violation checks
     # still run on every evidence message; only what is stored is thinned.

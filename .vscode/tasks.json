@@ -11,6 +11,14 @@
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
     },
     {
+      "label": "Verified Kitchen: start with camera",
+      "type": "shell",
+      "command": "./dev.sh --vision",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
       "label": "Verified Kitchen: start (sensors only, no website)",
       "type": "shell",
       "command": "./dev.sh --no-web",

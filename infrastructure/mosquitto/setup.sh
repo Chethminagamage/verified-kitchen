@@ -2,10 +2,11 @@
 # Creates broker accounts with random passwords and writes them into the
 # git-ignored config files that need them:
 #   infrastructure/mosquitto/passwd           (hashed, for Mosquitto)
-#   services/edge-service/.env                (MQTT_* for the edge service)
+#   services/edge-service/.env                (MQTT_* for the edge service, VISION_MQTT_PASSWORD for the camera)
 #   iot/esp32/include/secrets.h               (MQTT_* for the firmware; Wi-Fi is filled in by you)
 #
-# Re-running rotates both passwords (re-flash the ESP32 afterwards).
+# Re-running rotates all passwords (re-flash the ESP32 afterwards).
+# To add or rotate a single account without re-flashing, use add-device.sh.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -20,24 +21,28 @@ command -v mosquitto_passwd >/dev/null || { echo "Install Mosquitto first: brew 
 gen() { openssl rand -base64 24 | tr -dc 'A-Za-z0-9' | head -c 24; }
 DEVICE_PW="$(gen)"
 EDGE_PW="$(gen)"
+CAMERA_ID="vk-cam-01"
+CAMERA_PW="$(gen)"
 
 umask 077
 rm -f "$HERE/passwd"
 touch "$HERE/passwd"
 mosquitto_passwd -b "$HERE/passwd" "$DEVICE_ID" "$DEVICE_PW"
 mosquitto_passwd -b "$HERE/passwd" edge-service "$EDGE_PW"
+mosquitto_passwd -b "$HERE/passwd" "$CAMERA_ID" "$CAMERA_PW"
 mkdir -p "$HERE/data"
 
 # --- edge service .env: replace or append the MQTT_* keys -------------------
 touch "$EDGE_ENV"
 tmp="$(mktemp)"
-grep -vE '^MQTT_(HOST|PORT|USERNAME|PASSWORD)=' "$EDGE_ENV" > "$tmp" || true
+grep -vE '^(MQTT_(HOST|PORT|USERNAME|PASSWORD)|VISION_MQTT_PASSWORD)=' "$EDGE_ENV" > "$tmp" || true
 {
   cat "$tmp"
   echo "MQTT_HOST=127.0.0.1"
   echo "MQTT_PORT=1883"
   echo "MQTT_USERNAME=edge-service"
   echo "MQTT_PASSWORD=$EDGE_PW"
+  echo "VISION_MQTT_PASSWORD=$CAMERA_PW"
 } > "$EDGE_ENV"
 rm -f "$tmp"
 
@@ -61,7 +66,7 @@ ${WIFI_LINES}
 #define MQTT_PASSWORD "${DEVICE_PW}"
 EOF
 
-echo "Broker accounts created: ${DEVICE_ID}, edge-service"
+echo "Broker accounts created: ${DEVICE_ID}, ${CAMERA_ID}, edge-service"
 echo "Edge service credentials -> services/edge-service/.env"
 echo "Firmware credentials     -> iot/esp32/include/secrets.h (broker ${BROKER_HOST})"
 if [ "$WIFI_SSID" = "YOUR_WIFI_NAME" ]; then

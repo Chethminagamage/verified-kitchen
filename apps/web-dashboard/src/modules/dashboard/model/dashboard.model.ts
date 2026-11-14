@@ -1,5 +1,7 @@
 import type { Database } from "@/shared/types/database.types";
 
+import type { ScoreExplanation } from "./score-details";
+
 export type PillarId =
   Database["public"]["Enums"]["hygiene_pillar"];
 
@@ -38,6 +40,8 @@ export interface OverallScore {
   isStale: boolean;
   missingPillars: PillarId[];
   configVersion: string | null;
+  /** Grade, caps and "what to fix first", as decided by the scoring engine. */
+  explanation: ScoreExplanation;
 }
 
 export interface PillarScore {
