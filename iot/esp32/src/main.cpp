@@ -292,9 +292,36 @@ static void bufferAppend(const String &json) {
 }
 
 // ---------------------------------------------------------------------
-// Wi-Fi diagnostics
+// Wi-Fi: known networks, diagnostics
+//
+// secrets.h lists up to three networks (WIFI_SSID / _2 / _3). The node scans
+// at start-up and whenever it cannot reach its network, then joins the
+// strongest known network in range, so moving between the hotspot and a
+// router needs no re-flash.
 // ---------------------------------------------------------------------
-static volatile bool scanWanted = false;
+struct WifiNetwork {
+  const char *ssid;
+  const char *password;
+};
+
+static const WifiNetwork WIFI_NETWORKS[] = {
+    {WIFI_SSID, WIFI_PASSWORD},
+#ifdef WIFI_SSID_2
+    {WIFI_SSID_2, WIFI_PASSWORD_2},
+#endif
+#ifdef WIFI_SSID_3
+    {WIFI_SSID_3, WIFI_PASSWORD_3},
+#endif
+};
+static const int WIFI_NETWORK_COUNT = sizeof(WIFI_NETWORKS) / sizeof(WIFI_NETWORKS[0]);
+
+static int currentNetwork = 0;
+// Network to try last on the next scan: its password was rejected, or the edge
+// computer (MQTT broker) could not be reached through it.
+static volatile int avoidNetwork = -1;
+static volatile uint32_t lastBrokerOk = 0;  // last time the broker was reachable (or Wi-Fi joined)
+
+static volatile bool scanWanted = true;  // choose a network at start-up
 static uint32_t lastScan = 0;
 static uint8_t lastReason = 0;
 static uint32_t lastReasonLog = 0;
@@ -315,6 +342,7 @@ static const char *wifiReason(uint8_t reason) {
 static void onWifiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
   if (event == ARDUINO_EVENT_WIFI_STA_GOT_IP) {
     lastReason = 0;
+    lastBrokerOk = millis();  // give each newly joined network time to reach the broker
     Serial.printf("[wifi] connected, IP %s, RSSI %d dBm\n", WiFi.localIP().toString().c_str(), WiFi.RSSI());
   } else if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED) {
     const uint8_t reason = info.wifi_sta_disconnected.reason;
@@ -324,14 +352,30 @@ static void onWifiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
       lastReason = reason;
       lastReasonLog = millis();
     }
-    if (reason == WIFI_REASON_NO_AP_FOUND) scanWanted = true;
+    const bool wrongPassword = reason == WIFI_REASON_AUTH_FAIL || reason == WIFI_REASON_4WAY_HANDSHAKE_TIMEOUT ||
+                               reason == WIFI_REASON_HANDSHAKE_TIMEOUT;
+    if (wrongPassword) avoidNetwork = currentNetwork;
+    if (reason == WIFI_REASON_NO_AP_FOUND || wrongPassword) scanWanted = true;
   }
 }
 
-// When the network is not found, list what the ESP32 can see (non-ASCII bytes
-// shown as \xNN, e.g. an iPhone's curly apostrophe is \xE2\x80\x99).
+static void connectTo(int index) {
+  currentNetwork = index;
+  Serial.printf("[wifi] connecting to \"%s\"\n", WIFI_NETWORKS[index].ssid);
+  WiFi.begin(WIFI_NETWORKS[index].ssid, WIFI_NETWORKS[index].password);
+}
+
+static int knownNetworkIndex(const String &ssid) {
+  for (int k = 0; k < WIFI_NETWORK_COUNT; k++) {
+    if (ssid == WIFI_NETWORKS[k].ssid) return k;
+  }
+  return -1;
+}
+
+// Scan, list what the ESP32 can see (non-ASCII bytes shown as \xNN, e.g. an
+// iPhone's curly apostrophe is \xE2\x80\x99) and join the strongest known one.
 static void scanIfWanted() {
-  if (!scanWanted || (lastScan != 0 && millis() - lastScan < 60000UL)) return;
+  if (!scanWanted || (lastScan != 0 && millis() - lastScan < 30000UL)) return;
   scanWanted = false;
   lastScan = millis();
   // A scan cannot run while the station keeps retrying: pause reconnects.
@@ -339,8 +383,18 @@ static void scanIfWanted() {
   WiFi.disconnect();
   delay(200);
   const int n = WiFi.scanNetworks();
-  Serial.printf("[wifi] looking for \"%s\"; %d network(s) visible (2.4 GHz only):\n", WIFI_SSID, n);
+  Serial.printf("[wifi] %d known network(s); %d visible (2.4 GHz only):\n", WIFI_NETWORK_COUNT, n);
+  int best = -1, bestRssi = -1000, fallback = -1;
   for (int i = 0; i < n; i++) {
+    const int known = knownNetworkIndex(WiFi.SSID(i));
+    if (known >= 0) {
+      if (known == avoidNetwork) {
+        fallback = known;  // only if nothing else is in range
+      } else if (WiFi.RSSI(i) > bestRssi) {
+        best = known;
+        bestRssi = WiFi.RSSI(i);
+      }
+    }
     String shown;
     for (const char c : WiFi.SSID(i)) {
       const uint8_t b = (uint8_t)c;
@@ -352,11 +406,20 @@ static void scanIfWanted() {
         shown += hex;
       }
     }
-    Serial.printf("[wifi]   \"%s\" (%d dBm)\n", shown.c_str(), WiFi.RSSI(i));
+    Serial.printf("[wifi]   \"%s\" (%d dBm)%s\n", shown.c_str(), WiFi.RSSI(i), known >= 0 ? "  <- known" : "");
   }
   WiFi.scanDelete();
   WiFi.setAutoReconnect(true);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+  if (best < 0) best = fallback;
+  if (best < 0) {
+    Serial.println("[wifi] no known network in range; retrying");
+    best = currentNetwork;  // keep trying; a rescan follows if it stays unreachable
+  } else if (best == avoidNetwork) {
+    Serial.printf("[wifi] retrying \"%s\" (no other known network in range)\n", WIFI_NETWORKS[best].ssid);
+  }
+  avoidNetwork = -1;
+  connectTo(best);
 }
 
 // ---------------------------------------------------------------------
@@ -429,6 +492,20 @@ static void maintainMqtt() {
   if (WiFi.status() != WL_CONNECTED) return;
   if (mqttConnected) {
     disconnectedSince = millis();
+    lastBrokerOk = millis();
+    return;
+  }
+  // On Wi-Fi but the edge computer is not reachable: with several known
+  // networks it is probably on another one (e.g. the Mac moved to the hotspot).
+  if (WIFI_NETWORK_COUNT > 1 && millis() - lastBrokerOk > BROKER_SWITCH_MS) {
+    Serial.printf("[wifi] edge computer not reachable via \"%s\"; trying the other known networks\n",
+                  WIFI_NETWORKS[currentNetwork].ssid);
+    avoidNetwork = currentNetwork;
+    lastBrokerOk = millis();
+    stopMqtt();
+    brokerIp = "";
+    lastScan = 0;  // scan now
+    scanWanted = true;
     return;
   }
   // (Re)resolve the broker on first start, or after a long outage (the
@@ -599,12 +676,11 @@ void setup() {
   loadTimeFromRtc();
 
   WiFi.onEvent(onWifiEvent);
-  Serial.printf("[wifi] connecting to \"%s\"\n", WIFI_SSID);
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
   WiFi.setHostname(DEVICE_ID);
   WiFi.setAutoReconnect(true);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  // The first loop() scans and joins the strongest known network (scanIfWanted).
   MDNS.begin(DEVICE_ID);
 
   sntp_set_time_sync_notification_cb(onNtpSync);

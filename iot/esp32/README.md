@@ -31,7 +31,7 @@ Pins and timing live in [`include/config.h`](include/config.h).
    ```bash
    infrastructure/mosquitto/setup.sh
    ```
-2. **Wi-Fi.** Edit `include/secrets.h` (git-ignored) and set `WIFI_SSID` and `WIFI_PASSWORD`.
+2. **Wi-Fi.** Edit `include/secrets.h` (git-ignored) and set `WIFI_SSID` and `WIFI_PASSWORD`. Up to two more networks can be added as `WIFI_SSID_2`/`WIFI_PASSWORD_2` and `WIFI_SSID_3`/`WIFI_PASSWORD_3`; the node scans and joins the strongest known network in range, so moving between a hotspot and a router needs no re-flash. Re-flash after changing this file.
    - The ESP32 only supports **2.4 GHz** Wi-Fi. On an iPhone hotspot, turn on **Maximize Compatibility**.
    - The ESP32 and the MacBook must be on the **same** network.
 3. **Flash.** Connect the board by USB, then:

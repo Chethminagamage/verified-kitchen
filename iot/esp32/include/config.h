@@ -1,7 +1,7 @@
 // Verified Kitchen — node configuration (no secrets here; see secrets.h).
 #pragma once
 
-#define FW_VERSION "1.0.1"
+#define FW_VERSION "1.1.0"
 #define CONTRACT_VERSION 1  // docs/api/mqtt-contract.md
 
 // Identity — must match devices.id / kitchens.code in the database.
@@ -29,6 +29,7 @@
 #define SENSOR_RETRY_MS 60000UL          // re-initialise a failed sensor
 #define BROKER_RESOLVE_RETRY_MS 15000UL  // mDNS lookup of the broker
 #define BROKER_STALE_MS 120000UL         // re-resolve broker if disconnected this long
+#define BROKER_SWITCH_MS 180000UL        // then try another known Wi-Fi network
 #define WATCHDOG_TIMEOUT_S 60            // reboot if the loop hangs
 
 // ---- Offline buffer (LittleFS) -----------------------------------------------
