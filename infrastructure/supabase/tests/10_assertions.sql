@@ -194,7 +194,8 @@ select pg_temp.check(
                                         interval '5 minutes')),
   'sensor series: 5-minute buckets with min / max');
 select pg_temp.check(
-  (select fridge_avg = 4 from public.sensor_reading_series((select id from public.kitchens),
+  -- Buckets align to the kitchen's local hour (UTC+5:30), so a UTC hour can span two of them.
+  (select count(*) >= 1 and bool_and(fridge_avg = 4) from public.sensor_reading_series((select id from public.kitchens),
      date_trunc('hour', now()) - interval '1 hour', date_trunc('hour', now()), interval '1 hour')),
   'sensor series: failed fridge readings (null) are ignored, not averaged as 0');
 set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
