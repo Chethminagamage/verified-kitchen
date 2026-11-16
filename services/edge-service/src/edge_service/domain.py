@@ -11,6 +11,8 @@ from typing import Any, Literal
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from .rating import RatingRules
+
 
 class Pillar(StrEnum):
     PERSONAL = "personal"
@@ -296,6 +298,8 @@ class Thresholds(BaseModel):
     # then their evidence counts in the live score but cannot cap it.
     ai_validated: dict[Indicator, bool] = Field(default_factory=lambda: dict.fromkeys(Indicator, False))
     grade_bands: dict[str, float] = Field(default_factory=_default_grade_bands)
+    # Public 7-day rating shown to consumers (see rating.py).
+    rating: RatingRules = Field(default_factory=RatingRules)
 
     @field_validator("item_weights")
     @classmethod

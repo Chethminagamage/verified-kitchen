@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, time, timedelta
 from typing import Any
 
 import pytest
@@ -54,6 +54,10 @@ class FakeRepository:
         self.violations: list[ViolationRow] = []
         self.devices: dict[str, dict[str, Any]] = {}
         self.device_statuses: dict[str, dict[str, Any]] = {}
+        # public rating
+        self.hours: Any = None
+        self.buckets: list[Any] = []
+        self.published: list[Any] = []
         self._next = 1
 
     def get_kitchen_id(self, code: str) -> str:
@@ -96,6 +100,20 @@ class FakeRepository:
 
     def list_devices(self, kitchen_id: str) -> dict[str, str]:
         return {"vk-env-01": "env_node", "vk-cam-01": "camera"}
+
+    def opening_hours(self, kitchen_id: str) -> Any:
+        from edge_service.rating import OpeningHours
+
+        return self.hours or OpeningHours(time(8), time(22), "Asia/Colombo")
+
+    def hourly_scores(self, kitchen_id: str, start: datetime, end: datetime) -> list[Any]:
+        return [b for b in self.buckets if start <= b.start < end]
+
+    def latest_score_at(self, kitchen_id: str) -> datetime | None:
+        return max((s.computed_at for s in self.scores), default=None)
+
+    def upsert_public_rating(self, kitchen_id: str, rating: Any, last_score_at: Any, config_version: str) -> None:
+        self.published.append((rating, last_score_at, config_version))
 
     def count_scores_between(self, kitchen_id: str, start: datetime, end: datetime) -> int:
         return sum(1 for s in self.scores if start <= s.computed_at <= end)

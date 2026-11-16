@@ -19,6 +19,7 @@ from supabase import Client, create_client
 from .config import Settings
 from .domain import Detection, Indicator, ScoringConfig, SensorReading
 from .domain import Pillar as _P
+from .rating import HourBucket, OpeningHours, PublicRating
 from .scoring import ScoreResult
 from .violations import ViolationCandidate
 
@@ -66,6 +67,12 @@ class Repository(Protocol):
     def set_device_status(self, device_id: str, status: dict[str, Any]) -> None: ...
     def list_devices(self, kitchen_id: str) -> dict[str, str]: ...
     def count_scores_between(self, kitchen_id: str, start: datetime, end: datetime) -> int: ...
+    def opening_hours(self, kitchen_id: str) -> OpeningHours: ...
+    def hourly_scores(self, kitchen_id: str, start: datetime, end: datetime) -> list[HourBucket]: ...
+    def latest_score_at(self, kitchen_id: str) -> datetime | None: ...
+    def upsert_public_rating(
+        self, kitchen_id: str, rating: PublicRating, last_score_at: datetime | None, config_version: str
+    ) -> None: ...
 
 
 class RepositoryError(RuntimeError):
@@ -316,6 +323,95 @@ class SupabaseRepository:
             "count hygiene scores",
         )
         return int(res.count or 0)
+
+    # -- public rating ------------------------------------------------------
+    def opening_hours(self, kitchen_id: str) -> OpeningHours:
+        rows = _rows(
+            with_retry(
+                lambda: (
+                    self._db.table("kitchens")
+                    .select("opens_at, closes_at, timezone")
+                    .eq("id", kitchen_id)
+                    .limit(1)
+                    .execute()
+                ),
+                "load opening hours",
+            )
+        )
+        if not rows:
+            raise RepositoryError(f"kitchen {kitchen_id} not found")
+        r = rows[0]
+        return OpeningHours(
+            opens=datetime.strptime(str(r["opens_at"])[:5], "%H:%M").time(),
+            closes=datetime.strptime(str(r["closes_at"])[:5], "%H:%M").time(),
+            timezone=str(r["timezone"]),
+        )
+
+    def hourly_scores(self, kitchen_id: str, start: datetime, end: datetime) -> list[HourBucket]:
+        res = with_retry(
+            lambda: self._db.rpc(
+                "hygiene_score_series",
+                {"p_kitchen": kitchen_id, "p_from": iso(start), "p_to": iso(end), "p_bucket": "1 hour"},
+            ).execute(),
+            "load hourly scores",
+        )
+
+        def num(v: Any) -> float | None:
+            return None if v is None else float(v)
+
+        return [
+            HourBucket(
+                start=utc(datetime.fromisoformat(r["bucket"])),
+                overall=num(r["overall_score"]),
+                personal=num(r["personal_score"]),
+                food_prep=num(r["food_prep_score"]),
+                environmental=num(r["environmental_score"]),
+                samples=int(r["samples"] or 0),
+            )
+            for r in _rows(res)
+        ]
+
+    def latest_score_at(self, kitchen_id: str) -> datetime | None:
+        rows = _rows(
+            with_retry(
+                lambda: (
+                    self._db.table("hygiene_scores")
+                    .select("computed_at")
+                    .eq("kitchen_id", kitchen_id)
+                    .order("computed_at", desc=True)
+                    .limit(1)
+                    .execute()
+                ),
+                "load latest score",
+            )
+        )
+        return utc(datetime.fromisoformat(rows[0]["computed_at"])) if rows else None
+
+    def upsert_public_rating(
+        self, kitchen_id: str, rating: PublicRating, last_score_at: datetime | None, config_version: str
+    ) -> None:
+        row = {
+            "kitchen_id": kitchen_id,
+            "status": rating.status,
+            "rating": rating.rating,
+            "grade": rating.grade,
+            "personal_score": rating.personal,
+            "food_prep_score": rating.food_prep,
+            "environmental_score": rating.environmental,
+            "coverage": rating.coverage,
+            "monitored_hours": rating.monitored_hours,
+            "expected_hours": rating.expected_hours,
+            "last_score_at": iso(last_score_at) if last_score_at else None,
+            "computed_at": iso(datetime.now(UTC)),
+            "config_version": config_version,
+            "details": rating.details,
+        }
+        with_retry(
+            lambda: (
+                self._db.table("public_ratings").upsert(row, on_conflict="kitchen_id", returning=_MINIMAL).execute()
+            ),
+            "store public rating",
+        )
 
 
 def _round(value: float | None) -> float | None:

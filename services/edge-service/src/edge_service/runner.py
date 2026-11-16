@@ -34,6 +34,7 @@ from .mqtt_ingest import (
     parse_topic,
 )
 from .pipeline import Pipeline
+from .rating import compute_public_rating
 from .repository import Repository, RepositoryError
 from .simulator import Scenario, Simulator
 
@@ -41,6 +42,7 @@ log = logging.getLogger(__name__)
 
 MAX_RETRY_BACKLOG = 2_000  # readings kept in memory while Supabase is unreachable
 SUMMARY_EVERY = timedelta(minutes=5)
+RATING_EVERY = timedelta(minutes=10)  # public 7-day rating for the consumer app
 FRESH_BOOT_S = 120  # a status with less uptime than this follows a reboot
 
 
@@ -220,6 +222,28 @@ class EdgeRunner:
         self._next_ai += self._ai_interval
         self._process([], detections, now)
 
+    # -- public rating ------------------------------------------------------------
+    def update_public_rating(self, now: datetime) -> None:
+        """Recompute the consumer-facing 7-day rating and publish it (public_ratings)."""
+        config = self._pipeline.config
+        rules = config.thresholds.rating
+        try:
+            buckets = self._repo.hourly_scores(self._kitchen_id, now - timedelta(days=rules.window_days), now)
+            hours = self._repo.opening_hours(self._kitchen_id)
+            rating = compute_public_rating(buckets, hours, now, rules, config.thresholds.grade)
+            self._repo.upsert_public_rating(
+                self._kitchen_id, rating, self._repo.latest_score_at(self._kitchen_id), config.version
+            )
+        except RepositoryError as exc:
+            log.error("public rating not updated: %s", exc)
+            return
+        log.info(
+            "public rating: %s%s (coverage %.0f%% of opening hours)",
+            rating.status,
+            f", {rating.rating:.1f} grade {rating.grade}" if rating.rating is not None and rating.grade else "",
+            rating.coverage * 100,
+        )
+
     # -- pipeline with retry -------------------------------------------------
     def _process(
         self,
@@ -277,12 +301,16 @@ class EdgeRunner:
         client.loop_start()
 
         next_summary = datetime.now(UTC) + SUMMARY_EVERY
+        next_rating = datetime.now(UTC) + timedelta(seconds=20)  # soon after start-up
         try:
             while not stop.is_set():
                 with contextlib.suppress(queue.Empty):
                     self.handle(self.inbox.get(timeout=0.5))
                 now = datetime.now(UTC)
                 self.ai_tick(now)
+                if now >= next_rating:
+                    self.update_public_rating(now)
+                    next_rating = now + RATING_EVERY
                 if now >= next_summary:
                     log.info("last 5 min: %s", self.stats.summary())
                     self.stats = Stats()

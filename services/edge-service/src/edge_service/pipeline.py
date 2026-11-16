@@ -105,6 +105,10 @@ class Pipeline:
         self.window = EvidenceWindow(timedelta(seconds=window_s))
         self.engine = ViolationEngine(config.thresholds, window_s)
 
+    @property
+    def config(self) -> ScoringConfig:
+        return self._config
+
     def _due_to_persist(self, now: datetime) -> bool:
         if self._last_persisted is None:
             return True

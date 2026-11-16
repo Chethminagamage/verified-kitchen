@@ -16,6 +16,7 @@ import sys
 import time
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
+from datetime import time as dt_time
 from types import FrameType
 from typing import Any
 
@@ -23,6 +24,7 @@ from pydantic import ValidationError
 
 from .config import Settings, get_settings
 from .domain import Detection, ScoringConfig, SensorReading
+from .rating import HourBucket, OpeningHours, PublicRating
 from .repository import (
     DetectionIds,
     ReadingIds,
@@ -87,6 +89,20 @@ class _DryRunRepository:
 
     def count_scores_between(self, kitchen_id: str, start: datetime, end: datetime) -> int:
         return 0
+
+    def opening_hours(self, kitchen_id: str) -> OpeningHours:
+        return OpeningHours(dt_time(8), dt_time(22), "Asia/Colombo")
+
+    def hourly_scores(self, kitchen_id: str, start: datetime, end: datetime) -> list[HourBucket]:
+        return []
+
+    def latest_score_at(self, kitchen_id: str) -> datetime | None:
+        return None
+
+    def upsert_public_rating(
+        self, kitchen_id: str, rating: PublicRating, last_score_at: datetime | None, config_version: str
+    ) -> None:
+        return None
 
 
 def _provisional_config() -> ScoringConfig:
