@@ -46,3 +46,9 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Supabase connection for local runs (see env.example.json)
+env.json
+
+# Android Gradle output
+/android/build/
