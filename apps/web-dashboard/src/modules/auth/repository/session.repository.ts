@@ -38,7 +38,7 @@ export class SessionRepository {
       await Promise.all([
         supabase
           .from("profiles")
-          .select("full_name, role")
+          .select("full_name, role, disabled_at")
           .eq("id", user.id)
           .maybeSingle(),
         supabase
@@ -69,6 +69,8 @@ export class SessionRepository {
         profileResult.data?.full_name ?? null,
       // A missing profile row means the user has no granted role yet.
       role: profileResult.data?.role ?? "operator",
+      disabled: Boolean(profileResult.data?.disabled_at),
+      signedInAt: Number(signedInAt),
       kitchen: kitchens[0] ?? null,
       kitchens,
     };

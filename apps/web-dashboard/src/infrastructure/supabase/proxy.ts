@@ -6,7 +6,12 @@ import {
   SUPABASE_URL,
 } from "@/config/env";
 import {
+  ADMIN_SESSION_MAX_AGE_MS,
   SESSION_COOKIE,
+  SESSION_MAX_AGE_MS,
+  expiredSessionRedirect,
+  isAdminPath,
+  isSignInPage,
   sessionStillValid,
 } from "@/modules/auth/model/auth.model";
 import type { Database } from "@/shared/types/database.types";
@@ -61,19 +66,23 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
 
   // Session policy (auth.model.ts): a sign-in ends when the browser is closed
-  // or after one shift, even though the Supabase refresh token would last longer.
+  // or after one shift (4 hours on the admin site), even though the Supabase
+  // refresh token would last longer.
+  const { pathname } = request.nextUrl;
+  const maxAge = isAdminPath(pathname) ? ADMIN_SESSION_MAX_AGE_MS : SESSION_MAX_AGE_MS;
   if (
     data?.claims &&
-    !sessionStillValid(request.cookies.get(SESSION_COOKIE)?.value, Date.now())
+    !sessionStillValid(request.cookies.get(SESSION_COOKIE)?.value, Date.now(), maxAge)
   ) {
     // Ends this browser's session only; other devices stay signed in.
     // signOut() clears the auth cookies through setAll() above.
     await supabase.auth.signOut({ scope: "local" });
 
-    const onLoginPage = request.nextUrl.pathname.startsWith("/login");
+    // Sign-in pages (and the set-up link page) render normally, signed out.
+    const onLoginPage = isSignInPage(pathname);
     const response = onLoginPage
       ? supabaseResponse
-      : NextResponse.redirect(new URL("/login?error=expired", request.url));
+      : NextResponse.redirect(new URL(expiredSessionRedirect(pathname), request.url));
 
     if (!onLoginPage) {
       supabaseResponse.cookies.getAll().forEach((cookie) => response.cookies.set(cookie));

@@ -1,10 +1,11 @@
 import {
-  ChefHat,
   EyeOff,
   LockKeyhole,
   Mail,
   ShieldCheck,
 } from "lucide-react";
+
+import { BrandLogo } from "@/shared/components/ui/Brand";
 
 import { loginAction } from "../controller/auth.controller";
 
@@ -20,21 +21,7 @@ export default function LoginView({
   return (
     <main className="grid min-h-screen bg-slate-50 lg:grid-cols-2">
       <section className="hidden bg-slate-950 p-12 text-white lg:flex lg:flex-col lg:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500">
-            <ChefHat className="h-6 w-6" />
-          </div>
-
-          <div>
-            <p className="font-semibold">
-              Verified Kitchen
-            </p>
-
-            <p className="text-xs text-slate-400">
-              Hygiene Intelligence Platform
-            </p>
-          </div>
-        </div>
+        <BrandLogo tone="dark" height={64} />
 
         <div className="max-w-lg">
           <p className="text-sm font-semibold uppercase tracking-widest text-emerald-400">
@@ -79,15 +66,7 @@ export default function LoginView({
       <section className="flex items-center justify-center p-6 sm:p-10">
         <div className="w-full max-w-md">
           <div className="mb-8 lg:hidden">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-white">
-                <ChefHat className="h-5 w-5" />
-              </div>
-
-              <p className="font-semibold text-slate-950">
-                Verified Kitchen
-              </p>
-            </div>
+            <BrandLogo tone="light" height={52} />
           </div>
 
           <div>

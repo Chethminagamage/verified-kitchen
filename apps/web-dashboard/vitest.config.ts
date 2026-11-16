@@ -6,6 +6,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+      // Next.js resolves this marker package for the server bundle; under
+      // Vitest (plain Node) it would throw, so it becomes an empty module.
+      "server-only": fileURLToPath(new URL("./tests/server-only-stub.ts", import.meta.url)),
     },
   },
   test: {

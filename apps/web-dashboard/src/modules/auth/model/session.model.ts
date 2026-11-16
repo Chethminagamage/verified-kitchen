@@ -17,6 +17,10 @@ export interface OperatorSession {
   email: string;
   fullName: string | null;
   role: UserRole;
+  /** An administrator disabled this account: it may not use either site. */
+  disabled: boolean;
+  /** Sign-in time (epoch ms), for the shorter admin session. */
+  signedInAt: number;
   /** The kitchen the dashboard shows. Null when the user has no kitchen access yet. */
   kitchen: KitchenSummary | null;
   kitchens: KitchenSummary[];
@@ -26,4 +30,15 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   admin: "Administrator",
   operator: "Kitchen Operator",
   phi: "Public Health Inspector",
+  customer: "Customer",
 };
+
+/** Roles allowed into this console. Customers use the mobile app. */
+export function isStaffRole(role: UserRole): boolean {
+  return role === "admin" || role === "operator" || role === "phi";
+}
+
+/** Roles that work in a kitchen (the kitchen console). Admins use /admin. */
+export function isKitchenRole(role: UserRole): boolean {
+  return role === "operator" || role === "phi";
+}

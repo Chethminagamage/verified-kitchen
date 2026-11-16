@@ -63,6 +63,8 @@ describe("ViolationService.changeStatus", () => {
     email: "op@example.com",
     fullName: null,
     role,
+    disabled: false,
+    signedInAt: Date.now(),
     kitchen: null,
     kitchens: [],
   });

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChefHat } from "lucide-react";
+import { BrandLogo } from "@/shared/components/ui/Brand";
 
 import {
   MONITORING_NAV,
@@ -52,19 +52,9 @@ export default function SidebarContent({
 
   return (
     <>
-      <div className="flex h-20 shrink-0 items-center gap-3 border-b border-slate-800 px-6">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500">
-          <ChefHat className="h-6 w-6 text-white" />
-        </div>
-
-        <div>
-          <p className="font-semibold tracking-tight text-white">
-            Verified Kitchen
-          </p>
-          <p className="text-xs text-slate-400">
-            Operator Console
-          </p>
-        </div>
+      <div className="flex h-20 shrink-0 flex-col justify-center gap-1 border-b border-slate-800 px-6">
+        <BrandLogo tone="dark" compact height={34} />
+        <p className="text-xs text-slate-400">Operator Console</p>
       </div>
 
       <nav aria-label="Main" className="flex-1 space-y-1 overflow-y-auto px-3 py-6">

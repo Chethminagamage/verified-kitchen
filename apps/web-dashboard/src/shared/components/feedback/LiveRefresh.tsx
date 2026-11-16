@@ -11,7 +11,8 @@ type WatchedTable =
   | "ai_detections"
   | "violations"
   | "devices"
-  | "audit_records";
+  | "audit_records"
+  | "orders";
 
 interface LiveRefreshProps {
   kitchenId: string;

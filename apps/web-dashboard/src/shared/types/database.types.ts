@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          created_at: string
+          details: Json
+          id: number
+          target_id: string
+          target_label: string | null
+          target_type: string
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: number
+          target_id: string
+          target_label?: string | null
+          target_type: string
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: number
+          target_id?: string
+          target_label?: string | null
+          target_type?: string
+        }
+        Relationships: []
+      }
       ai_detections: {
         Row: {
           compliant: boolean
@@ -70,6 +106,13 @@ export type Database = {
             columns: ["kitchen_id"]
             isOneToOne: false
             referencedRelation: "kitchens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_detections_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_kitchens"
             referencedColumns: ["id"]
           },
           {
@@ -139,6 +182,13 @@ export type Database = {
             foreignKeyName: "audit_records_kitchen_id_fkey"
             columns: ["kitchen_id"]
             isOneToOne: false
+            referencedRelation: "marketplace_kitchens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_records_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: false
             referencedRelation: "public_kitchen_scores"
             referencedColumns: ["kitchen_id"]
           },
@@ -185,6 +235,13 @@ export type Database = {
             columns: ["kitchen_id"]
             isOneToOne: false
             referencedRelation: "kitchens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devices_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_kitchens"
             referencedColumns: ["id"]
           },
           {
@@ -255,6 +312,13 @@ export type Database = {
             foreignKeyName: "hygiene_scores_kitchen_id_fkey"
             columns: ["kitchen_id"]
             isOneToOne: false
+            referencedRelation: "marketplace_kitchens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hygiene_scores_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: false
             referencedRelation: "public_kitchen_scores"
             referencedColumns: ["kitchen_id"]
           },
@@ -309,6 +373,13 @@ export type Database = {
             foreignKeyName: "hygiene_scores_hourly_kitchen_id_fkey"
             columns: ["kitchen_id"]
             isOneToOne: false
+            referencedRelation: "marketplace_kitchens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hygiene_scores_hourly_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: false
             referencedRelation: "public_kitchen_scores"
             referencedColumns: ["kitchen_id"]
           },
@@ -316,54 +387,394 @@ export type Database = {
       }
       kitchens: {
         Row: {
+          published_at: string | null
+          closes_at: string
           code: string
           created_at: string
+          cuisine: string | null
+          delivery_fee_lkr: number
+          description: string | null
+          emoji: string | null
           id: string
           is_public: boolean
           location: string | null
           name: string
+          opens_at: string
+          prep_minutes: number
           timezone: string
         }
         Insert: {
+          published_at?: string | null
+          closes_at?: string
           code: string
           created_at?: string
+          cuisine?: string | null
+          delivery_fee_lkr?: number
+          description?: string | null
+          emoji?: string | null
           id?: string
           is_public?: boolean
           location?: string | null
           name: string
+          opens_at?: string
+          prep_minutes?: number
           timezone?: string
         }
         Update: {
+          published_at?: string | null
+          closes_at?: string
           code?: string
           created_at?: string
+          cuisine?: string | null
+          delivery_fee_lkr?: number
+          description?: string | null
+          emoji?: string | null
           id?: string
           is_public?: boolean
           location?: string | null
           name?: string
+          opens_at?: string
+          prep_minutes?: number
           timezone?: string
         }
         Relationships: []
       }
+      menu_items: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          emoji: string | null
+          id: string
+          is_available: boolean
+          kitchen_id: string
+          name: string
+          price_lkr: number
+          sort_order: number
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          emoji?: string | null
+          id?: string
+          is_available?: boolean
+          kitchen_id: string
+          name: string
+          price_lkr: number
+          sort_order?: number
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          emoji?: string | null
+          id?: string
+          is_available?: boolean
+          kitchen_id?: string
+          name?: string
+          price_lkr?: number
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_items_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: false
+            referencedRelation: "kitchens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_items_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_kitchens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_items_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: false
+            referencedRelation: "public_kitchen_scores"
+            referencedColumns: ["kitchen_id"]
+          },
+        ]
+      }
+      order_feedback: {
+        Row: {
+          comment: string | null
+          created_at: string
+          customer_id: string | null
+          kitchen_id: string
+          order_id: string
+          problem: string | null
+          rating: number | null
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          customer_id?: string | null
+          kitchen_id: string
+          order_id: string
+          problem?: string | null
+          rating?: number | null
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          customer_id?: string | null
+          kitchen_id?: string
+          order_id?: string
+          problem?: string | null
+          rating?: number | null
+        }
+        Relationships: []
+      }
+      order_items: {
+        Row: {
+          line_total_lkr: number | null
+          menu_item_id: string | null
+          name: string
+          order_id: string
+          quantity: number
+          unit_price_lkr: number
+        }
+        Insert: {
+          line_total_lkr?: number | null
+          menu_item_id?: string | null
+          name: string
+          order_id: string
+          quantity: number
+          unit_price_lkr: number
+        }
+        Update: {
+          line_total_lkr?: number | null
+          menu_item_id?: string | null
+          name?: string
+          order_id?: string
+          quantity?: number
+          unit_price_lkr?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          accepted_at: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          contact_phone: string
+          customer_name: string | null
+          customer_id: string
+          delivered_at: string | null
+          delivery_address: string
+          delivery_fee_lkr: number
+          hygiene_grade_at_order: string | null
+          hygiene_status_at_order: string
+          id: string
+          kitchen_id: string
+          note: string | null
+          on_the_way_at: string | null
+          payment_method: string
+          placed_at: string
+          preparing_at: string | null
+          status: Database["public"]["Enums"]["order_status"]
+          subtotal_lkr: number
+          total_lkr: number
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          contact_phone: string
+          customer_name?: string | null
+          customer_id: string
+          delivered_at?: string | null
+          delivery_address: string
+          delivery_fee_lkr: number
+          hygiene_grade_at_order?: string | null
+          hygiene_status_at_order?: string
+          id?: string
+          kitchen_id: string
+          note?: string | null
+          on_the_way_at?: string | null
+          payment_method?: string
+          placed_at?: string
+          preparing_at?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          subtotal_lkr?: number
+          total_lkr?: number
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          contact_phone?: string
+          customer_name?: string | null
+          customer_id?: string
+          delivered_at?: string | null
+          delivery_address?: string
+          delivery_fee_lkr?: number
+          hygiene_grade_at_order?: string | null
+          hygiene_status_at_order?: string
+          id?: string
+          kitchen_id?: string
+          note?: string | null
+          on_the_way_at?: string | null
+          payment_method?: string
+          placed_at?: string
+          preparing_at?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          subtotal_lkr?: number
+          total_lkr?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: false
+            referencedRelation: "kitchens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_kitchens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: false
+            referencedRelation: "public_kitchen_scores"
+            referencedColumns: ["kitchen_id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
+          disabled_at: string | null
           created_at: string
           full_name: string | null
           id: string
+          phone: string | null
           role: Database["public"]["Enums"]["user_role"]
         }
         Insert: {
+          disabled_at?: string | null
           created_at?: string
           full_name?: string | null
           id: string
+          phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
         }
         Update: {
+          disabled_at?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
+          phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
         }
         Relationships: []
+      }
+      public_ratings: {
+        Row: {
+          computed_at: string
+          config_version: string
+          coverage: number
+          details: Json
+          environmental_score: number | null
+          expected_hours: number
+          food_prep_score: number | null
+          grade: string | null
+          kitchen_id: string
+          last_score_at: string | null
+          monitored_hours: number
+          personal_score: number | null
+          rating: number | null
+          status: string
+        }
+        Insert: {
+          computed_at?: string
+          config_version: string
+          coverage: number
+          details?: Json
+          environmental_score?: number | null
+          expected_hours?: number
+          food_prep_score?: number | null
+          grade?: string | null
+          kitchen_id: string
+          last_score_at?: string | null
+          monitored_hours?: number
+          personal_score?: number | null
+          rating?: number | null
+          status: string
+        }
+        Update: {
+          computed_at?: string
+          config_version?: string
+          coverage?: number
+          details?: Json
+          environmental_score?: number | null
+          expected_hours?: number
+          food_prep_score?: number | null
+          grade?: string | null
+          kitchen_id?: string
+          last_score_at?: string | null
+          monitored_hours?: number
+          personal_score?: number | null
+          rating?: number | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_ratings_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: true
+            referencedRelation: "kitchens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_ratings_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: true
+            referencedRelation: "marketplace_kitchens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_ratings_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: true
+            referencedRelation: "public_kitchen_scores"
+            referencedColumns: ["kitchen_id"]
+          },
+        ]
       }
       scoring_configs: {
         Row: {
@@ -463,6 +874,13 @@ export type Database = {
             foreignKeyName: "sensor_readings_kitchen_id_fkey"
             columns: ["kitchen_id"]
             isOneToOne: false
+            referencedRelation: "marketplace_kitchens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sensor_readings_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: false
             referencedRelation: "public_kitchen_scores"
             referencedColumns: ["kitchen_id"]
           },
@@ -487,6 +905,13 @@ export type Database = {
             columns: ["kitchen_id"]
             isOneToOne: false
             referencedRelation: "kitchens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_kitchens_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_kitchens"
             referencedColumns: ["id"]
           },
           {
@@ -598,6 +1023,13 @@ export type Database = {
             foreignKeyName: "violations_kitchen_id_fkey"
             columns: ["kitchen_id"]
             isOneToOne: false
+            referencedRelation: "marketplace_kitchens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "violations_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: false
             referencedRelation: "public_kitchen_scores"
             referencedColumns: ["kitchen_id"]
           },
@@ -612,6 +1044,67 @@ export type Database = {
       }
     }
     Views: {
+      marketplace_kitchens: {
+        Row: {
+          closes_at: string | null
+          coverage: number | null
+          cuisine: string | null
+          delivery_fee_lkr: number | null
+          description: string | null
+          emoji: string | null
+          environmental_score: number | null
+          food_prep_score: number | null
+          grade: string | null
+          id: string | null
+          is_open: boolean | null
+          last_score_at: string | null
+          location: string | null
+          monitored_now: boolean | null
+          name: string | null
+          opens_at: string | null
+          personal_score: number | null
+          prep_minutes: number | null
+          rating: number | null
+          rating_status: string | null
+          rating_updated_at: string | null
+          timezone: string | null
+        }
+        Relationships: []
+      }
+      marketplace_rating_history: {
+        Row: {
+          day: string | null
+          environmental_score: number | null
+          food_prep_score: number | null
+          kitchen_id: string | null
+          overall_score: number | null
+          personal_score: number | null
+          samples: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hygiene_scores_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: false
+            referencedRelation: "kitchens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hygiene_scores_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_kitchens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hygiene_scores_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: false
+            referencedRelation: "public_kitchen_scores"
+            referencedColumns: ["kitchen_id"]
+          },
+        ]
+      }
       public_kitchen_scores: {
         Row: {
           code: string | null
@@ -647,6 +1140,13 @@ export type Database = {
             foreignKeyName: "hygiene_scores_kitchen_id_fkey"
             columns: ["kitchen_id"]
             isOneToOne: false
+            referencedRelation: "marketplace_kitchens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hygiene_scores_kitchen_id_fkey"
+            columns: ["kitchen_id"]
+            isOneToOne: false
             referencedRelation: "public_kitchen_scores"
             referencedColumns: ["kitchen_id"]
           },
@@ -654,6 +1154,97 @@ export type Database = {
       }
     }
     Functions: {
+      admin_create_kitchen: {
+        Args: {
+          p_closes_at: string
+          p_cuisine: string | null
+          p_delivery_fee_lkr: number
+          p_description: string | null
+          p_emoji: string | null
+          p_location: string | null
+          p_name: string
+          p_opens_at: string
+          p_prep_minutes: number
+          p_timezone: string
+        }
+        Returns: string
+      }
+      admin_link_staff: {
+        Args: { p_kitchen: string; p_user: string }
+        Returns: undefined
+      }
+      admin_list_accounts: {
+        Args: { p_user?: string }
+        Returns: {
+          created_at: string
+          disabled_at: string | null
+          email: string
+          email_confirmed_at: string | null
+          full_name: string | null
+          invited_at: string | null
+          kitchens: Json
+          last_sign_in_at: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }[]
+      }
+      admin_note_account_event: {
+        Args: { p_action: string; p_user: string }
+        Returns: undefined
+      }
+      admin_onboard_staff: {
+        Args: {
+          p_kitchen?: string
+          p_role: Database["public"]["Enums"]["user_role"]
+          p_user: string
+        }
+        Returns: undefined
+      }
+      admin_register_device: {
+        Args: {
+          p_kitchen: string
+          p_name: string
+          p_type: Database["public"]["Enums"]["device_type"]
+        }
+        Returns: string
+      }
+      admin_remove_device: { Args: { p_device: string }; Returns: undefined }
+      admin_rename_device: {
+        Args: { p_device: string; p_name: string }
+        Returns: undefined
+      }
+      admin_set_account_disabled: {
+        Args: { p_disabled: boolean; p_user: string }
+        Returns: undefined
+      }
+      admin_set_kitchen_published: {
+        Args: { p_kitchen: string; p_published: boolean }
+        Returns: undefined
+      }
+      admin_set_staff_role: {
+        Args: { p_role: Database["public"]["Enums"]["user_role"]; p_user: string }
+        Returns: undefined
+      }
+      admin_unlink_staff: {
+        Args: { p_kitchen: string; p_user: string }
+        Returns: undefined
+      }
+      admin_update_kitchen: {
+        Args: {
+          p_closes_at: string
+          p_cuisine: string | null
+          p_delivery_fee_lkr: number
+          p_description: string | null
+          p_emoji: string | null
+          p_location: string | null
+          p_name: string
+          p_opens_at: string
+          p_prep_minutes: number
+          p_timezone: string
+          p_kitchen: string
+        }
+        Returns: undefined
+      }
       audit_hash: {
         Args: {
           p_created: string
@@ -663,6 +1254,10 @@ export type Database = {
           p_type: string
         }
         Returns: string
+      }
+      cancel_order: {
+        Args: { p_order: string }
+        Returns: Database["public"]["Enums"]["order_status"]
       }
       current_user_role: {
         Args: never
@@ -684,6 +1279,36 @@ export type Database = {
           personal_score: number
           samples: number
         }[]
+      }
+      is_open_at: {
+        Args: {
+          p_at: string
+          p_closes: string
+          p_opens: string
+          p_timezone: string
+        }
+        Returns: boolean
+      }
+      is_public_kitchen: { Args: { p_kitchen: string }; Returns: boolean }
+      kitchen_readiness: {
+        Args: { p_kitchen: string }
+        Returns: {
+          blocking: boolean
+          detail: string
+          item: string
+          label: string
+          ok: boolean
+        }[]
+      }
+      place_order: {
+        Args: {
+          p_contact_phone: string
+          p_delivery_address: string
+          p_items: Json
+          p_kitchen: string
+          p_note?: string
+        }
+        Returns: string
       }
       purge_old_evidence: {
         Args: { p_keep?: string }
@@ -716,6 +1341,13 @@ export type Database = {
           samples: number
         }[]
       }
+      update_order_status: {
+        Args: {
+          p_order: string
+          p_status: Database["public"]["Enums"]["order_status"]
+        }
+        Returns: Database["public"]["Enums"]["order_status"]
+      }
       verify_audit_chain: {
         Args: { p_kitchen: string }
         Returns: {
@@ -731,7 +1363,14 @@ export type Database = {
       device_type: "env_node" | "camera"
       evidence_source: "ai" | "sensor" | "system"
       hygiene_pillar: "personal" | "food_prep" | "environmental"
-      user_role: "operator" | "phi" | "admin"
+      order_status:
+        | "placed"
+        | "accepted"
+        | "preparing"
+        | "on_the_way"
+        | "delivered"
+        | "cancelled"
+      user_role: "operator" | "phi" | "admin" | "customer"
       violation_severity: "low" | "medium" | "high" | "critical"
       violation_status: "active" | "acknowledged" | "resolved"
     }
@@ -865,7 +1504,15 @@ export const Constants = {
       device_type: ["env_node", "camera"],
       evidence_source: ["ai", "sensor", "system"],
       hygiene_pillar: ["personal", "food_prep", "environmental"],
-      user_role: ["operator", "phi", "admin"],
+      order_status: [
+        "placed",
+        "accepted",
+        "preparing",
+        "on_the_way",
+        "delivered",
+        "cancelled",
+      ],
+      user_role: ["operator", "phi", "admin", "customer"],
       violation_severity: ["low", "medium", "high", "critical"],
       violation_status: ["active", "acknowledged", "resolved"],
     },

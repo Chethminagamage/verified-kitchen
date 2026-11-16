@@ -3,8 +3,9 @@
 -- Run once, after the initial schema migration.
 -- =====================================================================
 
-insert into public.kitchens (code, name, location)
-values ('kitchen-001', 'Verified Kitchen Test Workstation', 'Kandy, Sri Lanka')
+-- Listed in the app (new kitchens start hidden until an admin publishes them).
+insert into public.kitchens (code, name, location, is_public, published_at)
+values ('kitchen-001', 'Verified Kitchen Test Workstation', 'Kandy, Sri Lanka', true, now())
 on conflict (code) do nothing;
 
 insert into public.devices (id, kitchen_id, type, name)

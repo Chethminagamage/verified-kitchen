@@ -2,6 +2,7 @@ import {
   Blocks,
   FileChartColumn,
   LayoutDashboard,
+  ReceiptText,
   ScanLine,
   Settings,
   ShieldCheck,
@@ -22,6 +23,7 @@ export const MONITORING_NAV: readonly NavItem[] = [
   { name: "Environment", href: "/dashboard/environment", icon: Thermometer },
   { name: "AI Monitoring", href: "/dashboard/ai-monitoring", icon: ScanLine },
   { name: "Violations", href: "/dashboard/violations", icon: TriangleAlert },
+  { name: "Orders", href: "/dashboard/orders", icon: ReceiptText },
   { name: "Audit Trail", href: "/dashboard/audit", icon: Blocks },
   { name: "Reports", href: "/dashboard/reports", icon: FileChartColumn },
 ];
