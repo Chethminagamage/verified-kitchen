@@ -27,10 +27,7 @@ class _HygieneExplainer extends StatelessWidget {
           Container(
             width: 40,
             height: 40,
-            decoration: const BoxDecoration(
-              color: AppColors.fill,
-              shape: BoxShape.circle,
-            ),
+            decoration: const BoxDecoration(color: AppColors.fill, shape: BoxShape.circle),
             child: Icon(icon, size: 20),
           ),
           const SizedBox(width: 14),
@@ -40,10 +37,7 @@ class _HygieneExplainer extends StatelessWidget {
               children: [
                 Text(title, style: t.titleSmall),
                 const SizedBox(height: 2),
-                Text(
-                  text,
-                  style: t.bodyMedium?.copyWith(color: AppColors.textSecondary),
-                ),
+                Text(text, style: t.bodyMedium?.copyWith(color: AppColors.textSecondary)),
               ],
             ),
           ),
@@ -108,26 +102,17 @@ class _HygieneExplainer extends StatelessWidget {
                   const SizedBox(width: 12),
                   Text(g.meaning, style: t.bodyLarge),
                   const Spacer(),
-                  Text(
-                    switch (g) {
-                      HygieneGrade.a => '75–100',
-                      HygieneGrade.b => '50–74',
-                      HygieneGrade.c => '25–49',
-                      HygieneGrade.d => '0–24',
-                    },
-                    style: t.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
+                  Text(switch (g) {
+                    HygieneGrade.a => '75–100',
+                    HygieneGrade.b => '50–74',
+                    HygieneGrade.c => '25–49',
+                    HygieneGrade.d => '0–24',
+                  }, style: t.bodyMedium?.copyWith(color: AppColors.textSecondary)),
                 ],
               ),
             ),
           const SizedBox(height: 12),
-          for (final s in [
-            HygieneStatus.incomplete,
-            HygieneStatus.pending,
-            HygieneStatus.notMonitored,
-          ])
+          for (final s in [HygieneStatus.incomplete, HygieneStatus.pending, HygieneStatus.notMonitored])
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Text.rich(
@@ -136,9 +121,7 @@ class _HygieneExplainer extends StatelessWidget {
                     TextSpan(text: '${s.label}: ', style: t.titleSmall),
                     TextSpan(
                       text: s.explanation,
-                      style: t.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                      style: t.bodyMedium?.copyWith(color: AppColors.textSecondary),
                     ),
                   ],
                 ),

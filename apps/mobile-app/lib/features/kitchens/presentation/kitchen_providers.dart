@@ -12,18 +12,13 @@ final kitchenRepositoryProvider = Provider<KitchenRepository>(
 /// All listed kitchens. Refreshed on pull-to-refresh and every 60 s while
 /// watched, so grades and "open now" stay current (views have no realtime).
 final kitchensProvider = FutureProvider<List<Kitchen>>((ref) async {
-  final timer = Stream<void>.periodic(const Duration(seconds: 60))
-      .listen((_) => ref.invalidateSelf());
+  final timer = Stream<void>.periodic(const Duration(seconds: 60)).listen((_) => ref.invalidateSelf());
   ref.onDispose(timer.cancel);
   return ref.watch(kitchenRepositoryProvider).kitchens();
 });
 
-final kitchenProvider = FutureProvider.family<Kitchen?, String>((
-  ref,
-  id,
-) async {
-  final timer = Stream<void>.periodic(const Duration(seconds: 60))
-      .listen((_) => ref.invalidateSelf());
+final kitchenProvider = FutureProvider.family<Kitchen?, String>((ref, id) async {
+  final timer = Stream<void>.periodic(const Duration(seconds: 60)).listen((_) => ref.invalidateSelf());
   ref.onDispose(timer.cancel);
   return ref.watch(kitchenRepositoryProvider).kitchen(id);
 });
@@ -44,7 +39,4 @@ class KitchenQueryNotifier extends Notifier<KitchenQuery> {
   void set(KitchenQuery query) => state = query;
 }
 
-final kitchenQueryProvider =
-    NotifierProvider<KitchenQueryNotifier, KitchenQuery>(
-      KitchenQueryNotifier.new,
-    );
+final kitchenQueryProvider = NotifierProvider<KitchenQueryNotifier, KitchenQuery>(KitchenQueryNotifier.new);

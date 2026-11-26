@@ -28,8 +28,7 @@ abstract final class Validators {
   static String? phone(String? v) {
     final s = v?.trim() ?? '';
     if (s.isEmpty) return 'Enter your phone number';
-    if (!_phone.hasMatch(s))
-      return 'Enter a valid phone number, e.g. 077 123 4567';
+    if (!_phone.hasMatch(s)) return 'Enter a valid phone number, e.g. 077 123 4567';
     return null;
   }
 }

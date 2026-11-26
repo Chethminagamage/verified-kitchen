@@ -71,37 +71,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: Routes.signIn, builder: (_, _) => const SignInPage()),
       GoRoute(path: Routes.signUp, builder: (_, _) => const SignUpPage()),
       GoRoute(path: Routes.welcome, builder: (_, _) => const WelcomePage()),
-      GoRoute(
-        path: Routes.forgotPassword,
-        builder: (_, _) => const ForgotPasswordPage(),
-      ),
-      GoRoute(
-        path: Routes.resetPassword,
-        builder: (_, _) => const ResetPasswordPage(),
-      ),
+      GoRoute(path: Routes.forgotPassword, builder: (_, _) => const ForgotPasswordPage()),
+      GoRoute(path: Routes.resetPassword, builder: (_, _) => const ResetPasswordPage()),
       StatefulShellRoute.indexedStack(
         builder: (_, _, shell) => AppShell(navigationShell: shell),
         branches: [
           StatefulShellBranch(
-            routes: [
-              GoRoute(path: Routes.home, builder: (_, _) => const HomePage()),
-            ],
+            routes: [GoRoute(path: Routes.home, builder: (_, _) => const HomePage())],
           ),
           StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: Routes.orders,
-                builder: (_, _) => const OrdersPage(),
-              ),
-            ],
+            routes: [GoRoute(path: Routes.orders, builder: (_, _) => const OrdersPage())],
           ),
           StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: Routes.profile,
-                builder: (_, _) => const ProfilePage(),
-              ),
-            ],
+            routes: [GoRoute(path: Routes.profile, builder: (_, _) => const ProfilePage())],
           ),
         ],
       ),
@@ -112,39 +94,24 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/orders/:id',
         builder: (_, state) => OrderPage(orderId: state.pathParameters['id']!),
       ),
-      GoRoute(
-        path: Routes.editProfile,
-        builder: (_, _) => const EditProfilePage(),
-      ),
+      GoRoute(path: Routes.editProfile, builder: (_, _) => const EditProfilePage()),
       GoRoute(path: Routes.addresses, builder: (_, _) => const AddressesPage()),
-      GoRoute(
-        path: Routes.newAddress,
-        builder: (_, _) => const AddressFormPage(),
-      ),
+      GoRoute(path: Routes.newAddress, builder: (_, _) => const AddressFormPage()),
       GoRoute(
         path: '/profile/addresses/:id',
         builder: (_, state) => _EditAddressRoute(
           id: state.pathParameters['id']!,
-          fromList: state.extra is SavedAddress
-              ? state.extra! as SavedAddress
-              : null,
+          fromList: state.extra is SavedAddress ? state.extra! as SavedAddress : null,
         ),
       ),
-      GoRoute(
-        path: Routes.favourites,
-        builder: (_, _) => const FavouritesPage(),
-      ),
+      GoRoute(path: Routes.favourites, builder: (_, _) => const FavouritesPage()),
       GoRoute(path: Routes.about, builder: (_, _) => const AboutPage()),
       GoRoute(path: Routes.help, builder: (_, _) => const HelpPage()),
       GoRoute(path: Routes.legal, builder: (_, _) => const LegalPage()),
-      GoRoute(
-        path: Routes.deleteAccount,
-        builder: (_, _) => const DeleteAccountPage(),
-      ),
+      GoRoute(path: Routes.deleteAccount, builder: (_, _) => const DeleteAccountPage()),
       GoRoute(
         path: '/kitchen/:id',
-        builder: (_, state) =>
-            KitchenPage(kitchenId: state.pathParameters['id']!),
+        builder: (_, state) => KitchenPage(kitchenId: state.pathParameters['id']!),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
@@ -188,11 +155,7 @@ class _EditAddressRoute extends ConsumerWidget {
         data: (list) {
           final a = list.where((x) => x.id == id).firstOrNull;
           return a == null
-              ? const EmptyState(
-                  icon: Icons.location_off_outlined,
-                  title: 'Address not found',
-                  message: '',
-                )
+              ? const EmptyState(icon: Icons.location_off_outlined, title: 'Address not found', message: '')
               : AddressFormPage(address: a);
         },
       ),

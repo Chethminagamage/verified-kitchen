@@ -17,13 +17,7 @@ class BrandMark extends StatelessWidget {
       image: true,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(size * 0.28),
-        child: Image.asset(
-          asset,
-          width: size,
-          height: size,
-          cacheWidth: px,
-          filterQuality: FilterQuality.medium,
-        ),
+        child: Image.asset(asset, width: size, height: size, cacheWidth: px, filterQuality: FilterQuality.medium),
       ),
     );
   }
@@ -38,8 +32,7 @@ class BrandLockup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = Theme.of(context).textTheme.titleLarge
-        ?.copyWith(color: color);
+    final style = Theme.of(context).textTheme.titleLarge?.copyWith(color: color);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

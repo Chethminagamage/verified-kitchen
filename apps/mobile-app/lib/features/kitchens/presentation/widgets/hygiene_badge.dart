@@ -5,12 +5,7 @@ import '../../domain/hygiene.dart';
 
 /// Compact pill shown on every kitchen card: "A · Verified", "Not verified" ...
 class HygieneBadge extends StatelessWidget {
-  const HygieneBadge({
-    super.key,
-    required this.status,
-    required this.grade,
-    this.dense = false,
-  });
+  const HygieneBadge({super.key, required this.status, required this.grade, this.dense = false});
 
   final HygieneStatus status;
   final HygieneGrade? grade;
@@ -19,13 +14,10 @@ class HygieneBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final g = grade;
-    final (Color fg, Color bg) = g != null
-        ? (g.color, g.softColor)
-        : (AppColors.textSecondary, AppColors.fill);
+    final (Color fg, Color bg) = g != null ? (g.color, g.softColor) : (AppColors.textSecondary, AppColors.fill);
     final text = Theme.of(context).textTheme.labelSmall!;
     final label = switch ((g, status)) {
-      (final HygieneGrade grade, HygieneStatus.verified) =>
-        'Hygiene ${grade.letter}',
+      (final HygieneGrade grade, HygieneStatus.verified) => 'Hygiene ${grade.letter}',
       (final HygieneGrade grade, _) => 'Hygiene ${grade.letter} · limited',
       (null, HygieneStatus.notMonitored) => 'Not verified',
       (null, HygieneStatus.pending) => 'Rating pending',
@@ -34,22 +26,12 @@ class HygieneBadge extends StatelessWidget {
     return Semantics(
       label: '$label. ${status.explanation}',
       child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: dense ? 7 : 9,
-          vertical: dense ? 3 : 5,
-        ),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(999),
-        ),
+        padding: EdgeInsets.symmetric(horizontal: dense ? 7 : 9, vertical: dense ? 3 : 5),
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              g != null ? Icons.verified_rounded : Icons.shield_outlined,
-              size: dense ? 13 : 15,
-              color: fg,
-            ),
+            Icon(g != null ? Icons.verified_rounded : Icons.shield_outlined, size: dense ? 13 : 15, color: fg),
             const SizedBox(width: 4),
             Text(
               label,
@@ -76,10 +58,7 @@ class GradeDisc extends StatelessWidget {
       width: size,
       height: size,
       alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: g?.color ?? AppColors.fill,
-        shape: BoxShape.circle,
-      ),
+      decoration: BoxDecoration(color: g?.color ?? AppColors.fill, shape: BoxShape.circle),
       child: g != null
           ? Text(
               g.letter,
@@ -90,11 +69,7 @@ class GradeDisc extends StatelessWidget {
                 letterSpacing: -1,
               ),
             )
-          : Icon(
-              Icons.shield_outlined,
-              color: AppColors.textMuted,
-              size: size * 0.45,
-            ),
+          : Icon(Icons.shield_outlined, color: AppColors.textMuted, size: size * 0.45),
     );
   }
 }

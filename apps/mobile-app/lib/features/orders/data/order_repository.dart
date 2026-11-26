@@ -19,20 +19,12 @@ class OrderRepository {
       'delivered_at, cancelled_at, cancelled_by, order_items(name, unit_price_lkr, quantity, line_total_lkr)';
 
   Future<List<CustomerOrder>> myOrders() async {
-    final rows = await _client
-        .from('orders')
-        .select(_select)
-        .order('placed_at', ascending: false)
-        .limit(50);
+    final rows = await _client.from('orders').select(_select).order('placed_at', ascending: false).limit(50);
     return [for (final r in rows) CustomerOrder.fromJson(r)];
   }
 
   Future<CustomerOrder?> order(String id) async {
-    final row = await _client
-        .from('orders')
-        .select(_select)
-        .eq('id', id)
-        .maybeSingle();
+    final row = await _client.from('orders').select(_select).eq('id', id).maybeSingle();
     return row == null ? null : CustomerOrder.fromJson(row);
   }
 
@@ -79,12 +71,7 @@ class OrderRepository {
   }
 
   /// Once per delivered order; seen privately by the kitchen.
-  Future<void> submitFeedback(
-    String orderId, {
-    int? rating,
-    String? problem,
-    String? comment,
-  }) async {
+  Future<void> submitFeedback(String orderId, {int? rating, String? problem, String? comment}) async {
     try {
       await _client.rpc<void>(
         'submit_order_feedback',
@@ -92,9 +79,7 @@ class OrderRepository {
           'p_order': orderId,
           'p_rating': rating,
           'p_problem': problem,
-          'p_comment': (comment == null || comment.trim().isEmpty)
-              ? null
-              : comment.trim(),
+          'p_comment': (comment == null || comment.trim().isEmpty) ? null : comment.trim(),
         },
       );
     } catch (e) {
@@ -104,9 +89,7 @@ class OrderRepository {
 
   /// Emits the new status whenever one of the customer's orders changes
   /// (Supabase Realtime; Row Level Security limits it to their own orders).
-  Stream<({String orderId, OrderStatus status})> statusChanges(
-    String customerId,
-  ) {
+  Stream<({String orderId, OrderStatus status})> statusChanges(String customerId) {
     late final RealtimeChannel channel;
     final controller = StreamController<({String orderId, OrderStatus status})>(
       onCancel: () => _client.removeChannel(channel),
@@ -117,19 +100,12 @@ class OrderRepository {
           event: PostgresChangeEvent.update,
           schema: 'public',
           table: 'orders',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'customer_id',
-            value: customerId,
-          ),
+          filter: PostgresChangeFilter(type: PostgresChangeFilterType.eq, column: 'customer_id', value: customerId),
           callback: (payload) {
             final row = payload.newRecord;
             final status = row['status'];
             if (row['id'] is String && status is String) {
-              controller.add((
-                orderId: row['id'] as String,
-                status: OrderStatus.parse(status),
-              ));
+              controller.add((orderId: row['id'] as String, status: OrderStatus.parse(status)));
             }
           },
         )

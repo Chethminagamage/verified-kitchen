@@ -6,9 +6,7 @@ import '../../../core/supabase/supabase_providers.dart';
 
 /// Device storage, provided from main() (overridden in tests).
 final sharedPreferencesProvider = Provider<SharedPreferences>(
-  (ref) => throw UnimplementedError(
-    'sharedPreferencesProvider must be overridden in main()',
-  ),
+  (ref) => throw UnimplementedError('sharedPreferencesProvider must be overridden in main()'),
 );
 
 /// Whether this device has seen the welcome slides.
@@ -24,9 +22,7 @@ class OnboardingNotifier extends Notifier<bool> {
   }
 }
 
-final onboardingSeenProvider = NotifierProvider<OnboardingNotifier, bool>(
-  OnboardingNotifier.new,
-);
+final onboardingSeenProvider = NotifierProvider<OnboardingNotifier, bool>(OnboardingNotifier.new);
 
 /// True after the customer opened a password-reset link, until they set a new password.
 class PasswordRecoveryNotifier extends Notifier<bool> {
@@ -43,7 +39,4 @@ class PasswordRecoveryNotifier extends Notifier<bool> {
   void done() => state = false;
 }
 
-final passwordRecoveryProvider =
-    NotifierProvider<PasswordRecoveryNotifier, bool>(
-      PasswordRecoveryNotifier.new,
-    );
+final passwordRecoveryProvider = NotifierProvider<PasswordRecoveryNotifier, bool>(PasswordRecoveryNotifier.new);

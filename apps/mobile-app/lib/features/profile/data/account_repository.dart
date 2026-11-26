@@ -16,11 +16,7 @@ class AccountRepository {
   }
 
   Future<CustomerProfile> profile() async {
-    final row = await _client
-        .from('profiles')
-        .select('full_name, phone')
-        .eq('id', _uid)
-        .maybeSingle();
+    final row = await _client.from('profiles').select('full_name, phone').eq('id', _uid).maybeSingle();
     return CustomerProfile(
       fullName: row?['full_name'] as String?,
       phone: row?['phone'] as String?,
@@ -28,21 +24,11 @@ class AccountRepository {
     );
   }
 
-  Future<void> updateProfile({
-    required String fullName,
-    required String phone,
-  }) async {
+  Future<void> updateProfile({required String fullName, required String phone}) async {
     try {
-      await _client
-          .from('profiles')
-          .update({'full_name': fullName.trim(), 'phone': phone.trim()})
-          .eq('id', _uid);
+      await _client.from('profiles').update({'full_name': fullName.trim(), 'phone': phone.trim()}).eq('id', _uid);
       // Keep the sign-in record in step (shown before the profile loads).
-      await _client.auth.updateUser(
-        UserAttributes(
-          data: {'full_name': fullName.trim(), 'phone': phone.trim()},
-        ),
-      );
+      await _client.auth.updateUser(UserAttributes(data: {'full_name': fullName.trim(), 'phone': phone.trim()}));
     } catch (e) {
       throw toUserFacing(e);
     }
@@ -69,27 +55,17 @@ class AccountRepository {
       final data = {
         'label': label.trim(),
         'address_line': addressLine.trim(),
-        'instructions': (instructions == null || instructions.trim().isEmpty)
-            ? null
-            : instructions.trim(),
+        'instructions': (instructions == null || instructions.trim().isEmpty) ? null : instructions.trim(),
       };
       final String savedId;
       if (id == null) {
-        final row = await _client
-            .from('customer_addresses')
-            .insert(data)
-            .select('id')
-            .single();
+        final row = await _client.from('customer_addresses').insert(data).select('id').single();
         savedId = row['id'] as String;
       } else {
         await _client.from('customer_addresses').update(data).eq('id', id);
         savedId = id;
       }
-      if (makeDefault)
-        await _client.rpc<void>(
-          'set_default_address',
-          params: {'p_address': savedId},
-        );
+      if (makeDefault) await _client.rpc<void>('set_default_address', params: {'p_address': savedId});
     } catch (e) {
       throw toUserFacing(e);
     }
@@ -120,14 +96,9 @@ class AccountRepository {
   Future<void> setFavourite(String kitchenId, {required bool favourite}) async {
     try {
       if (favourite) {
-        await _client.from('favourite_kitchens').upsert({
-          'kitchen_id': kitchenId,
-        }, ignoreDuplicates: true);
+        await _client.from('favourite_kitchens').upsert({'kitchen_id': kitchenId}, ignoreDuplicates: true);
       } else {
-        await _client
-            .from('favourite_kitchens')
-            .delete()
-            .eq('kitchen_id', kitchenId);
+        await _client.from('favourite_kitchens').delete().eq('kitchen_id', kitchenId);
       }
     } catch (e) {
       throw toUserFacing(e);

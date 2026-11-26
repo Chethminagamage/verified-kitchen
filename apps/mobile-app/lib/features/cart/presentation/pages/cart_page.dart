@@ -18,9 +18,7 @@ class CartPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = Theme.of(context).textTheme;
     final cart = ref.watch(cartProvider);
-    final kitchen = cart.kitchenId == null
-        ? null
-        : ref.watch(kitchenProvider(cart.kitchenId!)).value;
+    final kitchen = cart.kitchenId == null ? null : ref.watch(kitchenProvider(cart.kitchenId!)).value;
 
     if (cart.isEmpty) {
       return Scaffold(
@@ -41,12 +39,7 @@ class CartPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Your cart'),
-        actions: [
-          TextButton(
-            onPressed: () => ref.read(cartProvider.notifier).clear(),
-            child: const Text('Clear'),
-          ),
-        ],
+        actions: [TextButton(onPressed: () => ref.read(cartProvider.notifier).clear(), child: const Text('Clear'))],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
@@ -62,14 +55,8 @@ class CartPage extends ConsumerWidget {
                     width: 48,
                     height: 48,
                     alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: AppColors.fill,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      kitchen?.emoji ?? '🍽️',
-                      style: const TextStyle(fontSize: 24),
-                    ),
+                    decoration: BoxDecoration(color: AppColors.fill, borderRadius: BorderRadius.circular(12)),
+                    child: Text(kitchen?.emoji ?? '🍽️', style: const TextStyle(fontSize: 24)),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -79,11 +66,7 @@ class CartPage extends ConsumerWidget {
                         Text(cart.kitchenName ?? '', style: t.titleMedium),
                         if (kitchen != null) ...[
                           const SizedBox(height: 4),
-                          HygieneBadge(
-                            status: kitchen.status,
-                            grade: kitchen.grade,
-                            dense: true,
-                          ),
+                          HygieneBadge(status: kitchen.status, grade: kitchen.grade, dense: true),
                         ],
                       ],
                     ),
@@ -106,20 +89,13 @@ class CartPage extends ConsumerWidget {
                       children: [
                         Text(line.item.name, style: t.titleSmall),
                         const SizedBox(height: 2),
-                        Text(
-                          formatLkr(line.total),
-                          style: t.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
+                        Text(formatLkr(line.total), style: t.bodySmall?.copyWith(color: AppColors.textSecondary)),
                       ],
                     ),
                   ),
                   QuantityStepper(
                     quantity: line.quantity,
-                    onChanged: (q) => ref
-                        .read(cartProvider.notifier)
-                        .setQuantity(line.item.id, q),
+                    onChanged: (q) => ref.read(cartProvider.notifier).setQuantity(line.item.id, q),
                   ),
                 ],
               ),
@@ -141,14 +117,8 @@ class CartPage extends ConsumerWidget {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
           child: FilledButton(
-            onPressed: kitchen != null && !kitchen.isOpen
-                ? null
-                : () => context.push(Routes.checkout),
-            child: Text(
-              kitchen != null && !kitchen.isOpen
-                  ? 'Kitchen is closed now'
-                  : 'Go to checkout',
-            ),
+            onPressed: kitchen != null && !kitchen.isOpen ? null : () => context.push(Routes.checkout),
+            child: Text(kitchen != null && !kitchen.isOpen ? 'Kitchen is closed now' : 'Go to checkout'),
           ),
         ),
       ),

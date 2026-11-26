@@ -17,16 +17,10 @@ Future<void> main() async {
   }
 
   // Sessions are stored on the device and refreshed automatically.
-  await Supabase.initialize(
-    url: Env.supabaseUrl,
-    publishableKey: Env.supabasePublishableKey,
-  );
+  await Supabase.initialize(url: Env.supabaseUrl, publishableKey: Env.supabasePublishableKey);
   final prefs = await SharedPreferences.getInstance();
   runApp(
-    ProviderScope(
-      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-      child: const VerifiedKitchenApp(),
-    ),
+    ProviderScope(overrides: [sharedPreferencesProvider.overrideWithValue(prefs)], child: const VerifiedKitchenApp()),
   );
 }
 
@@ -47,10 +41,7 @@ class _SetupRequired extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Setup required',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
+                Text('Setup required', style: Theme.of(context).textTheme.headlineMedium),
                 const SizedBox(height: 12),
                 Text(
                   Env.usesForbiddenKey

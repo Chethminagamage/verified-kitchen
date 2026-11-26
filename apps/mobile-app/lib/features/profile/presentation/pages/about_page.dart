@@ -18,16 +18,10 @@ class AboutPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
         children: [
-          const Align(
-            alignment: Alignment.centerLeft,
-            child: BrandMark(size: 64),
-          ),
+          const Align(alignment: Alignment.centerLeft, child: BrandMark(size: 64)),
           const SizedBox(height: 16),
           Text('Verified Kitchen', style: t.headlineMedium),
-          Text(
-            'Version $version',
-            style: t.bodyMedium?.copyWith(color: AppColors.textMuted),
-          ),
+          Text('Version $version', style: t.bodyMedium?.copyWith(color: AppColors.textMuted)),
           const SizedBox(height: 20),
           Text(
             'Order from cloud kitchens and see how hygienic each one really is before you choose.',
@@ -47,10 +41,7 @@ class AboutPage extends StatelessWidget {
             style: muted,
           ),
           const SizedBox(height: 20),
-          OutlinedButton(
-            onPressed: () => showHygieneExplainer(context),
-            child: const Text('How hygiene grades work'),
-          ),
+          OutlinedButton(onPressed: () => showHygieneExplainer(context), child: const Text('How hygiene grades work')),
           const SizedBox(height: 28),
           Text(
             'A final-year project prototype. Kitchens marked “demo” are sample listings, not real businesses.',

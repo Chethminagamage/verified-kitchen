@@ -12,12 +12,9 @@ class Skeleton extends StatefulWidget {
   State<Skeleton> createState() => _SkeletonState();
 }
 
-class _SkeletonState extends State<Skeleton>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 900),
-  )..repeat(reverse: true);
+class _SkeletonState extends State<Skeleton> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
+    ..repeat(reverse: true);
 
   @override
   void dispose() {
@@ -29,10 +26,7 @@ class _SkeletonState extends State<Skeleton>
   Widget build(BuildContext context) {
     return Semantics(
       label: 'Loading',
-      child: FadeTransition(
-        opacity: Tween(begin: 0.45, end: 1.0).animate(_c),
-        child: widget.child,
-      ),
+      child: FadeTransition(opacity: Tween(begin: 0.45, end: 1.0).animate(_c), child: widget.child),
     );
   }
 }
@@ -49,10 +43,7 @@ class Bone extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     width: width,
     height: height,
-    decoration: BoxDecoration(
-      color: AppColors.fill,
-      borderRadius: BorderRadius.circular(radius),
-    ),
+    decoration: BoxDecoration(color: AppColors.fill, borderRadius: BorderRadius.circular(radius)),
   );
 }
 

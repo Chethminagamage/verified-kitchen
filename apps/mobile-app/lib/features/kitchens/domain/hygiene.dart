@@ -33,10 +33,8 @@ enum HygieneStatus {
   };
 
   String get explanation => switch (this) {
-    verified =>
-      'Monitored live by sensors and AI through most of its opening hours.',
-    incomplete =>
-      'Not monitored for part of its opening hours, so its grade is limited.',
+    verified => 'Monitored live by sensors and AI through most of its opening hours.',
+    incomplete => 'Not monitored for part of its opening hours, so its grade is limited.',
     pending => 'Monitoring has just started. A grade appears after enough monitored opening time.',
     notMonitored => 'This kitchen does not use Verified Kitchen monitoring. No hygiene evidence is available.',
   };

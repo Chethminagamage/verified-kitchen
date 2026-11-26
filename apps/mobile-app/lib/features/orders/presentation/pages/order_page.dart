@@ -25,10 +25,7 @@ class OrderPage extends ConsumerWidget {
     final order = ref.watch(orderProvider(orderId));
     return Scaffold(
       appBar: AppBar(
-        leading: BackButton(
-          onPressed: () =>
-              context.canPop() ? context.pop() : context.go(Routes.orders),
-        ),
+        leading: BackButton(onPressed: () => context.canPop() ? context.pop() : context.go(Routes.orders)),
       ),
       body: RefreshIndicator(
         color: AppColors.ink,
@@ -68,19 +65,11 @@ class _OrderContentState extends ConsumerState<_OrderContent> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Cancel this order?'),
-        content: const Text(
-          'The kitchen has not accepted it yet, so you can cancel it for free.',
-        ),
+        content: const Text('The kitchen has not accepted it yet, so you can cancel it for free.'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Keep order'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Keep order')),
           FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.danger,
-              minimumSize: const Size(0, 44),
-            ),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger, minimumSize: const Size(0, 44)),
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Cancel order'),
           ),
@@ -94,9 +83,7 @@ class _OrderContentState extends ConsumerState<_OrderContent> {
       ref.invalidate(orderProvider(widget.order.id));
       ref.invalidate(myOrdersProvider);
     } on UserFacingError catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
       ref.invalidate(orderProvider(widget.order.id));
     } finally {
       if (mounted) setState(() => _cancelling = false);
@@ -114,15 +101,9 @@ class _OrderContentState extends ConsumerState<_OrderContent> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
       children: [
-        Text(
-          o.status.label,
-          style: t.headlineMedium?.copyWith(color: o.status.color),
-        ),
+        Text(o.status.label, style: t.headlineMedium?.copyWith(color: o.status.color)),
         const SizedBox(height: 4),
-        Text(
-          o.status.description,
-          style: t.bodyLarge?.copyWith(color: AppColors.textSecondary),
-        ),
+        Text(o.status.description, style: t.bodyLarge?.copyWith(color: AppColors.textSecondary)),
         const SizedBox(height: 4),
         Text(
           '${kitchen?.name ?? 'Kitchen'} · ${o.reference} · ${DateFormat('d MMM, h:mm a').format(o.placedAt)}',
@@ -132,9 +113,7 @@ class _OrderContentState extends ConsumerState<_OrderContent> {
         if (o.status == OrderStatus.cancelled)
           _Step(
             icon: OrderStatus.cancelled.icon,
-            title: o.cancelledBy == 'kitchen'
-                ? 'Cancelled by the kitchen'
-                : 'You cancelled this order',
+            title: o.cancelledBy == 'kitchen' ? 'Cancelled by the kitchen' : 'You cancelled this order',
             time: o.timestamps[OrderStatus.cancelled],
             state: _StepState.failed,
             last: true,
@@ -160,10 +139,7 @@ class _OrderContentState extends ConsumerState<_OrderContent> {
             padding: const EdgeInsets.symmetric(vertical: 6),
             child: Row(
               children: [
-                SizedBox(
-                  width: 32,
-                  child: Text('${line.quantity}×', style: t.titleSmall),
-                ),
+                SizedBox(width: 32, child: Text('${line.quantity}×', style: t.titleSmall)),
                 Expanded(child: Text(line.name, style: t.bodyMedium)),
                 Text(formatLkr(line.lineTotalLkr), style: t.bodyMedium),
               ],
@@ -172,45 +148,19 @@ class _OrderContentState extends ConsumerState<_OrderContent> {
         const Divider(height: 24),
         PriceRow(label: 'Subtotal', amount: o.subtotalLkr),
         PriceRow(label: 'Delivery fee', amount: o.deliveryFeeLkr),
-        PriceRow(
-          label: 'Total · cash on delivery',
-          amount: o.totalLkr,
-          bold: true,
-        ),
+        PriceRow(label: 'Total · cash on delivery', amount: o.totalLkr, bold: true),
         const Divider(height: 28),
-        _Detail(
-          icon: Icons.location_on_outlined,
-          title: 'Delivery address',
-          text: o.deliveryAddress,
-        ),
-        _Detail(
-          icon: Icons.phone_outlined,
-          title: 'Contact',
-          text: o.contactPhone,
-        ),
-        if (o.note != null)
-          _Detail(
-            icon: Icons.sticky_note_2_outlined,
-            title: 'Note',
-            text: o.note!,
-          ),
+        _Detail(icon: Icons.location_on_outlined, title: 'Delivery address', text: o.deliveryAddress),
+        _Detail(icon: Icons.phone_outlined, title: 'Contact', text: o.contactPhone),
+        if (o.note != null) _Detail(icon: Icons.sticky_note_2_outlined, title: 'Note', text: o.note!),
         const SizedBox(height: 8),
         Row(
           children: [
-            Expanded(
-              child: Text('Hygiene when you ordered', style: t.titleSmall),
-            ),
-            HygieneBadge(
-              status: o.hygieneStatusAtOrder,
-              grade: o.gradeAtOrder,
-              dense: true,
-            ),
+            Expanded(child: Text('Hygiene when you ordered', style: t.titleSmall)),
+            HygieneBadge(status: o.hygieneStatusAtOrder, grade: o.gradeAtOrder, dense: true),
           ],
         ),
-        if (o.status == OrderStatus.delivered) ...[
-          const SizedBox(height: 24),
-          FeedbackSection(orderId: o.id),
-        ],
+        if (o.status == OrderStatus.delivered) ...[const SizedBox(height: 24), FeedbackSection(orderId: o.id)],
         if (o.canCancel) ...[
           const SizedBox(height: 28),
           OutlinedButton(
@@ -267,21 +217,11 @@ class _Step extends StatelessWidget {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
-                  child: Icon(
-                    icon,
-                    size: 17,
-                    color: state == _StepState.todo
-                        ? AppColors.textMuted
-                        : Colors.white,
-                  ),
+                  child: Icon(icon, size: 17, color: state == _StepState.todo ? AppColors.textMuted : Colors.white),
                 ),
                 if (!last)
                   Expanded(
-                    child: Container(
-                      width: 2,
-                      color: line,
-                      margin: const EdgeInsets.symmetric(vertical: 2),
-                    ),
+                    child: Container(width: 2, color: line, margin: const EdgeInsets.symmetric(vertical: 2)),
                   ),
               ],
             ),
@@ -301,12 +241,7 @@ class _Step extends StatelessWidget {
                     ),
                   ),
                   if (time != null)
-                    Text(
-                      format.format(time!),
-                      style: t.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
+                    Text(format.format(time!), style: t.bodySmall?.copyWith(color: AppColors.textSecondary)),
                 ],
               ),
             ),
@@ -338,12 +273,7 @@ class _Detail extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: t.labelMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
+                Text(title, style: t.labelMedium?.copyWith(color: AppColors.textSecondary)),
                 const SizedBox(height: 2),
                 Text(text, style: t.bodyMedium),
               ],

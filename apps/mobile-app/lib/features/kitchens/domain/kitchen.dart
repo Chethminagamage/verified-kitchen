@@ -76,9 +76,7 @@ class Kitchen {
       foodPrepScore: d(json['food_prep_score']),
       environmentalScore: d(json['environmental_score']),
       coverage: d(json['coverage']),
-      ratingUpdatedAt: json['rating_updated_at'] == null
-          ? null
-          : DateTime.parse(json['rating_updated_at'] as String),
+      ratingUpdatedAt: json['rating_updated_at'] == null ? null : DateTime.parse(json['rating_updated_at'] as String),
       monitoredNow: (json['monitored_now'] as bool?) ?? false,
     );
   }
@@ -91,10 +89,8 @@ class HygieneDay {
   final DateTime day;
   final double? overall;
 
-  factory HygieneDay.fromJson(Map<String, dynamic> json) => HygieneDay(
-    day: DateTime.parse(json['day'] as String),
-    overall: (json['overall_score'] as num?)?.toDouble(),
-  );
+  factory HygieneDay.fromJson(Map<String, dynamic> json) =>
+      HygieneDay(day: DateTime.parse(json['day'] as String), overall: (json['overall_score'] as num?)?.toDouble());
 }
 
 /// A dish on a kitchen's menu.

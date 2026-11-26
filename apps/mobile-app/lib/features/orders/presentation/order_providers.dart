@@ -4,17 +4,14 @@ import '../../../core/supabase/supabase_providers.dart';
 import '../data/order_repository.dart';
 import '../domain/order.dart';
 
-final orderRepositoryProvider = Provider<OrderRepository>(
-  (ref) => OrderRepository(ref.watch(supabaseClientProvider)),
-);
+final orderRepositoryProvider = Provider<OrderRepository>((ref) => OrderRepository(ref.watch(supabaseClientProvider)));
 
 /// Live status changes of the customer's orders (Supabase Realtime).
-final orderStatusChangesProvider =
-    StreamProvider<({String orderId, OrderStatus status})>((ref) {
-      final user = ref.watch(currentUserProvider);
-      if (user == null) return const Stream.empty();
-      return ref.watch(orderRepositoryProvider).statusChanges(user.id);
-    });
+final orderStatusChangesProvider = StreamProvider<({String orderId, OrderStatus status})>((ref) {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return const Stream.empty();
+  return ref.watch(orderRepositoryProvider).statusChanges(user.id);
+});
 
 final myOrdersProvider = FutureProvider<List<CustomerOrder>>((ref) {
   ref.watch(orderStatusChangesProvider); // refresh on every live change

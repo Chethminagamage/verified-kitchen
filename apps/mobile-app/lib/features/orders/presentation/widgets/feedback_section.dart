@@ -24,16 +24,10 @@ class FeedbackSection extends ConsumerWidget {
         if (f != null) {
           return Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.fill,
-              borderRadius: BorderRadius.circular(16),
-            ),
+            decoration: BoxDecoration(color: AppColors.fill, borderRadius: BorderRadius.circular(16)),
             child: Row(
               children: [
-                const Icon(
-                  Icons.check_circle_rounded,
-                  color: AppColors.success,
-                ),
+                const Icon(Icons.check_circle_rounded, color: AppColors.success),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -45,9 +39,7 @@ class FeedbackSection extends ConsumerWidget {
                           if (f.rating != null) 'You rated it ${f.rating}/5',
                           if (f.problem != null) f.problem!.label,
                         ].join(' · '),
-                        style: t.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                        style: t.bodySmall?.copyWith(color: AppColors.textSecondary),
                       ),
                     ],
                   ),
@@ -76,9 +68,7 @@ class FeedbackSection extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 46),
-                      ),
+                      style: OutlinedButton.styleFrom(minimumSize: const Size(0, 46)),
                       onPressed: () => _open(context, ref),
                       icon: const Icon(Icons.star_outline_rounded),
                       label: const Text('Rate'),
@@ -87,9 +77,7 @@ class FeedbackSection extends ConsumerWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 46),
-                      ),
+                      style: OutlinedButton.styleFrom(minimumSize: const Size(0, 46)),
                       onPressed: () => _open(context, ref, reportProblem: true),
                       icon: const Icon(Icons.flag_outlined),
                       label: const Text('Report a problem'),
@@ -104,23 +92,16 @@ class FeedbackSection extends ConsumerWidget {
     );
   }
 
-  Future<void> _open(
-    BuildContext context,
-    WidgetRef ref, {
-    bool reportProblem = false,
-  }) async {
+  Future<void> _open(BuildContext context, WidgetRef ref, {bool reportProblem = false}) async {
     final sent = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      builder: (_) =>
-          _FeedbackSheet(orderId: orderId, reportProblem: reportProblem),
+      builder: (_) => _FeedbackSheet(orderId: orderId, reportProblem: reportProblem),
     );
     if (sent == true) {
       ref.invalidate(orderFeedbackProvider(orderId));
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Feedback sent to the kitchen')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Feedback sent to the kitchen')));
       }
     }
   }
@@ -159,12 +140,7 @@ class _FeedbackSheetState extends ConsumerState<_FeedbackSheet> {
     try {
       await ref
           .read(orderRepositoryProvider)
-          .submitFeedback(
-            widget.orderId,
-            rating: _rating,
-            problem: _problem?.value,
-            comment: _comment.text,
-          );
+          .submitFeedback(widget.orderId, rating: _rating, problem: _problem?.value, comment: _comment.text);
       if (mounted) Navigator.pop(context, true);
     } on UserFacingError catch (e) {
       setState(() => _error = e.message);
@@ -177,20 +153,12 @@ class _FeedbackSheetState extends ConsumerState<_FeedbackSheet> {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        24,
-        0,
-        24,
-        24 + MediaQuery.viewInsetsOf(context).bottom,
-      ),
+      padding: EdgeInsets.fromLTRB(24, 0, 24, 24 + MediaQuery.viewInsetsOf(context).bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            widget.reportProblem ? 'Report a problem' : 'Rate your order',
-            style: t.headlineSmall,
-          ),
+          Text(widget.reportProblem ? 'Report a problem' : 'Rate your order', style: t.headlineSmall),
           const SizedBox(height: 16),
           if (!widget.reportProblem) ...[
             Row(
@@ -202,12 +170,8 @@ class _FeedbackSheetState extends ConsumerState<_FeedbackSheet> {
                     iconSize: 40,
                     onPressed: () => setState(() => _rating = i),
                     icon: Icon(
-                      (_rating ?? 0) >= i
-                          ? Icons.star_rounded
-                          : Icons.star_outline_rounded,
-                      color: (_rating ?? 0) >= i
-                          ? const Color(0xFFF59E0B)
-                          : AppColors.textMuted,
+                      (_rating ?? 0) >= i ? Icons.star_rounded : Icons.star_outline_rounded,
+                      color: (_rating ?? 0) >= i ? const Color(0xFFF59E0B) : AppColors.textMuted,
                     ),
                   ),
               ],
@@ -234,9 +198,7 @@ class _FeedbackSheetState extends ConsumerState<_FeedbackSheet> {
             maxLength: 500,
             maxLines: 3,
             minLines: 2,
-            decoration: const InputDecoration(
-              hintText: 'Tell the kitchen more (optional)',
-            ),
+            decoration: const InputDecoration(hintText: 'Tell the kitchen more (optional)'),
           ),
           if (_problem == OrderProblem.hygieneConcern)
             Padding(
@@ -249,15 +211,9 @@ class _FeedbackSheetState extends ConsumerState<_FeedbackSheet> {
           if (_error != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                _error!,
-                style: t.bodyMedium?.copyWith(color: AppColors.danger),
-              ),
+              child: Text(_error!, style: t.bodyMedium?.copyWith(color: AppColors.danger)),
             ),
-          FilledButton(
-            onPressed: _valid && !_busy ? _send : null,
-            child: Text(_busy ? 'Sending…' : 'Send'),
-          ),
+          FilledButton(onPressed: _valid && !_busy ? _send : null, child: Text(_busy ? 'Sending…' : 'Send')),
         ],
       ),
     );

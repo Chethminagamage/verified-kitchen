@@ -5,26 +5,10 @@ import '../../kitchens/domain/hygiene.dart';
 
 /// Order lifecycle (database enum public.order_status).
 enum OrderStatus {
-  placed(
-    'Order placed',
-    'Waiting for the kitchen to accept',
-    Icons.receipt_long_rounded,
-  ),
-  accepted(
-    'Accepted',
-    'The kitchen has accepted your order',
-    Icons.thumb_up_alt_rounded,
-  ),
-  preparing(
-    'Preparing',
-    'Your food is being prepared',
-    Icons.soup_kitchen_rounded,
-  ),
-  onTheWay(
-    'On the way',
-    'Your order is on its way',
-    Icons.delivery_dining_rounded,
-  ),
+  placed('Order placed', 'Waiting for the kitchen to accept', Icons.receipt_long_rounded),
+  accepted('Accepted', 'The kitchen has accepted your order', Icons.thumb_up_alt_rounded),
+  preparing('Preparing', 'Your food is being prepared', Icons.soup_kitchen_rounded),
+  onTheWay('On the way', 'Your order is on its way', Icons.delivery_dining_rounded),
   delivered('Delivered', 'Enjoy your meal', Icons.check_circle_rounded),
   cancelled('Cancelled', 'This order was cancelled', Icons.cancel_rounded);
 
@@ -45,13 +29,7 @@ enum OrderStatus {
   };
 
   /// Steps shown on the tracking timeline (cancelled is shown separately).
-  static const List<OrderStatus> progress = [
-    placed,
-    accepted,
-    preparing,
-    onTheWay,
-    delivered,
-  ];
+  static const List<OrderStatus> progress = [placed, accepted, preparing, onTheWay, delivered];
 
   bool get isActive => this != delivered && this != cancelled;
 
@@ -63,12 +41,7 @@ enum OrderStatus {
 }
 
 class OrderLine {
-  const OrderLine({
-    required this.name,
-    required this.unitPriceLkr,
-    required this.quantity,
-    required this.lineTotalLkr,
-  });
+  const OrderLine({required this.name, required this.unitPriceLkr, required this.quantity, required this.lineTotalLkr});
 
   final String name;
   final double unitPriceLkr;
@@ -126,13 +99,10 @@ class CustomerOrder {
   int get itemCount => lines.fold(0, (n, l) => n + l.quantity);
 
   /// Short reference shown to the customer and the kitchen (#A1B2C3).
-  String get reference =>
-      '#${id.replaceAll('-', '').substring(0, 6).toUpperCase()}';
+  String get reference => '#${id.replaceAll('-', '').substring(0, 6).toUpperCase()}';
 
   factory CustomerOrder.fromJson(Map<String, dynamic> json) {
-    DateTime? ts(String key) => json[key] == null
-        ? null
-        : DateTime.parse(json[key] as String).toLocal();
+    DateTime? ts(String key) => json[key] == null ? null : DateTime.parse(json[key] as String).toLocal();
     final stamps = <OrderStatus, DateTime>{
       for (final (status, key) in [
         (OrderStatus.placed, 'placed_at'),
@@ -157,12 +127,8 @@ class CustomerOrder {
       subtotalLkr: (json['subtotal_lkr'] as num).toDouble(),
       deliveryFeeLkr: (json['delivery_fee_lkr'] as num).toDouble(),
       totalLkr: (json['total_lkr'] as num).toDouble(),
-      gradeAtOrder: HygieneGrade.parse(
-        json['hygiene_grade_at_order'] as String?,
-      ),
-      hygieneStatusAtOrder: HygieneStatus.parse(
-        json['hygiene_status_at_order'] as String?,
-      ),
+      gradeAtOrder: HygieneGrade.parse(json['hygiene_grade_at_order'] as String?),
+      hygieneStatusAtOrder: HygieneStatus.parse(json['hygiene_status_at_order'] as String?),
       placedAt: ts('placed_at')!,
       timestamps: stamps,
       cancelledBy: json['cancelled_by'] as String?,
@@ -185,16 +151,11 @@ enum OrderProblem {
   final String value;
   final String label;
 
-  static OrderProblem? parse(String? value) =>
-      values.where((p) => p.value == value).firstOrNull;
+  static OrderProblem? parse(String? value) => values.where((p) => p.value == value).firstOrNull;
 }
 
 class OrderFeedback {
-  const OrderFeedback({
-    required this.rating,
-    required this.problem,
-    required this.comment,
-  });
+  const OrderFeedback({required this.rating, required this.problem, required this.comment});
 
   final int? rating;
   final OrderProblem? problem;

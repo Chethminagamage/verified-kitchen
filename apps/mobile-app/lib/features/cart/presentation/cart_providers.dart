@@ -18,11 +18,9 @@ class CartNotifier extends Notifier<Cart> {
     return AddResult.added;
   }
 
-  void startNewCart(Kitchen kitchen, MenuItem item) =>
-      state = Cart.empty.add(kitchen, item);
+  void startNewCart(Kitchen kitchen, MenuItem item) => state = Cart.empty.add(kitchen, item);
 
-  void setQuantity(String menuItemId, int quantity) =>
-      state = state.setQuantity(menuItemId, quantity);
+  void setQuantity(String menuItemId, int quantity) => state = state.setQuantity(menuItemId, quantity);
 
   void clear() => state = Cart.empty;
 }

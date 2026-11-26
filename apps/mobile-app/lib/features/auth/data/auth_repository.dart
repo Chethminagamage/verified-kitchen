@@ -23,10 +23,7 @@ class AuthRepository {
 
   Future<void> signIn({required String email, required String password}) async {
     try {
-      await _client.auth.signInWithPassword(
-        email: email.trim().toLowerCase(),
-        password: password,
-      );
+      await _client.auth.signInWithPassword(email: email.trim().toLowerCase(), password: password);
     } on AuthException catch (e) {
       throw AuthFailure(_friendly(e));
     }
@@ -46,9 +43,7 @@ class AuthRepository {
         data: {'full_name': fullName.trim(), 'phone': phone.trim()},
         emailRedirectTo: authRedirectUrl,
       );
-      return res.session != null
-          ? SignUpOutcome.signedIn
-          : SignUpOutcome.confirmEmail;
+      return res.session != null ? SignUpOutcome.signedIn : SignUpOutcome.confirmEmail;
     } on AuthException catch (e) {
       throw AuthFailure(_friendly(e));
     }
@@ -60,13 +55,9 @@ class AuthRepository {
   /// whether an email address has an account.
   Future<void> sendPasswordReset(String email) async {
     try {
-      await _client.auth.resetPasswordForEmail(
-        email.trim().toLowerCase(),
-        redirectTo: authRedirectUrl,
-      );
+      await _client.auth.resetPasswordForEmail(email.trim().toLowerCase(), redirectTo: authRedirectUrl);
     } on AuthException catch (e) {
-      if (e.statusCode == '429' ||
-          e.message.toLowerCase().contains('rate limit')) {
+      if (e.statusCode == '429' || e.message.toLowerCase().contains('rate limit')) {
         throw const AuthFailure('Too many attempts. Please wait a minute.');
       }
     }
@@ -94,15 +85,12 @@ class AuthRepository {
   static String _friendly(AuthException e) {
     final m = e.message.toLowerCase();
     if (m.contains('invalid login')) return 'Wrong email or password.';
-    if (m.contains('email not confirmed'))
-      return 'Please confirm your email first. Check your inbox.';
+    if (m.contains('email not confirmed')) return 'Please confirm your email first. Check your inbox.';
     if (m.contains('already registered') || m.contains('already exists')) {
       return 'An account with this email already exists. Sign in instead.';
     }
-    if (m.contains('password'))
-      return 'Choose a stronger password (at least 8 characters).';
-    if (m.contains('rate limit') || e.statusCode == '429')
-      return 'Too many attempts. Please wait a minute.';
+    if (m.contains('password')) return 'Choose a stronger password (at least 8 characters).';
+    if (m.contains('rate limit') || e.statusCode == '429') return 'Too many attempts. Please wait a minute.';
     if (m.contains('signups not allowed') || m.contains('signup is disabled')) {
       return 'New sign-ups are closed at the moment.';
     }
@@ -110,6 +98,4 @@ class AuthRepository {
   }
 }
 
-final authRepositoryProvider = Provider<AuthRepository>(
-  (ref) => AuthRepository(ref.watch(supabaseClientProvider)),
-);
+final authRepositoryProvider = Provider<AuthRepository>((ref) => AuthRepository(ref.watch(supabaseClientProvider)));

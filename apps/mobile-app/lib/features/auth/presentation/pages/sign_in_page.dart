@@ -37,9 +37,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
       _error = null;
     });
     try {
-      await ref
-          .read(authRepositoryProvider)
-          .signIn(email: _email.text, password: _password.text);
+      await ref.read(authRepositoryProvider).signIn(email: _email.text, password: _password.text);
       // The router moves to the home screen when the session starts.
     } on AuthFailure catch (e) {
       setState(() => _error = e.message);
@@ -79,16 +77,11 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                   hintText: 'Password',
                   suffixIcon: IconButton(
                     tooltip: _hidden ? 'Show password' : 'Hide password',
-                    icon: Icon(
-                      _hidden
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
-                    ),
+                    icon: Icon(_hidden ? Icons.visibility_outlined : Icons.visibility_off_outlined),
                     onPressed: () => setState(() => _hidden = !_hidden),
                   ),
                 ),
-                validator: (v) =>
-                    (v == null || v.isEmpty) ? 'Enter your password' : null,
+                validator: (v) => (v == null || v.isEmpty) ? 'Enter your password' : null,
               ),
               Align(
                 alignment: Alignment.centerRight,
@@ -97,10 +90,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                   child: const Text('Forgot password?'),
                 ),
               ),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                AuthError(message: _error!),
-              ],
+              if (_error != null) ...[const SizedBox(height: 12), AuthError(message: _error!)],
               const SizedBox(height: 20),
               FilledButton(
                 onPressed: _busy ? null : _submit,
@@ -108,10 +98,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                     ? const SizedBox(
                         width: 22,
                         height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: Colors.white,
-                        ),
+                        child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
                       )
                     : const Text('Sign in'),
               ),
@@ -121,16 +108,8 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                 alignment: WrapAlignment.center,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Text(
-                    'New to Verified Kitchen?',
-                    style: t.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => context.go(Routes.signUp),
-                    child: const Text('Create account'),
-                  ),
+                  Text('New to Verified Kitchen?', style: t.bodyMedium?.copyWith(color: AppColors.textSecondary)),
+                  TextButton(onPressed: () => context.go(Routes.signUp), child: const Text('Create account')),
                 ],
               ),
             ],

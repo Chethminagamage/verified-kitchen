@@ -34,19 +34,14 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     if (!_form.currentState!.validate()) return;
     setState(() => _busy = true);
     try {
-      await ref
-          .read(accountRepositoryProvider)
-          .updateProfile(fullName: _name.text, phone: _phone.text);
+      await ref.read(accountRepositoryProvider).updateProfile(fullName: _name.text, phone: _phone.text);
       ref.invalidate(profileProvider);
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Profile updated')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated')));
         context.pop();
       }
     } on UserFacingError catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -88,15 +83,12 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                 TextFormField(
                   initialValue: p.email,
                   enabled: false,
-                  decoration: const InputDecoration(
-                    labelText: 'Email (used to sign in)',
-                  ),
+                  decoration: const InputDecoration(labelText: 'Email (used to sign in)'),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Kitchens see your name and number only on orders you place.',
-                  style: Theme.of(context).textTheme.bodySmall
-                      ?.copyWith(color: AppColors.textMuted),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
                 ),
               ],
             ),
@@ -107,10 +99,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-          child: FilledButton(
-            onPressed: _busy ? null : _save,
-            child: Text(_busy ? 'Saving…' : 'Save'),
-          ),
+          child: FilledButton(onPressed: _busy ? null : _save, child: Text(_busy ? 'Saving…' : 'Save')),
         ),
       ),
     );

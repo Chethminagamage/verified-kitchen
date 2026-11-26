@@ -55,10 +55,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
             'If an account exists for ${_email.text.trim()}, we sent a link to reset your password. '
             'Open it on this phone.',
         onBack: () => context.go(Routes.signIn),
-        child: FilledButton(
-          onPressed: () => context.go(Routes.signIn),
-          child: const Text('Back to sign in'),
-        ),
+        child: FilledButton(onPressed: () => context.go(Routes.signIn), child: const Text('Back to sign in')),
       );
     }
     return AuthScaffold(
@@ -79,15 +76,9 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
               decoration: const InputDecoration(hintText: 'Email'),
               validator: Validators.email,
             ),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              AuthError(message: _error!),
-            ],
+            if (_error != null) ...[const SizedBox(height: 12), AuthError(message: _error!)],
             const SizedBox(height: 20),
-            FilledButton(
-              onPressed: _busy ? null : _send,
-              child: Text(_busy ? 'Sending…' : 'Send reset link'),
-            ),
+            FilledButton(onPressed: _busy ? null : _send, child: Text(_busy ? 'Sending…' : 'Send reset link')),
           ],
         ),
       ),
@@ -128,8 +119,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
       await ref.read(authRepositoryProvider).updatePassword(_password.text);
       ref.read(passwordRecoveryProvider.notifier).done();
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Password changed')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password changed')));
         context.go(Routes.home);
       }
     } on AuthFailure catch (e) {
@@ -157,11 +147,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                 hintText: 'New password (8+ characters)',
                 suffixIcon: IconButton(
                   tooltip: _hidden ? 'Show password' : 'Hide password',
-                  icon: Icon(
-                    _hidden
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
-                  ),
+                  icon: Icon(_hidden ? Icons.visibility_outlined : Icons.visibility_off_outlined),
                   onPressed: () => setState(() => _hidden = !_hidden),
                 ),
               ),
@@ -171,26 +157,16 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
             TextFormField(
               controller: _confirm,
               obscureText: _hidden,
-              decoration: const InputDecoration(
-                hintText: 'Repeat new password',
-              ),
-              validator: (v) =>
-                  v != _password.text ? 'The passwords do not match' : null,
+              decoration: const InputDecoration(hintText: 'Repeat new password'),
+              validator: (v) => v != _password.text ? 'The passwords do not match' : null,
             ),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              AuthError(message: _error!),
-            ],
+            if (_error != null) ...[const SizedBox(height: 12), AuthError(message: _error!)],
             const SizedBox(height: 20),
-            FilledButton(
-              onPressed: _busy ? null : _save,
-              child: Text(_busy ? 'Saving…' : 'Save new password'),
-            ),
+            FilledButton(onPressed: _busy ? null : _save, child: Text(_busy ? 'Saving…' : 'Save new password')),
             const SizedBox(height: 12),
             Text(
               'For your security, other devices stay signed in until their session expires.',
-              style: Theme.of(context).textTheme.bodySmall
-                  ?.copyWith(color: AppColors.textMuted),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
               textAlign: TextAlign.center,
             ),
           ],

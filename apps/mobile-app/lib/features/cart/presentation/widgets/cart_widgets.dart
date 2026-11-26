@@ -10,11 +10,7 @@ import '../cart_providers.dart';
 
 /// − 2 + control.
 class QuantityStepper extends StatelessWidget {
-  const QuantityStepper({
-    super.key,
-    required this.quantity,
-    required this.onChanged,
-  });
+  const QuantityStepper({super.key, required this.quantity, required this.onChanged});
 
   final int quantity;
   final ValueChanged<int> onChanged;
@@ -29,10 +25,7 @@ class QuantityStepper extends StatelessWidget {
       icon: Icon(icon),
     );
     return Container(
-      decoration: BoxDecoration(
-        color: AppColors.fill,
-        borderRadius: BorderRadius.circular(999),
-      ),
+      decoration: BoxDecoration(color: AppColors.fill, borderRadius: BorderRadius.circular(999)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -43,17 +36,9 @@ class QuantityStepper extends StatelessWidget {
           ),
           SizedBox(
             width: 22,
-            child: Text(
-              '$quantity',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
+            child: Text('$quantity', textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleSmall),
           ),
-          button(
-            Icons.add_rounded,
-            'More',
-            quantity >= maxQuantity ? null : () => onChanged(quantity + 1),
-          ),
+          button(Icons.add_rounded, 'More', quantity >= maxQuantity ? null : () => onChanged(quantity + 1)),
         ],
       ),
     );
@@ -62,12 +47,7 @@ class QuantityStepper extends StatelessWidget {
 
 /// Label ........ amount
 class PriceRow extends StatelessWidget {
-  const PriceRow({
-    super.key,
-    required this.label,
-    required this.amount,
-    this.bold = false,
-  });
+  const PriceRow({super.key, required this.label, required this.amount, this.bold = false});
 
   final String label;
   final double amount;
@@ -76,9 +56,7 @@ class PriceRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    final style = bold
-        ? t.titleMedium
-        : t.bodyMedium?.copyWith(color: AppColors.textSecondary);
+    final style = bold ? t.titleMedium : t.bodyMedium?.copyWith(color: AppColors.textSecondary);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -100,8 +78,7 @@ class ViewCartBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cart = ref.watch(cartProvider);
-    if (cart.isEmpty || cart.kitchenId != kitchenId)
-      return const SizedBox.shrink();
+    if (cart.isEmpty || cart.kitchenId != kitchenId) return const SizedBox.shrink();
     final t = Theme.of(context).textTheme;
     return SafeArea(
       top: false,
@@ -113,14 +90,8 @@ class ViewCartBar extends ConsumerWidget {
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '${cart.itemCount}',
-                  style: t.labelLarge?.copyWith(color: Colors.white),
-                ),
+                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(999)),
+                child: Text('${cart.itemCount}', style: t.labelLarge?.copyWith(color: Colors.white)),
               ),
               const SizedBox(width: 12),
               const Expanded(child: Text('View cart')),

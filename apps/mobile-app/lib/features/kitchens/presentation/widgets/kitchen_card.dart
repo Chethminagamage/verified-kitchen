@@ -10,13 +10,7 @@ import 'hygiene_badge.dart';
 
 /// Full-width listing card: image tile, name, hygiene badge and essentials.
 class KitchenCard extends StatelessWidget {
-  const KitchenCard({
-    super.key,
-    required this.kitchen,
-    required this.onTap,
-    this.width,
-    this.showFavourite = false,
-  });
+  const KitchenCard({super.key, required this.kitchen, required this.onTap, this.width, this.showFavourite = false});
 
   final Kitchen kitchen;
   final VoidCallback onTap;
@@ -42,12 +36,7 @@ class KitchenCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    k.name,
-                    style: t.titleMedium,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  child: Text(k.name, style: t.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
                 ),
                 const SizedBox(width: 8),
                 HygieneBadge(status: k.status, grade: k.grade, dense: true),
@@ -56,10 +45,7 @@ class KitchenCard extends StatelessWidget {
             const SizedBox(height: 3),
             Text(
               [
-                if (k.isOpen)
-                  '${k.prepMinutes}–${k.prepMinutes + 15} min'
-                else
-                  'Opens ${formatClock(k.opensAt)}',
+                if (k.isOpen) '${k.prepMinutes}–${k.prepMinutes + 15} min' else 'Opens ${formatClock(k.opensAt)}',
                 '${formatLkr(k.deliveryFeeLkr)} delivery',
                 if (k.cuisine != null) k.cuisine!,
               ].join('  ·  '),
@@ -92,9 +78,7 @@ class _ImageTile extends StatelessWidget {
           children: [
             ColoredBox(
               color: k.grade?.softColor ?? AppColors.fill,
-              child: Center(
-                child: Text(k.emoji, style: const TextStyle(fontSize: 64)),
-              ),
+              child: Center(child: Text(k.emoji, style: const TextStyle(fontSize: 64))),
             ),
             if (!k.isOpen)
               ColoredBox(
@@ -102,15 +86,12 @@ class _ImageTile extends StatelessWidget {
                 child: Center(
                   child: Text(
                     'Closed · opens ${formatClock(k.opensAt)}',
-                    style: Theme.of(context).textTheme.titleSmall
-                        ?.copyWith(color: Colors.white),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.white),
                   ),
                 ),
               ),
-            if (k.monitoredNow)
-              const Positioned(left: 10, top: 10, child: LiveTag()),
-            if (showFavourite)
-              Positioned(right: 6, top: 6, child: _CardHeart(kitchenId: k.id)),
+            if (k.monitoredNow) const Positioned(left: 10, top: 10, child: LiveTag()),
+            if (showFavourite) Positioned(right: 6, top: 6, child: _CardHeart(kitchenId: k.id)),
           ],
         ),
       ),
@@ -126,20 +107,14 @@ class LiveTag extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(999),
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(999)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             width: 7,
             height: 7,
-            decoration: const BoxDecoration(
-              color: AppColors.primary,
-              shape: BoxShape.circle,
-            ),
+            decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
           ),
           const SizedBox(width: 5),
           Text('Monitored live', style: Theme.of(context).textTheme.labelSmall),
@@ -155,14 +130,10 @@ class _CardHeart extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final favourite =
-        ref.watch(favouritesProvider).value?.contains(kitchenId) ?? false;
+    final favourite = ref.watch(favouritesProvider).value?.contains(kitchenId) ?? false;
     return IconButton(
       tooltip: favourite ? 'Remove from favourites' : 'Save to favourites',
-      style: IconButton.styleFrom(
-        backgroundColor: Colors.white,
-        minimumSize: const Size(40, 40),
-      ),
+      style: IconButton.styleFrom(backgroundColor: Colors.white, minimumSize: const Size(40, 40)),
       icon: Icon(
         favourite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
         size: 20,
@@ -172,9 +143,7 @@ class _CardHeart extends ConsumerWidget {
         try {
           await ref.read(favouritesProvider.notifier).toggle(kitchenId);
         } on UserFacingError catch (e) {
-          if (context.mounted)
-            ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text(e.message)));
+          if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
         }
       },
     );
