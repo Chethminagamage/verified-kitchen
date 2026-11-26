@@ -1,15 +1,11 @@
-import {
-  ChartNoAxesCombined,
-  CircleCheckBig,
-  ShieldCheck,
-  TriangleAlert,
-} from "lucide-react";
+import { CalendarRange, ChartNoAxesCombined, CircleCheckBig, ShieldCheck, TriangleAlert } from "lucide-react";
 
-import type {
-  ReportsData,
-} from "../model/reports.model";
+import PageHeader from "@/shared/components/ui/PageHeader";
+import StatTile from "@/shared/components/ui/StatTile";
+import { toneForScore } from "@/shared/components/ui/tone";
 
-import ReportSummaryCard from "./components/ReportSummaryCard";
+import type { ReportsData } from "../model/reports.model";
+
 import HygieneScoreTrendChart from "./components/HygieneScoreTrendChart";
 import PillarPerformanceChart from "./components/PillarPerformanceChart";
 import ViolationBreakdownChart from "./components/ViolationBreakdownChart";
@@ -24,61 +20,52 @@ export default function ReportsView({
 }: ReportsViewProps) {
   return (
     <div className="mx-auto max-w-7xl">
-      <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <p className="text-sm font-medium text-emerald-600">
-            Historical Analytics
-          </p>
-
-          <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-            Reports
-          </h2>
-
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-            Review historical hygiene performance,
-            compliance trends, violations and environmental
-            monitoring statistics.
-          </p>
-        </div>
-
-        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Reporting Period
-          </p>
-
-          <p className="mt-1 text-sm font-semibold text-slate-900">
-            {data.period}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Historical analytics"
+        title="Reports"
+        description="Hygiene performance, compliance trends, violations and environmental statistics over the reporting period."
+        aside={
+          <div className="flex items-center gap-3 rounded-xl border border-slate-200/80 bg-white px-4 py-2.5 shadow-card">
+            <CalendarRange className="h-4 w-4 text-slate-400" aria-hidden />
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">Reporting period</p>
+              <p className="text-sm font-semibold text-slate-900">{data.period}</p>
+            </div>
+          </div>
+        }
+      />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <ReportSummaryCard
-          title="Average Hygiene Score"
-          value={`${data.summary.averageHygieneScore}/100`}
+        <StatTile
+          label="Average hygiene score"
+          value={data.summary.averageHygieneScore === null ? "—" : `${data.summary.averageHygieneScore}/100`}
           icon={ChartNoAxesCombined}
-          description="Average overall hygiene score during the selected period."
+          tone={toneForScore(data.summary.averageHygieneScore)}
+          description={`Mean of ${data.summary.scoredSamples.toLocaleString("en-GB")} stored scores (one per minute) in the period.`}
         />
 
-        <ReportSummaryCard
-          title="Compliance Rate"
-          value={`${data.summary.complianceRate}%`}
+        <StatTile
+          label="Compliance rate"
+          value={data.summary.complianceRate === null ? "—" : `${data.summary.complianceRate}%`}
           icon={CircleCheckBig}
-          description="Overall proportion of compliant monitoring outcomes."
+          tone={toneForScore(data.summary.complianceRate)}
+          description="Share of scored minutes rated Good or better (score 75 or above)."
         />
 
-        <ReportSummaryCard
-          title="Total Violations"
-          value={`${data.summary.totalViolations}`}
+        <StatTile
+          label="Total violations"
+          value={data.summary.totalViolations}
           icon={TriangleAlert}
-          description="Total recorded hygiene violations during the reporting period."
+          tone={data.summary.totalViolations > 0 ? "warning" : "positive"}
+          description="Problems detected automatically during the period."
         />
 
-        <ReportSummaryCard
-          title="Verified Audit Records"
-          value={`${data.summary.verifiedAuditRecords}`}
+        <StatTile
+          label="Secured audit records"
+          value={data.summary.verifiedAuditRecords}
           icon={ShieldCheck}
-          description="Important events confirmed by the audit layer."
+          tone="info"
+          description={`Records confirmed in the independent ledger (${data.summary.pendingAuditRecords} waiting to be secured).`}
         />
       </section>
 
@@ -104,11 +91,6 @@ export default function ReportsView({
         />
       </section>
 
-      <p className="mt-6 text-xs text-slate-400">
-        Report data shown during development is mock
-        historical information and will later be generated
-        from stored operational records.
-      </p>
     </div>
   );
 }

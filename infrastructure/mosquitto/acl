@@ -1,0 +1,11 @@
+# Access control. %u = the client's username.
+# Devices (username = device id, e.g. vk-env-01, vk-cam-01) may only publish their own topics.
+# The edge service checks that each device sends only its own kind of evidence
+# (telemetry from the environmental node, detections from the camera).
+pattern write vk/+/%u/telemetry
+pattern write vk/+/%u/detections
+pattern write vk/+/%u/status
+
+# The edge service reads every device topic and publishes nothing.
+user edge-service
+topic read vk/#

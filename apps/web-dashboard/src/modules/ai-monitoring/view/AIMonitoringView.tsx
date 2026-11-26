@@ -1,130 +1,121 @@
-import {
-  EyeOff,
-  LockKeyhole,
-} from "lucide-react";
+import { EyeOff, LockKeyhole, WifiOff } from "lucide-react";
 
-import type {
-  AIMonitoringData,
-} from "../model/ai-monitoring.model";
+import LiveRefresh from "@/shared/components/feedback/LiveRefresh";
+import Notice from "@/shared/components/ui/Notice";
+import PageHeader from "@/shared/components/ui/PageHeader";
+import { IconTile } from "@/shared/components/ui/Panel";
+import SectionHeader from "@/shared/components/ui/SectionHeader";
+import StatusPill from "@/shared/components/ui/StatusPill";
+import { formatDateTime } from "@/shared/utils/time";
 
-import AISystemStatusCard from "./components/AISystemStatusCard";
+import type { AIMonitoringPage } from "../model/ai-monitoring.model";
+
 import AIDetectionCard from "./components/AIDetectionCard";
+import AISystemStatusCard from "./components/AISystemStatusCard";
 import DetectionEventTable from "./components/DetectionEventTable";
 
 interface AIMonitoringViewProps {
-  data: AIMonitoringData;
+  data: AIMonitoringPage;
+  kitchenId: string;
 }
 
-export default function AIMonitoringView({
-  data,
-}: AIMonitoringViewProps) {
+const score = (value: number | null) => (value === null ? undefined : `${Math.round(value)}/100`);
+
+export default function AIMonitoringView({ data, kitchenId }: AIMonitoringViewProps) {
+  const { camera } = data;
+
   return (
     <div className="mx-auto max-w-7xl">
-      <div className="mb-8">
-        <p className="text-sm font-medium text-emerald-600">
-          Edge AI
-        </p>
+      <PageHeader
+        eyebrow="Camera checks"
+        title="AI Monitoring"
+        description="Protective wear and the preparation area, checked automatically by the kitchen camera. Only the results are kept; video never leaves the kitchen."
+        aside={
+          // A camera window arrives every 5 s; refresh at most every 3 s.
+          <LiveRefresh kitchenId={kitchenId} tables={["ai_detections", "devices"]} minIntervalMs={3000} fallbackMs={15000} />
+        }
+      />
 
-        <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-          AI Monitoring
-        </h2>
+      {!camera.online && (
+        <Notice
+          tone="warning"
+          icon={WifiOff}
+          className="mb-6"
+          title={
+            camera.installed && camera.lastSeenAt
+              ? `The hygiene camera is offline (last update ${formatDateTime(camera.lastSeenAt, data.timezone)})`
+              : "The hygiene camera has not connected yet"
+          }
+        >
+          Check that the camera and the monitoring system are switched on. While the camera is offline, personal
+          hygiene and food preparation are left out of the hygiene score (they are never counted as 100).
+        </Notice>
+      )}
 
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-          Monitor AI-generated hygiene compliance metadata
-          from the local computer vision system.
-        </p>
-      </div>
+      <div className="grid gap-6 xl:grid-cols-2">
+        <AISystemStatusCard camera={camera} timezone={data.timezone} generatedAt={data.generatedAt} />
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_2fr]">
-        <AISystemStatusCard system={data.system} />
-
-        <section className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-6">
+        <section className="rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50 to-white p-6 shadow-card">
           <div className="flex items-start gap-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white">
-              <LockKeyhole className="h-5 w-5 text-emerald-700" />
-            </div>
-
+            <IconTile icon={LockKeyhole} tone="positive" />
             <div>
-              <h3 className="font-semibold text-emerald-950">
-                Privacy-Preserving Edge Processing
-              </h3>
-
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-emerald-800">
-                Video is analysed locally by the edge AI
-                system. The dashboard receives structured
-                detection metadata rather than continuous raw
-                surveillance footage.
+              <h3 className="font-semibold tracking-tight text-emerald-950">Privacy-preserving processing</h3>
+              <p className="mt-2 text-sm leading-6 text-emerald-900/80">
+                The camera picture is checked on a computer inside the kitchen and immediately discarded. No image or
+                video is stored or sent anywhere, and no face recognition is performed. Only the result of each check
+                is kept: whether the item was compliant, and when.
               </p>
-
-              <div className="mt-4 flex items-center gap-2 text-sm font-medium text-emerald-800">
-                <EyeOff className="h-4 w-4" />
-                No raw video displayed or retained
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <StatusPill tone="positive" icon={EyeOff}>
+                  No video displayed or retained
+                </StatusPill>
+                <span className="text-xs text-emerald-800">{data.windowsLastHour} checks in the last hour</span>
               </div>
             </div>
           </div>
         </section>
       </div>
 
-      <section className="mt-8">
-        <div className="mb-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-600">
-            Pillar 1
-          </p>
-
-          <h3 className="mt-1 text-lg font-semibold text-slate-950">
-            Personal Hygiene
-          </h3>
-
-          <p className="mt-1 text-sm text-slate-500">
-            AI monitoring of hairnet, mask and glove
-            compliance.
-          </p>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          {data.personalHygieneDetections.map(
-            (detection) => (
-              <AIDetectionCard
-                key={detection.id}
-                detection={detection}
-              />
-            )
-          )}
-        </div>
-      </section>
-
-      <section className="mt-8">
-        <div className="mb-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-600">
-            Pillar 2
-          </p>
-
-          <h3 className="mt-1 text-lg font-semibold text-slate-950">
-            Food Preparation Hygiene
-          </h3>
-
-          <p className="mt-1 text-sm text-slate-500">
-            AI monitoring of preparation surface cleanliness,
-            food spills, food waste and dirty surfaces.
-          </p>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {data.foodPreparationDetections.map(
-            (detection) => (
-              <AIDetectionCard
-                key={detection.id}
-                detection={detection}
-              />
-            )
-          )}
-        </div>
-      </section>
-
-      <div className="mt-8">
-        <DetectionEventTable
-          events={data.recentEvents}
+      <section className="mt-10">
+        <SectionHeader
+          eyebrow="Pillar 1"
+          title="Personal Hygiene"
+          meta={score(data.personalScore)}
+          description={
+            <>
+              An item counts only when the camera clearly sees it worn or not worn. When nobody is in view it is
+              &ldquo;Not in view&rdquo;, never a violation.
+            </>
+          }
         />
+        <div className="grid gap-4 md:grid-cols-3">
+          {data.indicators.map((i) => (
+            <AIDetectionCard key={i.id} indicator={i} generatedAt={data.generatedAt} />
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <SectionHeader
+          eyebrow="Pillar 2"
+          title="Food Preparation Hygiene"
+          meta={score(data.foodPrepScore)}
+          description={
+            <>
+              The camera checks the preparation surface and scraps left on it. &ldquo;No waste&rdquo; counts only while
+              a surface is visible; when the view is blocked the item is &ldquo;Not in view&rdquo;.
+            </>
+          }
+        />
+        <div className="grid gap-4 md:grid-cols-2">
+          {data.foodPrep.map((i) => (
+            <AIDetectionCard key={i.id} indicator={i} generatedAt={data.generatedAt} />
+          ))}
+        </div>
+      </section>
+
+      <div className="mt-10">
+        <DetectionEventTable events={data.events} pagination={data.eventsPagination} timezone={data.timezone} />
       </div>
     </div>
   );

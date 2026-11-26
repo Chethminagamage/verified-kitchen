@@ -1,151 +1,139 @@
-import type {
-  EnvironmentalMonitoringData,
-} from "../model/environment.model";
+import Link from "next/link";
+import { ArrowRight, Clock, ShieldCheck } from "lucide-react";
 
-import EnvironmentSummaryCard from "./components/EnvironmentSummaryCard";
-import EnvironmentalTrendChart from "./components/EnvironmentalTrendChart";
-import SensorStatusPanel from "./components/SensorStatusPanel";
+import ViolationSeverityBadge from "@/modules/violations/view/components/ViolationSeverityBadge";
+import LiveAge from "@/shared/components/feedback/LiveAge";
+import LiveRefresh from "@/shared/components/feedback/LiveRefresh";
+import EmptyState from "@/shared/components/ui/EmptyState";
+import Notice from "@/shared/components/ui/Notice";
+import PageHeader from "@/shared/components/ui/PageHeader";
+import { Panel, PanelHeader } from "@/shared/components/ui/Panel";
+import { formatDateTime } from "@/shared/utils/time";
+
+import { RANGE_CONFIG, RANGES, type EnvironmentPage } from "../model/environment.model";
+
+import DeviceHealthPanel from "./components/DeviceHealthPanel";
+import MetricCard from "./components/MetricCard";
+import SensorHistoryChart from "./components/SensorHistoryChart";
 
 interface EnvironmentalMonitoringViewProps {
-  data: EnvironmentalMonitoringData;
+  data: EnvironmentPage;
+  kitchenId: string;
 }
 
-export default function EnvironmentalMonitoringView({
-  data,
-}: EnvironmentalMonitoringViewProps) {
+export default function EnvironmentalMonitoringView({ data, kitchenId }: EnvironmentalMonitoringViewProps) {
   return (
     <div className="mx-auto max-w-7xl">
-      <div className="mb-8">
-        <p className="text-sm font-medium text-emerald-600">
-          Pillar 3
-        </p>
+      <PageHeader
+        eyebrow="Pillar 3 · Kitchen sensors"
+        title="Environmental Monitoring"
+        description={
+          data.latestReadingAt ? (
+            <>
+              Latest reading <LiveAge iso={data.latestReadingAt} serverNow={data.generatedAt} />
+              {data.environmentalScore !== null && <> · Environmental score {Math.round(data.environmentalScore)}/100</>}
+            </>
+          ) : (
+            "No readings yet. Check that the kitchen sensors are switched on."
+          )
+        }
+        aside={
+          // Readings arrive every 30 s; the page refreshes on each one.
+          <LiveRefresh
+            kitchenId={kitchenId}
+            tables={["sensor_readings", "devices", "violations"]}
+            minIntervalMs={2000}
+            fallbackMs={30000}
+          />
+        }
+      />
 
-        <div className="mt-1 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-              Environmental Monitoring
-            </h2>
+      {data.readingIsStale && data.latestReadingAt && (
+        <Notice
+          tone="warning"
+          icon={Clock}
+          className="mb-6"
+          title={data.device && !data.device.online ? "The kitchen sensors are offline" : "No new reading is arriving"}
+        >
+          The values below are the last ones received, at {formatDateTime(data.latestReadingAt, data.timezone)}. Check
+          that the sensors are switched on and connected to Wi-Fi, and that the monitoring system is running.
+        </Notice>
+      )}
 
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-              Monitor kitchen temperature, humidity and
-              refrigeration conditions captured by the IoT
-              sensor layer.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              Environmental Hygiene
-            </p>
-
-            <p className="mt-1 text-2xl font-bold text-slate-950">
-              {data.pillarScore}
-              <span className="ml-1 text-sm font-medium text-slate-400">
-                %
-              </span>
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <section>
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold text-slate-950">
-            Current Conditions
-          </h3>
-
-          <p className="mt-1 text-sm text-slate-500">
-            Latest readings received from environmental
-            monitoring sensors.
-          </p>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          {data.sensors.map((sensor) => (
-            <EnvironmentSummaryCard
-              key={sensor.id}
-              sensor={sensor}
-            />
-          ))}
-        </div>
+      <section className="grid gap-4 md:grid-cols-3">
+        {data.metrics.map((m) => (
+          <MetricCard key={m.id} metric={m} stale={data.readingIsStale} />
+        ))}
       </section>
 
-      <section className="mt-8">
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold text-slate-950">
-            Environmental Trends
-          </h3>
-
-          <p className="mt-1 text-sm text-slate-500">
-            Historical trend view for monitored environmental
-            conditions.
-          </p>
-        </div>
-
-        <div className="grid gap-6 xl:grid-cols-2">
-          {data.sensors.map((sensor) => (
-            <EnvironmentalTrendChart
-              key={sensor.id}
-              sensor={sensor}
-            />
+      <div className="mb-4 mt-8 flex flex-wrap items-center justify-between gap-3">
+        <h3 className="text-lg font-semibold tracking-tight text-slate-950">History</h3>
+        <nav aria-label="Time range" className="flex rounded-lg border border-slate-200 bg-white p-1 text-sm shadow-card">
+          {RANGES.map((r) => (
+            <Link
+              key={r}
+              href={r === "24h" ? "?" : `?range=${r}`}
+              scroll={false}
+              aria-current={data.range === r ? "page" : undefined}
+              className={`rounded-md px-3 py-1.5 font-medium transition ${
+                data.range === r ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              {RANGE_CONFIG[r].label}
+            </Link>
           ))}
-        </div>
-      </section>
-
-      <div className="mt-8 grid gap-6 xl:grid-cols-[2fr_1fr]">
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-950">
-            Monitoring Information
-          </h3>
-
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-            Environmental readings contribute to the
-            Environmental Hygiene pillar. Final safety ranges,
-            normalization rules and score impact will be
-            configured from the validated project scoring
-            methodology rather than being calculated in this
-            dashboard.
-          </p>
-
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs font-medium text-slate-500">
-                Temperature
-              </p>
-
-              <p className="mt-2 text-sm font-semibold text-slate-900">
-                DHT22
-              </p>
-            </div>
-
-            <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs font-medium text-slate-500">
-                Humidity
-              </p>
-
-              <p className="mt-2 text-sm font-semibold text-slate-900">
-                DHT22
-              </p>
-            </div>
-
-            <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs font-medium text-slate-500">
-                Refrigeration
-              </p>
-
-              <p className="mt-2 text-sm font-semibold text-slate-900">
-                DS18B20
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <SensorStatusPanel sensors={data.sensors} />
+        </nav>
       </div>
 
-      <p className="mt-6 text-xs text-slate-400">
-        Last system update: {data.lastUpdated}
-      </p>
+      <div className="grid gap-6 xl:grid-cols-[2fr_1fr]">
+        <div className="space-y-6">
+          {data.metrics.map((m) => (
+            <SensorHistoryChart key={m.id} metric={m} range={data.range} timezone={data.timezone} />
+          ))}
+        </div>
+
+        <div className="space-y-6">
+          <DeviceHealthPanel device={data.device} timezone={data.timezone} generatedAt={data.generatedAt} />
+
+          <Panel>
+            <PanelHeader
+              title="Recent environmental violations"
+              aside={
+                <Link
+                  href="/dashboard/violations?pillar=environmental&status=all"
+                  className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-medium text-emerald-700 transition hover:bg-emerald-50"
+                >
+                  All <ArrowRight className="h-4 w-4" aria-hidden />
+                </Link>
+              }
+            />
+
+            {data.violations.length === 0 ? (
+              <EmptyState icon={ShieldCheck} tone="positive" title="None recorded" compact className="mt-2">
+                The kitchen air and fridge have stayed within their safe ranges.
+              </EmptyState>
+            ) : (
+              <ul className="mt-3 divide-y divide-slate-100">
+                {data.violations.map((v) => (
+                  <li key={v.id} className="grid grid-cols-[5.5rem_minmax(0,1fr)] items-start gap-3 py-3">
+                    <div className="pt-0.5">
+                      <ViolationSeverityBadge severity={v.severity} />
+                    </div>
+                    <div className="min-w-0 text-sm">
+                      <p className="font-medium text-slate-900">{v.title}</p>
+                      <p className="text-xs text-slate-500">
+                        {formatDateTime(v.occurredAt, data.timezone)}
+                        {v.sensorValue !== null && ` · ${v.sensorValue.toFixed(1)} ${v.sensorUnit ?? ""}`}
+                        {` · ${v.status}`}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+        </div>
+      </div>
     </div>
   );
 }

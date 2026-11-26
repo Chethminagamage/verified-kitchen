@@ -1,133 +1,66 @@
-import type {
-  AuditTrailData,
-} from "../model/audit.model";
+import { createClient } from "@/infrastructure/supabase/server";
+import type { Json } from "@/shared/types/database.types";
+
+import { RECORDS_SHOWN, type AuditStatus } from "../model/audit.model";
+
+export interface AuditRow {
+  id: number;
+  chain_seq: number;
+  created_at: string;
+  event_type: string;
+  event_payload: Json;
+  violation_id: string | null;
+  event_hash: string;
+  prev_hash: string;
+  status: AuditStatus;
+  fabric_tx_id: string | null;
+  fabric_block: number | null;
+}
+
+function fail(what: string, message: string): never {
+  throw new Error(`Could not load ${what}: ${message}`);
+}
 
 export class AuditRepository {
-  async getAuditTrailData(): Promise<AuditTrailData> {
-    return {
-      kitchenName: "Verified Kitchen - Test Kitchen",
+  async latest(kitchenId: string): Promise<AuditRow[]> {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("audit_records")
+      .select(
+        "id, chain_seq, created_at, event_type, event_payload, violation_id, event_hash, prev_hash, status, fabric_tx_id, fabric_block"
+      )
+      .eq("kitchen_id", kitchenId)
+      .order("chain_seq", { ascending: false })
+      .limit(RECORDS_SHOWN);
+    if (error) fail("audit records", error.message);
+    return data;
+  }
 
-      networkName: "Verified Kitchen Consortium",
+  async counts(kitchenId: string): Promise<Record<AuditStatus, number>> {
+    const supabase = await createClient();
+    const statuses: AuditStatus[] = ["verified", "pending", "failed"];
+    const results = await Promise.all(
+      statuses.map((status) =>
+        supabase
+          .from("audit_records")
+          .select("id", { count: "exact", head: true })
+          .eq("kitchen_id", kitchenId)
+          .eq("status", status)
+      )
+    );
+    const out = { verified: 0, pending: 0, failed: 0 };
+    results.forEach((r, i) => {
+      if (r.error) fail("audit counts", r.error.message);
+      out[statuses[i]] = r.count ?? 0;
+    });
+    return out;
+  }
 
-      ledgerType: "Hyperledger Fabric",
-
-      summary: {
-        totalRecords: 5,
-        verifiedRecords: 4,
-        pendingRecords: 1,
-        failedRecords: 0,
-      },
-
-      records: [
-        {
-          id: "AUD-001",
-          violationId: "VIO-003",
-          timestamp: "25 Aug 2026, 13:16",
-
-          eventType: "Environmental Violation",
-
-          description:
-            "Refrigerator temperature exceeded the configured monitoring range.",
-
-          kitchenId: "KITCHEN-001",
-
-          eventHash:
-            "9f2a84e3c7f8a4b6d56f11e32c9a720b",
-
-          transactionId:
-            "TX-8B4D91F207A0",
-
-          blockNumber: 128,
-
-          verificationStatus: "Verified",
-        },
-
-        {
-          id: "AUD-002",
-          violationId: "VIO-004",
-          timestamp: "25 Aug 2026, 11:23",
-
-          eventType: "PPE Violation",
-
-          description:
-            "Mask non-compliance event recorded.",
-
-          kitchenId: "KITCHEN-001",
-
-          eventHash:
-            "7c91fd0a26b14509bc6f83c42b4159dc",
-
-          transactionId:
-            "TX-22E53A317C11",
-
-          blockNumber: 127,
-
-          verificationStatus: "Verified",
-        },
-
-        {
-          id: "AUD-003",
-          violationId: "VIO-005",
-          timestamp: "25 Aug 2026, 10:09",
-
-          eventType: "Food Preparation Violation",
-
-          description:
-            "Dirty preparation surface event recorded.",
-
-          kitchenId: "KITCHEN-001",
-
-          eventHash:
-            "5db21bc46dd7cf108a04933ae6f9912e",
-
-          transactionId:
-            "TX-FE91B5300A84",
-
-          blockNumber: 126,
-
-          verificationStatus: "Verified",
-        },
-
-        {
-          id: "AUD-004",
-          timestamp: "25 Aug 2026, 09:54",
-
-          eventType: "Hygiene Score Event",
-
-          description:
-            "Overall hygiene score dropped below the configured monitoring threshold.",
-
-          kitchenId: "KITCHEN-001",
-
-          eventHash:
-            "c611f87b5203fb3018d90e2729392810",
-
-          transactionId:
-            "TX-D2297BA1840C",
-
-          blockNumber: 125,
-
-          verificationStatus: "Verified",
-        },
-
-        {
-          id: "AUD-005",
-          violationId: "VIO-001",
-          timestamp: "25 Aug 2026, 15:46",
-
-          eventType: "PPE Violation",
-
-          description:
-            "Glove non-compliance event waiting for blockchain confirmation.",
-
-          kitchenId: "KITCHEN-001",
-
-          eventHash:
-            "2820fd7fc3a19b789031f8c8fa83809f",
-
-          verificationStatus: "Pending",
-        },
-      ],
-    };
+  /** Recomputes every hash in the database (verify_audit_chain) and reports each link. */
+  async verifyChain(kitchenId: string): Promise<{ chain_seq: number; ok: boolean; reason: string | null }[]> {
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("verify_audit_chain", { p_kitchen: kitchenId });
+    if (error) fail("chain verification", error.message);
+    return data;
   }
 }

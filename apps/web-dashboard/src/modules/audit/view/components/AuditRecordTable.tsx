@@ -1,136 +1,94 @@
-import {
-  Blocks,
-  Fingerprint,
-} from "lucide-react";
+import Link from "next/link";
+import { Blocks } from "lucide-react";
 
-import type {
-  AuditRecord,
-} from "../../model/audit.model";
+import EmptyState from "@/shared/components/ui/EmptyState";
+import { Panel, PanelHeader } from "@/shared/components/ui/Panel";
+import { formatDateTime } from "@/shared/utils/time";
+
+import type { AuditRecordView } from "../../model/audit.model";
 
 import VerificationBadge from "./VerificationBadge";
 
+function short(hash: string): string {
+  return hash === "GENESIS" ? "First record" : `${hash.slice(0, 10)}…${hash.slice(-6)}`;
+}
+
 interface AuditRecordTableProps {
-  records: AuditRecord[];
+  records: AuditRecordView[];
+  total: number;
+  timezone: string;
 }
 
-function shortenHash(value: string) {
-  if (value.length <= 18) {
-    return value;
-  }
-
-  return `${value.slice(0, 8)}...${value.slice(-8)}`;
-}
-
-export default function AuditRecordTable({
-  records,
-}: AuditRecordTableProps) {
+export default function AuditRecordTable({ records, total, timezone }: AuditRecordTableProps) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-100 p-6">
-        <h3 className="text-lg font-semibold text-slate-950">
-          Blockchain Audit Records
-        </h3>
+    <Panel padded={false} className="overflow-hidden">
+      <PanelHeader
+        className="border-b border-slate-100 p-5 sm:p-6"
+        title="Audit records"
+        description={
+          total === 0
+            ? undefined
+            : `Newest first${total > records.length ? ` · showing the latest ${records.length} of ${total}` : ""}. Records are written automatically and cannot be edited or deleted.`
+        }
+      />
 
-        <p className="mt-1 text-sm text-slate-500">
-          Important hygiene events selected for tamper-aware
-          audit logging.
-        </p>
-      </div>
+      {records.length === 0 && (
+        <EmptyState icon={Blocks} title="No records yet">
+          Records appear when a problem is detected or someone updates one.
+        </EmptyState>
+      )}
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left">
-          <thead className="bg-slate-50">
-            <tr className="text-xs uppercase tracking-wide text-slate-500">
-              <th className="px-6 py-3 font-semibold">
-                Event
-              </th>
-
-              <th className="px-6 py-3 font-semibold">
-                Violation
-              </th>
-
-              <th className="px-6 py-3 font-semibold">
-                Event Hash
-              </th>
-
-              <th className="px-6 py-3 font-semibold">
-                Transaction
-              </th>
-
-              <th className="px-6 py-3 font-semibold">
-                Block
-              </th>
-
-              <th className="px-6 py-3 font-semibold">
-                Status
-              </th>
-            </tr>
-          </thead>
-
-          <tbody className="divide-y divide-slate-100">
-            {records.map((record) => (
-              <tr
-                key={record.id}
-                className="text-sm text-slate-700 transition hover:bg-slate-50"
-              >
-                <td className="min-w-72 px-6 py-4">
-                  <p className="font-medium text-slate-950">
-                    {record.eventType}
-                  </p>
-
-                  <p className="mt-1 text-xs text-slate-500">
-                    {record.timestamp}
-                  </p>
-
-                  <p className="mt-1 max-w-xs text-xs leading-5 text-slate-400">
-                    {record.description}
-                  </p>
-                </td>
-
-                <td className="whitespace-nowrap px-6 py-4">
-                  {record.violationId ?? "—"}
-                </td>
-
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <Fingerprint className="h-4 w-4 text-slate-400" />
-
-                    <code className="text-xs text-slate-600">
-                      {shortenHash(record.eventHash)}
-                    </code>
-                  </div>
-                </td>
-
-                <td className="px-6 py-4">
-                  {record.transactionId ? (
-                    <div className="flex items-center gap-2">
-                      <Blocks className="h-4 w-4 text-violet-600" />
-
-                      <code className="text-xs text-slate-600">
-                        {record.transactionId}
-                      </code>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-slate-400">
-                      Waiting
-                    </span>
-                  )}
-                </td>
-
-                <td className="px-6 py-4">
-                  {record.blockNumber ?? "—"}
-                </td>
-
-                <td className="px-6 py-4">
-                  <VerificationBadge
-                    status={record.verificationStatus}
-                  />
-                </td>
+      {records.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-slate-50/80">
+              <tr className="text-[11px] uppercase tracking-[0.08em] text-slate-500">
+                <th className="px-6 py-3 font-semibold">#</th>
+                <th className="px-6 py-3 font-semibold">Event</th>
+                <th className="px-6 py-3 font-semibold">Record fingerprint</th>
+                <th className="px-6 py-3 font-semibold">Ledger</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {records.map((r) => (
+                <tr key={r.id} className="align-top text-sm text-slate-700 transition hover:bg-slate-50/60">
+                  <td className="px-6 py-4 font-mono text-xs text-slate-500">{r.seq}</td>
+                  <td className="min-w-72 px-6 py-4">
+                    <p className="font-medium text-slate-950">{r.eventLabel}</p>
+                    <p className="mt-1 text-xs text-slate-500">{formatDateTime(r.createdAt, timezone)}</p>
+                    {r.description && <p className="mt-1 text-xs text-slate-600">{r.description}</p>}
+                    {r.violationId && (
+                      <Link
+                        href="/dashboard/violations?status=all"
+                        className="mt-1 inline-block font-mono text-xs text-emerald-700 hover:underline"
+                        title={r.violationId}
+                      >
+                        violation {r.violationId.slice(0, 8)}
+                      </Link>
+                    )}
+                  </td>
+                  <td className="min-w-64 px-6 py-4 font-mono text-xs">
+                    <p className="text-slate-900" title={r.eventHash}>
+                      {short(r.eventHash)}
+                    </p>
+                    <p className="mt-1 text-slate-400" title={r.prevHash}>
+                      ← {short(r.prevHash)}
+                    </p>
+                  </td>
+                  <td className="px-6 py-4">
+                    <VerificationBadge status={r.status} />
+                    {r.fabricTxId && (
+                      <p className="mt-2 font-mono text-xs text-slate-500" title={r.fabricTxId}>
+                        tx {r.fabricTxId.slice(0, 10)}… · block {r.fabricBlock ?? "—"}
+                      </p>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Panel>
   );
 }

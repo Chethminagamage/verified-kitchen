@@ -1,0 +1,99 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  LIVE_WINDOW_MS,
+  cameraStatusFields,
+  complianceRate,
+  liveState,
+  pooledHistory,
+  splitModelVersion,
+  windowFrames,
+  type DetectionRow,
+} from "@/modules/ai-monitoring/model/ai-monitoring.model";
+
+const NOW = Date.parse("2026-11-14T10:00:00Z");
+
+function row(secondsAgo: number, compliant: boolean): DetectionRow {
+  return {
+    detected_at: new Date(NOW - secondsAgo * 1000).toISOString(),
+    indicator: "gloves",
+    compliant,
+    confidence: 0.86,
+    inference_ms: 6.4,
+    model_version: "ppe_yolo26n_best@ada23a1ecd47",
+    metadata: { frames_observed: 20, frames_compliant: 18 },
+  };
+}
+
+describe("live indicator state", () => {
+  it("follows the newest window while it is recent", () => {
+    expect(liveState(row(5, true), NOW)).toBe("Compliant");
+    expect(liveState(row(5, false), NOW)).toBe("Non-Compliant");
+  });
+
+  it("is 'Not in view' when the newest window is old or missing (never a violation)", () => {
+    expect(liveState(row(LIVE_WINDOW_MS / 1000 + 1, false), NOW)).toBe("Not in view");
+    expect(liveState(undefined, NOW)).toBe("Not in view");
+  });
+});
+
+describe("compliance rate", () => {
+  it("is the share of compliant windows, or null without windows", () => {
+    expect(complianceRate([{ compliant: true }, { compliant: true }, { compliant: false }, { compliant: true }])).toBe(75);
+    expect(complianceRate([])).toBeNull();
+  });
+});
+
+describe("camera status and metadata parsing", () => {
+  it("reads the fields the camera publishes and ignores anything malformed", () => {
+    const fields = cameraStatusFields({
+      state: "online",
+      camera: "ok",
+      source: "webcam 0",
+      model_version: "ppe@abc",
+      fps: 4.9,
+      inference_ms: "fast",
+      roi: "full frame",
+    });
+    expect(fields).toMatchObject({ camera: "ok", source: "webcam 0", modelVersion: "ppe@abc", fps: 4.9, inferenceMs: null });
+    expect(cameraStatusFields(null).camera).toBeNull();
+    expect(windowFrames({ frames_observed: 20, frames_compliant: 18 })).toEqual({ compliant: 18, observed: 20 });
+    expect(windowFrames([])).toEqual({ compliant: null, observed: null });
+  });
+
+  it("splits the model name from its weights fingerprint", () => {
+    expect(splitModelVersion("ppe_yolo26n_best@ada23a1ecd47")).toEqual({ name: "ppe_yolo26n_best", hash: "ada23a1ecd47" });
+    expect(splitModelVersion("simulator-v1")).toEqual({ name: "simulator-v1", hash: null });
+    expect(splitModelVersion(null)).toBeNull();
+  });
+});
+
+
+describe("pooledHistory (food-prep surface card)", () => {
+  const at = (secondsAgo: number, indicator: string, compliant: boolean): DetectionRow => ({
+    ...row(secondsAgo, compliant),
+    indicator,
+  });
+
+  it("merges clean- and dirty-surface windows newest first", () => {
+    const byIndicator = new Map([
+      ["clean_surface", [at(5, "clean_surface", true), at(60, "clean_surface", true)]],
+      ["dirty_surface", [at(30, "dirty_surface", false)]],
+    ]);
+    const pooled = pooledHistory(byIndicator, ["clean_surface", "dirty_surface"]);
+    expect(pooled.map((r) => r.indicator)).toEqual(["clean_surface", "dirty_surface", "clean_surface"]);
+    expect(complianceRate(pooled)).toBeCloseTo(66.67, 1);
+  });
+
+  it("shows the breach when one window saw both a clean and a dirty surface", () => {
+    const byIndicator = new Map([
+      ["clean_surface", [at(5, "clean_surface", true)]],
+      ["dirty_surface", [at(5, "dirty_surface", false)]],
+    ]);
+    expect(liveState(pooledHistory(byIndicator, ["clean_surface", "dirty_surface"])[0], NOW)).toBe("Non-Compliant");
+  });
+
+  it("is empty (not in view) without any window", () => {
+    expect(pooledHistory(new Map(), ["food_waste"])).toEqual([]);
+  });
+});

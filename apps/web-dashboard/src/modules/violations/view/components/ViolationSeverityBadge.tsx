@@ -1,39 +1,20 @@
-import type {
-  ViolationSeverity,
-} from "../../model/violation.model";
+import StatusPill from "@/shared/components/ui/StatusPill";
+import { toneForStatus } from "@/shared/components/ui/tone";
 
-interface ViolationSeverityBadgeProps {
-  severity: ViolationSeverity;
-}
+import type { ViolationSeverity } from "../../model/violation.model";
 
-function getSeverityStyle(
-  severity: ViolationSeverity
-) {
-  switch (severity) {
-    case "Critical":
-      return "bg-red-100 text-red-800";
+const LABELS: Record<ViolationSeverity, string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+  critical: "Critical",
+};
 
-    case "High":
-      return "bg-orange-100 text-orange-800";
-
-    case "Medium":
-      return "bg-amber-100 text-amber-800";
-
-    default:
-      return "bg-slate-100 text-slate-700";
-  }
-}
-
-export default function ViolationSeverityBadge({
-  severity,
-}: ViolationSeverityBadgeProps) {
+/** Severity of a violation, in the console's shared status colours. */
+export default function ViolationSeverityBadge({ severity }: { severity: ViolationSeverity }) {
   return (
-    <span
-      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${getSeverityStyle(
-        severity
-      )}`}
-    >
-      {severity}
-    </span>
+    <StatusPill tone={toneForStatus(severity)} icon={null}>
+      {LABELS[severity]}
+    </StatusPill>
   );
 }

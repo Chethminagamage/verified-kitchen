@@ -1,0 +1,38 @@
+{
+  // Cmd+Shift+P -> "Tasks: Run Task" -> "Verified Kitchen: start". Stop with the trash icon in the terminal panel.
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Verified Kitchen: start",
+      "type": "shell",
+      "command": "./dev.sh",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "Verified Kitchen: start with camera",
+      "type": "shell",
+      "command": "./dev.sh --vision",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "Verified Kitchen: start with demo recording",
+      "type": "shell",
+      "command": "./dev.sh --vision --source=~/vk-data/demo/foodprep_demo.mp4",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "Verified Kitchen: start (sensors only, no website)",
+      "type": "shell",
+      "command": "./dev.sh --no-web",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    }
+  ]
+}

@@ -1,93 +1,107 @@
-import type {
-  HygieneMonitoringData,
-} from "../model/hygiene.model";
+import { CameraOff, Clock } from "lucide-react";
+
+import PillarCard from "@/modules/dashboard/view/components/PillarCard";
+import LiveAge from "@/shared/components/feedback/LiveAge";
+import LiveRefresh from "@/shared/components/feedback/LiveRefresh";
+import Notice from "@/shared/components/ui/Notice";
+import PageHeader from "@/shared/components/ui/PageHeader";
+import { Panel, PanelHeader } from "@/shared/components/ui/Panel";
+import StatusPill from "@/shared/components/ui/StatusPill";
+import { toneForScore } from "@/shared/components/ui/tone";
+import { formatDateTime } from "@/shared/utils/time";
+
+import type { HygienePage } from "../model/hygiene.model";
 
 import HygieneCheckCard from "./components/HygieneCheckCard";
-import PillarSummaryCard from "./components/PillarSummaryCard";
 
 interface HygieneMonitoringViewProps {
-  data: HygieneMonitoringData;
+  data: HygienePage;
+  kitchenId: string;
 }
 
-export default function HygieneMonitoringView({
-  data,
-}: HygieneMonitoringViewProps) {
+export default function HygieneMonitoringView({ data, kitchenId }: HygieneMonitoringViewProps) {
   return (
     <div className="mx-auto max-w-7xl">
-      <div className="mb-8">
-        <p className="text-sm font-medium text-emerald-600">
-          Live Hygiene Monitoring
-        </p>
+      <PageHeader
+        eyebrow="Live hygiene monitoring"
+        title="Hygiene Monitoring"
+        description={
+          <>
+            The three hygiene pillars behind the overall score
+            {data.overall !== null && <> (currently {Math.round(data.overall)}/100)</>}.
+            {data.computedAt && (
+              <>
+                {" "}Last scored <LiveAge iso={data.computedAt} serverNow={data.generatedAt} />.
+              </>
+            )}
+          </>
+        }
+        aside={
+          <LiveRefresh
+            kitchenId={kitchenId}
+            tables={["hygiene_scores", "sensor_readings", "violations"]}
+            minIntervalMs={3000}
+            fallbackMs={30000}
+          />
+        }
+      />
 
-        <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-          Hygiene Monitoring
-        </h2>
-
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-          Monitor the three hygiene pillars used to determine the
-          current Verified Kitchen hygiene score.
-        </p>
-      </div>
+      {(!data.aiConnected || (data.scoreIsStale && data.computedAt)) && (
+        <div className="mb-6 space-y-3">
+          {!data.aiConnected && (
+            <Notice tone="info" icon={CameraOff} title="Camera checks paused">
+              The hygiene camera is not sending results right now, so personal hygiene and food preparation are left
+              out of the score. The overall score uses the checks that are running; a missing check is never counted
+              as 100.
+            </Notice>
+          )}
+          {data.scoreIsStale && data.computedAt && (
+            <Notice tone="warning" icon={Clock}>
+              No new score since {formatDateTime(data.computedAt, data.timezone)}. Check that the monitoring system is
+              running.
+            </Notice>
+          )}
+        </div>
+      )}
 
       <section className="grid gap-4 md:grid-cols-3">
         {data.pillars.map((pillar) => (
-          <PillarSummaryCard
-            key={pillar.id}
-            name={pillar.name}
-            score={pillar.score}
-          />
+          <PillarCard key={pillar.id} pillar={pillar} />
         ))}
       </section>
 
-      <section className="mt-8 space-y-6">
+      <div className="mt-8 space-y-6">
         {data.pillars.map((pillar, index) => (
-          <article
-            key={pillar.id}
-            className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
-          >
-            <div className="flex flex-col justify-between gap-4 border-b border-slate-100 pb-5 sm:flex-row sm:items-center">
-              <div>
-                <div className="flex items-center gap-3">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-sm font-bold text-emerald-700">
+          <Panel key={pillar.id}>
+            <PanelHeader
+              className="border-b border-slate-100 pb-5"
+              title={
+                <span className="flex items-center gap-3">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50 text-xs font-semibold text-emerald-700">
                     {index + 1}
                   </span>
-
-                  <h3 className="text-lg font-semibold text-slate-950">
-                    {pillar.name}
-                  </h3>
-                </div>
-
-                <p className="mt-2 max-w-3xl text-sm text-slate-500">
-                  {pillar.description}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-500">
-                  Pillar Score
+                  {pillar.name}
                 </span>
-
-                <span className="rounded-lg bg-slate-950 px-3 py-1.5 text-sm font-bold text-white">
-                  {pillar.score}%
-                </span>
-              </div>
-            </div>
+              }
+              description={pillar.description}
+              aside={
+                <>
+                  <span className="text-sm text-slate-500">Pillar score</span>
+                  <StatusPill tone={toneForScore(pillar.score)} size="md" icon={null}>
+                    {pillar.score === null ? "Paused" : `${Math.round(pillar.score)}%`}
+                  </StatusPill>
+                </>
+              }
+            />
 
             <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {pillar.checks.map((check) => (
-                <HygieneCheckCard
-                  key={check.id}
-                  check={check}
-                />
+                <HygieneCheckCard key={check.id} check={check} generatedAt={data.generatedAt} />
               ))}
             </div>
-          </article>
+          </Panel>
         ))}
-      </section>
-
-      <p className="mt-6 text-xs text-slate-400">
-        Last system update: {data.lastUpdated}
-      </p>
+      </div>
     </div>
   );
 }
