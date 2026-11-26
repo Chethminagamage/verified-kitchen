@@ -18,8 +18,11 @@ from typing import Any
 
 log = logging.getLogger(__name__)
 
-# Low-latency RTSP over TCP (UDP drops packets on Wi-Fi). Must be set before cv2 opens a stream.
-os.environ.setdefault("OPENCV_FFMPEG_CAPTURE_OPTIONS", "rtsp_transport;tcp|fflags;nobuffer|flags;low_delay")
+# RTSP over TCP (UDP drops packets on Wi-Fi). Must be set before cv2 opens a stream.
+# No "fflags;nobuffer": with HEVC cameras (e.g. Tapo 2K main stream) it drops
+# reference frames and corrupts the picture ("Could not find ref with POC"),
+# measured on 2026-11-17. Latency is already bounded by the newest-frame reader.
+os.environ.setdefault("OPENCV_FFMPEG_CAPTURE_OPTIONS", "rtsp_transport;tcp|flags;low_delay")
 
 
 def describe_source(source: int | str) -> str:

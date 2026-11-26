@@ -11,7 +11,7 @@ import re
 import threading
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import numpy as np
 import pytest
@@ -373,3 +373,67 @@ def test_closing_the_preview_keeps_detection_running() -> None:
     stats = service.run(threading.Event(), max_windows=2)
     assert len(calls) == 1 and service.preview is None
     assert stats.windows == 2  # still analysing and publishing after the preview closed
+
+
+# ---------------------------------------------------------------- food-prep model
+from edge_service.vision.food_prep import food_prep_aggregator, food_prep_frame_states  # noqa: E402
+
+FOOD_CLASSES = ("clean_surface", "dirty_surface", "food_waste")  # first model: no spill class yet
+
+
+def test_food_prep_boxes_give_surface_and_waste_evidence() -> None:
+    s = food_prep_frame_states([Box("dirty_surface", 0.7), Box("food_waste", 0.6)], FOOD_CLASSES)
+    assert s[Indicator.DIRTY_SURFACE].compliant is False
+    assert s[Indicator.FOOD_WASTE].compliant is False
+    assert Indicator.CLEAN_SURFACE not in s
+
+
+def test_no_waste_counts_only_while_a_surface_is_visible() -> None:
+    clean = food_prep_frame_states([Box("clean_surface", 0.8)], FOOD_CLASSES)
+    assert clean[Indicator.CLEAN_SURFACE].compliant is True
+    assert clean[Indicator.FOOD_WASTE].compliant is True  # surface in view, no waste on it
+    assert clean[Indicator.FOOD_WASTE].confidence == 0.8
+    assert food_prep_frame_states([], FOOD_CLASSES) == {}  # view blocked: unknown, not compliant
+
+
+def test_a_class_the_model_cannot_detect_never_becomes_evidence() -> None:
+    s = food_prep_frame_states([Box("clean_surface", 0.9)], FOOD_CLASSES)
+    assert Indicator.FOOD_SPILL not in s  # no spill class in the model: spill stays unknown
+    agg = food_prep_aggregator(FOOD_CLASSES, min_frames=1)
+    assert Indicator.FOOD_SPILL not in agg.indicators
+
+
+def test_food_prep_window_uses_majority_vote() -> None:
+    agg = food_prep_aggregator(FOOD_CLASSES, min_frames=2)
+    for _ in range(3):
+        agg.add_frame([Box("clean_surface", 0.9)])
+    agg.add_frame([Box("clean_surface", 0.9), Box("food_waste", 0.7)])
+    result = {w.indicator: w for w in agg.flush().indicators}
+    assert result[Indicator.CLEAN_SURFACE].compliant is True
+    assert result[Indicator.FOOD_WASTE].compliant is True  # waste in 1 of 4 frames: majority clean
+    assert (result[Indicator.FOOD_WASTE].frames_compliant, result[Indicator.FOOD_WASTE].frames_noncompliant) == (3, 1)
+
+
+def test_model_without_food_prep_classes_is_refused() -> None:
+    with pytest.raises(ValueError):
+        food_prep_aggregator(["glove", "no_glove"])
+
+
+class FakeFoodDetector(FakeDetector):
+    model_version = "food@111"
+    class_names: ClassVar[dict[int, str]] = dict(enumerate(FOOD_CLASSES))
+
+
+def test_service_runs_both_models_and_publishes_one_message() -> None:
+    publisher = FakePublisher()
+    ppe = FakeDetector([Box("glove", 0.9)])
+    food = FakeFoodDetector([Box("dirty_surface", 0.8), Box("food_waste", 0.7)])
+    service = _service(FakeCamera(), ppe, publisher, roi=Roi(0.5, 0.0, 0.5, 1.0), food_detector=food)
+    service.run(threading.Event(), max_windows=1)
+    msg = publisher.messages[0]
+    assert {r.indicator for r in msg.indicators} == {Indicator.GLOVES, Indicator.DIRTY_SURFACE, Indicator.FOOD_WASTE}
+    assert msg.model_version == "fake@000+food@111"
+    assert food.shapes[0] == (480, 640, 3)  # food-prep model sees the whole frame, not the worker crop
+    assert msg.inference_ms == 10.0  # both models per frame
+    parsed = parse_detections(TOPIC, msg.model_dump_json().encode(), msg.window_end)
+    assert isinstance(parsed, AcceptedDetections)  # the edge accepts the combined message

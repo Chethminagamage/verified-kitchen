@@ -5,6 +5,8 @@
 #   ./dev.sh                    broker + edge service + website
 #   ./dev.sh --vision           ... + camera / PPE detection (webcam or RTSP camera)
 #   ./dev.sh --vision --preview ... and show the camera on screen (setup only; nothing saved)
+#   ./dev.sh --vision --source=~/vk-data/demo/foodprep_demo.mp4
+#                               ... analyse a recording instead of the camera (demo / testing)
 #   ./dev.sh --no-web           broker + edge service only (options can be combined)
 #
 # Press Ctrl+C once to stop everything it started.
@@ -21,7 +23,10 @@ for arg in "$@"; do
     --no-web) WITH_WEB=0 ;;
     --vision) WITH_VISION=1 ;;
     --preview) VISION_ARGS+=(--preview) ;;
-    *) echo "unknown option: $arg (use --no-web, --vision, --preview)" >&2; exit 1 ;;
+    --source=*)
+      src="${arg#--source=}"
+      VISION_ARGS+=(--source "${src/#\~/$HOME}") ;;
+    *) echo "unknown option: $arg (use --no-web, --vision, --preview, --source=FILE)" >&2; exit 1 ;;
   esac
 done
 

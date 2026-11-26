@@ -23,6 +23,9 @@ class VisionSettings(BaseSettings):
 
     # Model: CoreML package (Neural Engine) or .pt weights. Not in git; see models/.gitignore.
     vision_model: Path = Path("models/ppe_yolo26n_best.mlpackage")
+    # Food-prep model (clean/dirty surface, food waste). Optional: if the file is missing the
+    # camera runs PPE only and the food-prep pillar stays without camera evidence.
+    vision_food_model: Path = Path("models/foodprep_yolo26n.mlpackage")
     # "0" = built-in webcam (any integer = camera index), "rtsp" = $VK_RTSP_URL, or a video file path.
     vision_source: str = "0"
     # rtsp://user:pass@ip:554/stream1 - a secret (contains the camera password); never logged or published.
@@ -55,3 +58,7 @@ class VisionSettings(BaseSettings):
     @property
     def model_path(self) -> Path:
         return self.vision_model.expanduser()
+
+    @property
+    def food_model_path(self) -> Path:
+        return self.vision_food_model.expanduser()

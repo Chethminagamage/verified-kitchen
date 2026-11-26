@@ -59,7 +59,7 @@ class YoloDetector:
             torch: Any = importlib.import_module("torch")
             self._device = "mps" if torch.backends.mps.is_available() else "cpu"
         self.model_version = fingerprint(model_path)
-        self.class_names: dict[int, str] = {}
+        self.class_names: dict[int, str] = dict(self._model.names or {})
 
     def detect(self, image: Any) -> tuple[list[Box], float]:
         r = self._model.predict(image, imgsz=self._imgsz, conf=self._conf, device=self._device, verbose=False)[0]

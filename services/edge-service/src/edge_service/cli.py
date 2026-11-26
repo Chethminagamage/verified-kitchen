@@ -339,7 +339,7 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 
 def cmd_vision(args: argparse.Namespace) -> int:
-    """Camera process: video -> YOLO (CoreML) -> 5-s PPE evidence over MQTT. Stores no images."""
+    """Camera process: video -> YOLO (CoreML) -> 5-s PPE (+ food-prep) evidence over MQTT. Stores no images."""
     import threading
 
     try:
@@ -380,6 +380,12 @@ def cmd_vision(args: argparse.Namespace) -> int:
 
     roi = Roi.parse(args.roi) if args.roi is not None else vs.roi
     detector = YoloDetector(vs.model_path, imgsz=vs.vision_imgsz, conf=vs.vision_conf)
+    food_detector = None
+    if vs.food_model_path.exists():
+        food_detector = YoloDetector(vs.food_model_path, imgsz=vs.vision_imgsz, conf=vs.vision_conf)
+        log.info("food-prep model %s: %s", food_detector.model_version, ", ".join(food_detector.class_names.values()))
+    else:
+        log.info("no food-prep model at %s: PPE only", vs.food_model_path)
     camera = LatestFrameCamera(source)
     publisher = VisionPublisher(
         host=vs.mqtt_host,
@@ -399,6 +405,7 @@ def cmd_vision(args: argparse.Namespace) -> int:
         roi=roi,
         status_interval_s=vs.vision_status_interval_s,
         preview=_preview_window() if args.preview else None,
+        food_detector=food_detector,
     )
 
     stop = threading.Event()
@@ -413,7 +420,7 @@ def cmd_vision(args: argparse.Namespace) -> int:
         "camera %s -> %s | model %s | %.0f fps, %.0f s windows | region %s | %s",
         camera.description,
         vs.camera_device_id,
-        detector.model_version,
+        service.model_version,
         service.period and 1 / service.period,
         vs.vision_window_s,
         roi or "full frame",

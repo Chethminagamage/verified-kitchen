@@ -18,7 +18,7 @@ Three steps, each unit-tested:
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from statistics import fmean
 
@@ -96,20 +96,37 @@ class _Tally:
     noncompliant: list[float] = field(default_factory=list)
 
 
-class WindowAggregator:
-    """Collects per-frame results and turns them into one result per indicator per window."""
+FrameStatesFn = Callable[[Iterable[Box]], dict[Indicator, FrameState]]
 
-    def __init__(self, min_frames: int = 3) -> None:
+
+class WindowAggregator:
+    """Collects per-frame results and turns them into one result per indicator per window.
+
+    PPE by default; the food-prep pillar uses the same window rules with its own
+    indicators, class map and per-frame decision (see `food_prep.py`).
+    """
+
+    def __init__(
+        self,
+        min_frames: int = 3,
+        *,
+        indicators: tuple[Indicator, ...] = PPE_INDICATORS,
+        class_map: Mapping[str, tuple[Indicator, bool]] = PPE_CLASSES,
+        states: FrameStatesFn = frame_states,
+    ) -> None:
         if min_frames < 1:
             raise ValueError("min_frames must be at least 1")
         self.min_frames = min_frames
+        self.indicators = indicators
+        self._class_map = class_map
+        self._states = states
         self._reset()
 
     def _reset(self) -> None:
         self._frames = 0
         self._inference_ms: list[float] = []
-        self._tally: dict[Indicator, _Tally] = {i: _Tally() for i in PPE_INDICATORS}
-        self._classes: dict[Indicator, Counter[str]] = {i: Counter() for i in PPE_INDICATORS}
+        self._tally: dict[Indicator, _Tally] = {i: _Tally() for i in self.indicators}
+        self._classes: dict[Indicator, Counter[str]] = {i: Counter() for i in self.indicators}
 
     @property
     def frames(self) -> int:
@@ -121,17 +138,17 @@ class WindowAggregator:
         if inference_ms is not None:
             self._inference_ms.append(inference_ms)
         for b in boxes:
-            mapped = PPE_CLASSES.get(b.cls)
+            mapped = self._class_map.get(b.cls)
             if mapped is not None:
                 self._classes[mapped[0]][b.cls] += 1
-        for indicator, state in frame_states(boxes).items():
+        for indicator, state in self._states(boxes).items():
             tally = self._tally[indicator]
             (tally.compliant if state.compliant else tally.noncompliant).append(state.confidence)
 
     def flush(self) -> WindowSummary:
         """Result of the window so far; starts a new window."""
         results: list[IndicatorWindow] = []
-        for indicator in PPE_INDICATORS:
+        for indicator in self.indicators:
             t = self._tally[indicator]
             observed = len(t.compliant) + len(t.noncompliant)
             if observed < self.min_frames:

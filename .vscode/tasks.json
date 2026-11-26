@@ -19,6 +19,14 @@
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
     },
     {
+      "label": "Verified Kitchen: start with demo recording",
+      "type": "shell",
+      "command": "./dev.sh --vision --source=~/vk-data/demo/foodprep_demo.mp4",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
       "label": "Verified Kitchen: start (sensors only, no website)",
       "type": "shell",
       "command": "./dev.sh --no-web",
