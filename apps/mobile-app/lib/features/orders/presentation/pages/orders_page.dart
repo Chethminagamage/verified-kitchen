@@ -19,16 +19,10 @@ class OrdersPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = Theme.of(context).textTheme;
     final orders = ref.watch(myOrdersProvider);
-    final kitchens = {
-      for (final k in ref.watch(kitchensProvider).value ?? const <Kitchen>[])
-        k.id: k,
-    };
+    final kitchens = {for (final k in ref.watch(kitchensProvider).value ?? const <Kitchen>[]) k.id: k};
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Orders', style: t.headlineMedium),
-        toolbarHeight: 72,
-      ),
+      appBar: AppBar(title: Text('Orders', style: t.headlineMedium), toolbarHeight: 72),
       body: RefreshIndicator(
         color: AppColors.ink,
         onRefresh: () async {
@@ -47,9 +41,7 @@ class OrdersPage extends ConsumerWidget {
                     title: 'No orders yet',
                     message: 'When you order, you will follow it here from kitchen to door.',
                     action: FilledButton(
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size(200, 50),
-                      ),
+                      style: FilledButton.styleFrom(minimumSize: const Size(200, 50)),
                       onPressed: () => context.go(Routes.home),
                       child: const Text('Find a kitchen'),
                     ),
@@ -65,13 +57,11 @@ class OrdersPage extends ConsumerWidget {
               children: [
                 if (active.isNotEmpty) ...[
                   _Header('In progress'),
-                  for (final o in active)
-                    _OrderTile(order: o, kitchen: kitchens[o.kitchenId]),
+                  for (final o in active) _OrderTile(order: o, kitchen: kitchens[o.kitchenId]),
                 ],
                 if (past.isNotEmpty) ...[
                   _Header('Past orders'),
-                  for (final o in past)
-                    _OrderTile(order: o, kitchen: kitchens[o.kitchenId]),
+                  for (final o in past) _OrderTile(order: o, kitchen: kitchens[o.kitchenId]),
                 ],
               ],
             );
@@ -109,19 +99,10 @@ class _OrderTile extends StatelessWidget {
         width: 52,
         height: 52,
         alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: AppColors.fill,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(
-          kitchen?.emoji ?? '🍽️',
-          style: const TextStyle(fontSize: 24),
-        ),
+        decoration: BoxDecoration(color: AppColors.fill, borderRadius: BorderRadius.circular(12)),
+        child: Text(kitchen?.emoji ?? '🍽️', style: const TextStyle(fontSize: 24)),
       ),
-      title: Text(
-        kitchen?.name ?? 'Order ${o.reference}',
-        style: t.titleMedium,
-      ),
+      title: Text(kitchen?.name ?? 'Order ${o.reference}', style: t.titleMedium),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 3),
         child: Text(
@@ -129,10 +110,7 @@ class _OrderTile extends StatelessWidget {
           style: t.bodySmall?.copyWith(color: AppColors.textSecondary),
         ),
       ),
-      trailing: Text(
-        o.status.label,
-        style: t.labelMedium?.copyWith(color: o.status.color),
-      ),
+      trailing: Text(o.status.label, style: t.labelMedium?.copyWith(color: o.status.color)),
       onTap: () => context.push(Routes.order(o.id)),
     );
   }

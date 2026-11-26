@@ -24,10 +24,7 @@ class FavouritesPage extends ConsumerWidget {
         onRetry: () => ref.invalidate(kitchensProvider),
         data: (all) {
           final ids = favourites.value ?? const <String>{};
-          final list = applyKitchenQuery(
-            all.where((k) => ids.contains(k.id)),
-            const KitchenQuery(),
-          );
+          final list = applyKitchenQuery(all.where((k) => ids.contains(k.id)), const KitchenQuery());
           if (list.isEmpty) {
             return const EmptyState(
               icon: Icons.favorite_border_rounded,
@@ -39,10 +36,7 @@ class FavouritesPage extends ConsumerWidget {
             padding: const EdgeInsets.all(20),
             itemCount: list.length,
             separatorBuilder: (_, _) => const SizedBox(height: 24),
-            itemBuilder: (_, i) => KitchenCard(
-              kitchen: list[i],
-              onTap: () => context.push(Routes.kitchen(list[i].id)),
-            ),
+            itemBuilder: (_, i) => KitchenCard(kitchen: list[i], onTap: () => context.push(Routes.kitchen(list[i].id))),
           );
         },
       ),

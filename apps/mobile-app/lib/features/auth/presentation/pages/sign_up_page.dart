@@ -43,14 +43,8 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
     try {
       final outcome = await ref
           .read(authRepositoryProvider)
-          .signUp(
-            fullName: _name.text,
-            phone: _phone.text,
-            email: _email.text,
-            password: _password.text,
-          );
-      if (outcome == SignUpOutcome.confirmEmail && mounted)
-        setState(() => _checkEmail = true);
+          .signUp(fullName: _name.text, phone: _phone.text, email: _email.text, password: _password.text);
+      if (outcome == SignUpOutcome.confirmEmail && mounted) setState(() => _checkEmail = true);
     } on AuthFailure catch (e) {
       setState(() => _error = e.message);
     } finally {
@@ -64,12 +58,8 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
     if (_checkEmail) {
       return AuthScaffold(
         title: 'Check your email',
-        subtitle:
-            'We sent a confirmation link to ${_email.text.trim()}. Open it, then sign in.',
-        child: FilledButton(
-          onPressed: () => context.go(Routes.signIn),
-          child: const Text('Go to sign in'),
-        ),
+        subtitle: 'We sent a confirmation link to ${_email.text.trim()}. Open it, then sign in.',
+        child: FilledButton(onPressed: () => context.go(Routes.signIn), child: const Text('Go to sign in')),
       );
     }
     return AuthScaffold(
@@ -119,20 +109,13 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                   hintText: 'Password (8+ characters)',
                   suffixIcon: IconButton(
                     tooltip: _hidden ? 'Show password' : 'Hide password',
-                    icon: Icon(
-                      _hidden
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
-                    ),
+                    icon: Icon(_hidden ? Icons.visibility_outlined : Icons.visibility_off_outlined),
                     onPressed: () => setState(() => _hidden = !_hidden),
                   ),
                 ),
                 validator: Validators.password,
               ),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                AuthError(message: _error!),
-              ],
+              if (_error != null) ...[const SizedBox(height: 12), AuthError(message: _error!)],
               const SizedBox(height: 20),
               FilledButton(
                 onPressed: _busy ? null : _submit,
@@ -140,10 +123,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                     ? const SizedBox(
                         width: 22,
                         height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: Colors.white,
-                        ),
+                        child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
                       )
                     : const Text('Create account'),
               ),

@@ -56,12 +56,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
       final cart = ref.read(cartProvider);
       final id = await ref
           .read(orderRepositoryProvider)
-          .place(
-            cart: cart,
-            deliveryAddress: address.forDelivery,
-            contactPhone: _phone.text,
-            note: _note.text,
-          );
+          .place(cart: cart, deliveryAddress: address.forDelivery, contactPhone: _phone.text, note: _note.text);
       ref.read(cartProvider.notifier).clear();
       ref.invalidate(myOrdersProvider);
       if (mounted) context.go(Routes.order(id));
@@ -80,9 +75,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
     final cart = ref.watch(cartProvider);
     final addresses = ref.watch(addressesProvider);
     final profile = ref.watch(profileProvider).value;
-    final kitchen = cart.kitchenId == null
-        ? null
-        : ref.watch(kitchenProvider(cart.kitchenId!)).value;
+    final kitchen = cart.kitchenId == null ? null : ref.watch(kitchenProvider(cart.kitchenId!)).value;
 
     if (!_phoneFilled && profile?.phone != null) {
       _phone.text = profile!.phone!;
@@ -91,11 +84,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
     if (cart.isEmpty) {
       return Scaffold(
         appBar: AppBar(),
-        body: const EmptyState(
-          icon: Icons.shopping_bag_outlined,
-          title: 'Your cart is empty',
-          message: '',
-        ),
+        body: const EmptyState(icon: Icons.shopping_bag_outlined, title: 'Your cart is empty', message: ''),
       );
     }
 
@@ -116,9 +105,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                 if (list.isEmpty)
                   Text(
                     'Add a delivery address to continue.',
-                    style: t.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                    style: t.bodyMedium?.copyWith(color: AppColors.textSecondary),
                   ),
                 RadioGroup<String>(
                   groupValue: selected?.id,
@@ -130,12 +117,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                           contentPadding: EdgeInsets.zero,
                           value: a.id,
                           title: Text(a.label, style: t.titleSmall),
-                          subtitle: Text(
-                            a.forDelivery,
-                            style: t.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
+                          subtitle: Text(a.forDelivery, style: t.bodySmall?.copyWith(color: AppColors.textSecondary)),
                         ),
                     ],
                   ),
@@ -155,9 +137,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                 TextFormField(
                   controller: _phone,
                   keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    hintText: 'Mobile number for the rider',
-                  ),
+                  decoration: const InputDecoration(hintText: 'Mobile number for the rider'),
                   validator: Validators.phone,
                 ),
                 const SizedBox(height: 12),
@@ -165,9 +145,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                   controller: _note,
                   maxLength: 300,
                   maxLines: 2,
-                  decoration: const InputDecoration(
-                    hintText: 'Note for the kitchen (optional)',
-                  ),
+                  decoration: const InputDecoration(hintText: 'Note for the kitchen (optional)'),
                 ),
                 const Divider(height: 28),
                 Text('Payment', style: t.titleLarge),
@@ -181,14 +159,8 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                   const Divider(height: 28),
                   Row(
                     children: [
-                      Expanded(
-                        child: Text('Kitchen hygiene', style: t.titleLarge),
-                      ),
-                      HygieneBadge(
-                        status: kitchen.status,
-                        grade: kitchen.grade,
-                        dense: true,
-                      ),
+                      Expanded(child: Text('Kitchen hygiene', style: t.titleLarge)),
+                      HygieneBadge(status: kitchen.status, grade: kitchen.grade, dense: true),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -199,31 +171,20 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                         ? 'This kitchen is not hygiene-verified.'
                         : 'This kitchen’s hygiene is monitored by sensors and AI.',
                     style: t.bodySmall?.copyWith(
-                      color: kitchen.grade?.needsAlert == true
-                          ? AppColors.danger
-                          : AppColors.textSecondary,
+                      color: kitchen.grade?.needsAlert == true ? AppColors.danger : AppColors.textSecondary,
                     ),
                   ),
                 ],
                 const Divider(height: 28),
-                PriceRow(
-                  label: 'Subtotal (${cart.itemCount} items)',
-                  amount: cart.subtotal,
-                ),
+                PriceRow(label: 'Subtotal (${cart.itemCount} items)', amount: cart.subtotal),
                 PriceRow(label: 'Delivery fee', amount: cart.deliveryFeeLkr),
                 PriceRow(label: 'Total', amount: cart.total, bold: true),
                 if (_error != null) ...[
                   const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.dangerSoft,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      _error!,
-                      style: t.bodyMedium?.copyWith(color: AppColors.danger),
-                    ),
+                    decoration: BoxDecoration(color: AppColors.dangerSoft, borderRadius: BorderRadius.circular(12)),
+                    child: Text(_error!, style: t.bodyMedium?.copyWith(color: AppColors.danger)),
                   ),
                 ],
               ],
@@ -240,17 +201,12 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
               final selected = _selected(addresses.value ?? const []);
               final closed = kitchen != null && !kitchen.isOpen;
               return FilledButton(
-                onPressed: _busy || selected == null || closed
-                    ? null
-                    : () => _placeOrder(selected),
+                onPressed: _busy || selected == null || closed ? null : () => _placeOrder(selected),
                 child: _busy
                     ? const SizedBox(
                         width: 22,
                         height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: Colors.white,
-                        ),
+                        child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
                       )
                     : Text(closed ? 'Kitchen is closed now' : 'Place order'),
               );

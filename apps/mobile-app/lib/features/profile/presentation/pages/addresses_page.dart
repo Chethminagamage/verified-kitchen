@@ -12,18 +12,12 @@ import '../account_providers.dart';
 class AddressesPage extends ConsumerWidget {
   const AddressesPage({super.key});
 
-  Future<void> _run(
-    BuildContext context,
-    WidgetRef ref,
-    Future<void> Function() action,
-  ) async {
+  Future<void> _run(BuildContext context, WidgetRef ref, Future<void> Function() action) async {
     try {
       await action();
       ref.invalidate(addressesProvider);
     } on UserFacingError catch (e) {
-      if (context.mounted)
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     }
   }
 
@@ -50,72 +44,36 @@ class AddressesPage extends ConsumerWidget {
                 itemBuilder: (_, i) {
                   final a = list[i];
                   return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 4,
-                    ),
-                    leading: Icon(
-                      a.label.toLowerCase() == 'work'
-                          ? Icons.work_outline
-                          : Icons.home_outlined,
-                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                    leading: Icon(a.label.toLowerCase() == 'work' ? Icons.work_outline : Icons.home_outlined),
                     title: Row(
                       children: [
                         Flexible(child: Text(a.label, style: t.titleMedium)),
                         if (a.isDefault) ...[
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
                               color: AppColors.primarySoft,
                               borderRadius: BorderRadius.circular(999),
                             ),
-                            child: Text(
-                              'Default',
-                              style: t.labelSmall?.copyWith(
-                                color: AppColors.primaryDark,
-                              ),
-                            ),
+                            child: Text('Default', style: t.labelSmall?.copyWith(color: AppColors.primaryDark)),
                           ),
                         ],
                       ],
                     ),
-                    subtitle: Text(
-                      a.forDelivery,
-                      style: t.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    onTap: () =>
-                        context.push(Routes.editAddress(a.id), extra: a),
+                    subtitle: Text(a.forDelivery, style: t.bodySmall?.copyWith(color: AppColors.textSecondary)),
+                    onTap: () => context.push(Routes.editAddress(a.id), extra: a),
                     trailing: PopupMenuButton<String>(
                       tooltip: 'More',
                       onSelected: (v) => switch (v) {
-                        'default' => _run(
-                          context,
-                          ref,
-                          () => repo.setDefaultAddress(a.id),
-                        ),
-                        'delete' => _run(
-                          context,
-                          ref,
-                          () => repo.deleteAddress(a.id),
-                        ),
+                        'default' => _run(context, ref, () => repo.setDefaultAddress(a.id)),
+                        'delete' => _run(context, ref, () => repo.deleteAddress(a.id)),
                         _ => null,
                       },
                       itemBuilder: (_) => [
-                        if (!a.isDefault)
-                          const PopupMenuItem(
-                            value: 'default',
-                            child: Text('Make default'),
-                          ),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Text('Delete'),
-                        ),
+                        if (!a.isDefault) const PopupMenuItem(value: 'default', child: Text('Make default')),
+                        const PopupMenuItem(value: 'delete', child: Text('Delete')),
                       ],
                     ),
                   );
@@ -149,15 +107,9 @@ class AddressFormPage extends ConsumerStatefulWidget {
 
 class _AddressFormPageState extends ConsumerState<AddressFormPage> {
   final _form = GlobalKey<FormState>();
-  late final _label = TextEditingController(
-    text: widget.address?.label ?? 'Home',
-  );
-  late final _line = TextEditingController(
-    text: widget.address?.addressLine ?? '',
-  );
-  late final _instructions = TextEditingController(
-    text: widget.address?.instructions ?? '',
-  );
+  late final _label = TextEditingController(text: widget.address?.label ?? 'Home');
+  late final _line = TextEditingController(text: widget.address?.addressLine ?? '');
+  late final _instructions = TextEditingController(text: widget.address?.instructions ?? '');
   late bool _default = widget.address?.isDefault ?? false;
   bool _busy = false;
 
@@ -173,8 +125,7 @@ class _AddressFormPageState extends ConsumerState<AddressFormPage> {
     if (!_form.currentState!.validate()) return;
     setState(() => _busy = true);
     try {
-      final existing =
-          ref.read(addressesProvider).value ?? const <SavedAddress>[];
+      final existing = ref.read(addressesProvider).value ?? const <SavedAddress>[];
       await ref
           .read(accountRepositoryProvider)
           .saveAddress(
@@ -188,9 +139,7 @@ class _AddressFormPageState extends ConsumerState<AddressFormPage> {
       ref.invalidate(addressesProvider);
       if (mounted) context.pop();
     } on UserFacingError catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -199,9 +148,7 @@ class _AddressFormPageState extends ConsumerState<AddressFormPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.address == null ? 'New address' : 'Edit address'),
-      ),
+      appBar: AppBar(title: Text(widget.address == null ? 'New address' : 'Edit address')),
       body: Form(
         key: _form,
         child: ListView(
@@ -224,9 +171,7 @@ class _AddressFormPageState extends ConsumerState<AddressFormPage> {
               maxLength: 30,
               decoration: const InputDecoration(labelText: 'Label'),
               onChanged: (_) => setState(() {}),
-              validator: (v) => (v == null || v.trim().isEmpty)
-                  ? 'Give this address a name'
-                  : null,
+              validator: (v) => (v == null || v.trim().isEmpty) ? 'Give this address a name' : null,
             ),
             TextFormField(
               controller: _line,
@@ -234,13 +179,8 @@ class _AddressFormPageState extends ConsumerState<AddressFormPage> {
               minLines: 2,
               maxLength: 300,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                labelText: 'Address',
-                hintText: 'House no., street, area, city',
-              ),
-              validator: (v) => (v == null || v.trim().length < 5)
-                  ? 'Enter the full address'
-                  : null,
+              decoration: const InputDecoration(labelText: 'Address', hintText: 'House no., street, area, city'),
+              validator: (v) => (v == null || v.trim().length < 5) ? 'Enter the full address' : null,
             ),
             TextFormField(
               controller: _instructions,
@@ -263,10 +203,7 @@ class _AddressFormPageState extends ConsumerState<AddressFormPage> {
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-          child: FilledButton(
-            onPressed: _busy ? null : _save,
-            child: Text(_busy ? 'Saving…' : 'Save address'),
-          ),
+          child: FilledButton(onPressed: _busy ? null : _save, child: Text(_busy ? 'Saving…' : 'Save address')),
         ),
       ),
     );

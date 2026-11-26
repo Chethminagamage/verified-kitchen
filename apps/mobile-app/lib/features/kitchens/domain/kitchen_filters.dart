@@ -31,12 +31,7 @@ class KitchenQuery {
     onlyVerified: onlyVerified ?? this.onlyVerified,
   );
 
-  bool get isEmpty =>
-      text.trim().isEmpty &&
-      category == null &&
-      !onlyGradeA &&
-      !onlyOpen &&
-      !onlyVerified;
+  bool get isEmpty => text.trim().isEmpty && category == null && !onlyGradeA && !onlyOpen && !onlyVerified;
 }
 
 /// Filter, then order the list the way a hygiene-first marketplace should:
@@ -45,8 +40,7 @@ List<Kitchen> applyKitchenQuery(Iterable<Kitchen> kitchens, KitchenQuery q) {
   final text = q.text.trim().toLowerCase();
   final out = kitchens.where((k) {
     if (text.isNotEmpty) {
-      final hay = '${k.name} ${k.cuisine ?? ''} ${k.location ?? ''}'
-          .toLowerCase();
+      final hay = '${k.name} ${k.cuisine ?? ''} ${k.location ?? ''}'.toLowerCase();
       if (!hay.contains(text)) return false;
     }
     if (q.category != null && k.category != q.category) return false;

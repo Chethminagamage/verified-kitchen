@@ -31,13 +31,9 @@ class FavouritesNotifier extends AsyncNotifier<Set<String>> {
   Future<void> toggle(String kitchenId) async {
     final before = state.value ?? const <String>{};
     final makeFavourite = !before.contains(kitchenId);
-    state = AsyncData(
-      makeFavourite ? {...before, kitchenId} : ({...before}..remove(kitchenId)),
-    );
+    state = AsyncData(makeFavourite ? {...before, kitchenId} : ({...before}..remove(kitchenId)));
     try {
-      await ref
-          .read(accountRepositoryProvider)
-          .setFavourite(kitchenId, favourite: makeFavourite);
+      await ref.read(accountRepositoryProvider).setFavourite(kitchenId, favourite: makeFavourite);
     } on UserFacingError {
       state = AsyncData(before);
       rethrow;
@@ -45,7 +41,4 @@ class FavouritesNotifier extends AsyncNotifier<Set<String>> {
   }
 }
 
-final favouritesProvider =
-    AsyncNotifierProvider<FavouritesNotifier, Set<String>>(
-      FavouritesNotifier.new,
-    );
+final favouritesProvider = AsyncNotifierProvider<FavouritesNotifier, Set<String>>(FavouritesNotifier.new);

@@ -19,5 +19,4 @@ String formatAgo(DateTime then, DateTime now) {
 }
 
 /// "08:00" from a Postgres time ("08:00:00").
-String formatClock(String pgTime) =>
-    pgTime.length >= 5 ? pgTime.substring(0, 5) : pgTime;
+String formatClock(String pgTime) => pgTime.length >= 5 ? pgTime.substring(0, 5) : pgTime;

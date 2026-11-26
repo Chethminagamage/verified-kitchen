@@ -54,32 +54,21 @@ class _HomeContent extends ConsumerWidget {
     final profileName = ref.watch(profileProvider).value?.firstName;
     final name = (profileName?.isNotEmpty == true)
         ? profileName
-        : (ref.watch(currentUserProvider)?.userMetadata?['full_name']
-                  as String?)
-              ?.split(' ')
-              .first;
+        : (ref.watch(currentUserProvider)?.userMetadata?['full_name'] as String?)?.split(' ').first;
     final activeOrders = ref.watch(activeOrderCountProvider);
     final byId = {for (final k in all) k.id: k};
     // Kitchens of past delivered orders, most recent first.
     final orderAgain = <Kitchen>[
       for (final id in {
-        for (final o
-            in ref.watch(myOrdersProvider).value ?? const <CustomerOrder>[])
+        for (final o in ref.watch(myOrdersProvider).value ?? const <CustomerOrder>[])
           if (o.status == OrderStatus.delivered) o.kitchenId,
       })
         ?byId[id],
     ];
-    final favouriteIds =
-        ref.watch(favouritesProvider).value ?? const <String>{};
-    final favourites = applyKitchenQuery(
-      all.where((k) => favouriteIds.contains(k.id)),
-      const KitchenQuery(),
-    );
+    final favouriteIds = ref.watch(favouritesProvider).value ?? const <String>{};
+    final favourites = applyKitchenQuery(all.where((k) => favouriteIds.contains(k.id)), const KitchenQuery());
     final visible = applyKitchenQuery(all, query);
-    final verified = applyKitchenQuery(
-      all.where((k) => k.isMonitored),
-      const KitchenQuery(),
-    );
+    final verified = applyKitchenQuery(all.where((k) => k.isMonitored), const KitchenQuery());
     final notifier = ref.read(kitchenQueryProvider.notifier);
     void open(Kitchen k) => context.push(Routes.kitchen(k.id));
 
@@ -101,29 +90,20 @@ class _HomeContent extends ConsumerWidget {
                         const SizedBox(height: 4),
                         Text(
                           'Order from kitchens you can trust.',
-                          style: t.bodyLarge?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                          style: t.bodyLarge?.copyWith(color: AppColors.textSecondary),
                         ),
                       ],
                     ),
                   ),
                   IconButton.filledTonal(
-                    tooltip: activeOrders > 0
-                        ? '$activeOrders orders in progress'
-                        : 'Order updates',
-                    style: IconButton.styleFrom(
-                      backgroundColor: AppColors.fill,
-                    ),
+                    tooltip: activeOrders > 0 ? '$activeOrders orders in progress' : 'Order updates',
+                    style: IconButton.styleFrom(backgroundColor: AppColors.fill),
                     onPressed: () => context.go(Routes.orders),
                     icon: Badge(
                       isLabelVisible: activeOrders > 0,
                       label: Text('$activeOrders'),
                       backgroundColor: AppColors.primary,
-                      child: const Icon(
-                        Icons.notifications_none_rounded,
-                        color: AppColors.ink,
-                      ),
+                      child: const Icon(Icons.notifications_none_rounded, color: AppColors.ink),
                     ),
                   ),
                 ],
@@ -150,11 +130,7 @@ class _HomeContent extends ConsumerWidget {
                 _FilterChip(
                   label: c,
                   selected: query.category == c,
-                  onTap: () => notifier.set(
-                    query.copyWith(
-                      category: () => query.category == c ? null : c,
-                    ),
-                  ),
+                  onTap: () => notifier.set(query.copyWith(category: () => query.category == c ? null : c)),
                 ),
             ],
           ),
@@ -166,23 +142,19 @@ class _HomeContent extends ConsumerWidget {
                 icon: Icons.verified_rounded,
                 label: 'Hygiene A',
                 selected: query.onlyGradeA,
-                onTap: () =>
-                    notifier.set(query.copyWith(onlyGradeA: !query.onlyGradeA)),
+                onTap: () => notifier.set(query.copyWith(onlyGradeA: !query.onlyGradeA)),
               ),
               _FilterChip(
                 icon: Icons.shield_outlined,
                 label: 'Verified only',
                 selected: query.onlyVerified,
-                onTap: () => notifier.set(
-                  query.copyWith(onlyVerified: !query.onlyVerified),
-                ),
+                onTap: () => notifier.set(query.copyWith(onlyVerified: !query.onlyVerified)),
               ),
               _FilterChip(
                 icon: Icons.schedule_rounded,
                 label: 'Open now',
                 selected: query.onlyOpen,
-                onTap: () =>
-                    notifier.set(query.copyWith(onlyOpen: !query.onlyOpen)),
+                onTap: () => notifier.set(query.copyWith(onlyOpen: !query.onlyOpen)),
               ),
             ],
           ),
@@ -192,11 +164,7 @@ class _HomeContent extends ConsumerWidget {
           _KitchenRow(kitchens: orderAgain, onOpen: open),
         ],
         if (query.isEmpty && favourites.isNotEmpty) ...[
-          _SectionTitle(
-            title: 'Your favourites',
-            action: 'See all',
-            onAction: () => context.push(Routes.favourites),
-          ),
+          _SectionTitle(title: 'Your favourites', action: 'See all', onAction: () => context.push(Routes.favourites)),
           _KitchenRow(kitchens: favourites, onOpen: open),
         ],
         if (query.isEmpty && verified.isNotEmpty) ...[
@@ -207,9 +175,7 @@ class _HomeContent extends ConsumerWidget {
           ),
           _KitchenRow(kitchens: verified, onOpen: open),
         ],
-        _SectionTitle(
-          title: query.isEmpty ? 'All kitchens' : '${visible.length} kitchens',
-        ),
+        _SectionTitle(title: query.isEmpty ? 'All kitchens' : '${visible.length} kitchens'),
         if (visible.isEmpty)
           SliverToBoxAdapter(
             child: EmptyState(
@@ -217,9 +183,7 @@ class _HomeContent extends ConsumerWidget {
               title: 'No kitchens match',
               message: 'Try removing a filter.',
               action: OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(160, 44),
-                ),
+                style: OutlinedButton.styleFrom(minimumSize: const Size(160, 44)),
                 onPressed: () => notifier.set(const KitchenQuery()),
                 child: const Text('Clear filters'),
               ),
@@ -231,11 +195,8 @@ class _HomeContent extends ConsumerWidget {
             sliver: SliverList.separated(
               itemCount: visible.length,
               separatorBuilder: (_, _) => const SizedBox(height: 24),
-              itemBuilder: (_, i) => KitchenCard(
-                kitchen: visible[i],
-                showFavourite: true,
-                onTap: () => open(visible[i]),
-              ),
+              itemBuilder: (_, i) =>
+                  KitchenCard(kitchen: visible[i], showFavourite: true, onTap: () => open(visible[i])),
             ),
           ),
       ],
@@ -244,9 +205,7 @@ class _HomeContent extends ConsumerWidget {
 
   static String _greeting(String? name) {
     final h = DateTime.now().hour;
-    final part = h < 12
-        ? 'Good morning'
-        : (h < 17 ? 'Good afternoon' : 'Good evening');
+    final part = h < 12 ? 'Good morning' : (h < 17 ? 'Good afternoon' : 'Good evening');
     return name == null || name.isEmpty ? part : '$part, $name';
   }
 }
@@ -271,8 +230,7 @@ class _SearchPill extends StatelessWidget {
               const SizedBox(width: 10),
               Text(
                 'Search kitchens or food',
-                style: Theme.of(context).textTheme.bodyLarge
-                    ?.copyWith(color: AppColors.textSecondary),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
               ),
             ],
           ),
@@ -302,12 +260,7 @@ class _ChipRow extends StatelessWidget {
 }
 
 class _FilterChip extends StatelessWidget {
-  const _FilterChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    this.icon,
-  });
+  const _FilterChip({required this.label, required this.selected, required this.onTap, this.icon});
 
   final String label;
   final bool selected;
@@ -318,13 +271,7 @@ class _FilterChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChoiceChip(
       label: Text(label),
-      avatar: icon == null
-          ? null
-          : Icon(
-              icon,
-              size: 16,
-              color: selected ? Colors.white : AppColors.ink,
-            ),
+      avatar: icon == null ? null : Icon(icon, size: 16, color: selected ? Colors.white : AppColors.ink),
       selected: selected,
       onSelected: (_) => onTap(),
     );
@@ -345,14 +292,8 @@ class _SectionTitle extends StatelessWidget {
       sliver: SliverToBoxAdapter(
         child: Row(
           children: [
-            Expanded(
-              child: Text(
-                title,
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-            ),
-            if (action != null)
-              TextButton(onPressed: onAction, child: Text(action!)),
+            Expanded(child: Text(title, style: Theme.of(context).textTheme.headlineSmall)),
+            if (action != null) TextButton(onPressed: onAction, child: Text(action!)),
           ],
         ),
       ),
@@ -384,18 +325,11 @@ class _TrustBanner extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Icon(
-                          Icons.verified_rounded,
-                          color: AppColors.primary,
-                          size: 18,
-                        ),
+                        const Icon(Icons.verified_rounded, color: AppColors.primary, size: 18),
                         const SizedBox(width: 6),
                         Text(
                           'HYGIENE VERIFIED',
-                          style: t.labelSmall?.copyWith(
-                            color: AppColors.primary,
-                            letterSpacing: 1.2,
-                          ),
+                          style: t.labelSmall?.copyWith(color: AppColors.primary, letterSpacing: 1.2),
                         ),
                       ],
                     ),
@@ -439,12 +373,8 @@ class _KitchenRow extends StatelessWidget {
           scrollDirection: Axis.horizontal,
           itemCount: kitchens.length,
           separatorBuilder: (_, _) => const SizedBox(width: 14),
-          itemBuilder: (_, i) => KitchenCard(
-            kitchen: kitchens[i],
-            width: 300,
-            showFavourite: true,
-            onTap: () => onOpen(kitchens[i]),
-          ),
+          itemBuilder: (_, i) =>
+              KitchenCard(kitchen: kitchens[i], width: 300, showFavourite: true, onTap: () => onOpen(kitchens[i])),
         ),
       ),
     );

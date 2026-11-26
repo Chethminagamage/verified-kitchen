@@ -43,18 +43,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             decoration: InputDecoration(
               hintText: 'Kitchens, food, area',
               prefixIcon: const Icon(Icons.search_rounded),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(999),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(999),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(999),
-                borderSide: BorderSide.none,
-              ),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(999), borderSide: BorderSide.none),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(999), borderSide: BorderSide.none),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(999), borderSide: BorderSide.none),
               contentPadding: const EdgeInsets.symmetric(vertical: 12),
               suffixIcon: _text.isEmpty
                   ? null
@@ -89,18 +80,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             itemBuilder: (_, i) {
               final k = results[i];
               return ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 6,
-                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
                 leading: Container(
                   width: 52,
                   height: 52,
                   alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: AppColors.fill,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  decoration: BoxDecoration(color: AppColors.fill, borderRadius: BorderRadius.circular(12)),
                   child: Text(k.emoji, style: const TextStyle(fontSize: 26)),
                 ),
                 title: Text(k.name, style: t.titleMedium),
@@ -108,18 +93,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   padding: const EdgeInsets.only(top: 4),
                   child: Row(
                     children: [
-                      HygieneBadge(
-                        status: k.status,
-                        grade: k.grade,
-                        dense: true,
-                      ),
+                      HygieneBadge(status: k.status, grade: k.grade, dense: true),
                       const SizedBox(width: 8),
                       Flexible(
                         child: Text(
                           k.isOpen ? (k.cuisine ?? '') : 'Closed',
-                          style: t.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                          style: t.bodySmall?.copyWith(color: AppColors.textSecondary),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),

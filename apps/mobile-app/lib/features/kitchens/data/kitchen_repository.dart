@@ -15,20 +15,14 @@ class KitchenRepository {
   }
 
   Future<Kitchen?> kitchen(String id) async {
-    final row = await _client
-        .from('marketplace_kitchens')
-        .select()
-        .eq('id', id)
-        .maybeSingle();
+    final row = await _client.from('marketplace_kitchens').select().eq('id', id).maybeSingle();
     return row == null ? null : Kitchen.fromJson(row);
   }
 
   Future<List<MenuItem>> menu(String kitchenId) async {
     final rows = await _client
         .from('menu_items')
-        .select(
-          'id, name, description, category, price_lkr, emoji, is_available',
-        )
+        .select('id, name, description, category, price_lkr, emoji, is_available')
         .eq('kitchen_id', kitchenId)
         .order('sort_order')
         .order('name');

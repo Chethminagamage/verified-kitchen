@@ -42,10 +42,7 @@ class AppShell extends ConsumerWidget {
         ),
         child: NavigationBar(
           selectedIndex: navigationShell.currentIndex,
-          onDestinationSelected: (i) => navigationShell.goBranch(
-            i,
-            initialLocation: i == navigationShell.currentIndex,
-          ),
+          onDestinationSelected: (i) => navigationShell.goBranch(i, initialLocation: i == navigationShell.currentIndex),
           destinations: [
             const NavigationDestination(
               icon: Icon(Icons.home_outlined),

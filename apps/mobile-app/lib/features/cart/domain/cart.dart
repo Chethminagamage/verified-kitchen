@@ -17,19 +17,9 @@ class CartLine {
 /// A cart belongs to one kitchen (one order = one kitchen, as in delivery apps).
 /// Prices here are for display only: the server recalculates every price.
 class Cart {
-  const Cart({
-    required this.kitchenId,
-    required this.kitchenName,
-    required this.deliveryFeeLkr,
-    required this.lines,
-  });
+  const Cart({required this.kitchenId, required this.kitchenName, required this.deliveryFeeLkr, required this.lines});
 
-  static const Cart empty = Cart(
-    kitchenId: null,
-    kitchenName: null,
-    deliveryFeeLkr: 0,
-    lines: [],
-  );
+  static const Cart empty = Cart(kitchenId: null, kitchenName: null, deliveryFeeLkr: 0, lines: []);
 
   final String? kitchenId;
   final String? kitchenName;
@@ -41,12 +31,9 @@ class Cart {
   double get subtotal => lines.fold(0, (s, l) => s + l.total);
   double get total => isEmpty ? 0 : subtotal + deliveryFeeLkr;
 
-  int quantityOf(String menuItemId) => lines
-      .where((l) => l.item.id == menuItemId)
-      .fold(0, (n, l) => n + l.quantity);
+  int quantityOf(String menuItemId) => lines.where((l) => l.item.id == menuItemId).fold(0, (n, l) => n + l.quantity);
 
-  bool belongsTo(String kitchenId) =>
-      this.kitchenId == null || this.kitchenId == kitchenId;
+  bool belongsTo(String kitchenId) => this.kitchenId == null || this.kitchenId == kitchenId;
 
   /// Add one of [item] from [kitchen]. The caller must have checked [belongsTo].
   Cart add(Kitchen kitchen, MenuItem item) {
@@ -58,12 +45,7 @@ class Cart {
     } else if (lines[index].quantity < maxQuantity) {
       next[index] = lines[index].withQuantity(lines[index].quantity + 1);
     }
-    return Cart(
-      kitchenId: kitchen.id,
-      kitchenName: kitchen.name,
-      deliveryFeeLkr: kitchen.deliveryFeeLkr,
-      lines: next,
-    );
+    return Cart(kitchenId: kitchen.id, kitchenName: kitchen.name, deliveryFeeLkr: kitchen.deliveryFeeLkr, lines: next);
   }
 
   /// Set a quantity; 0 removes the line, and the cart empties with its last line.
@@ -75,12 +57,7 @@ class Cart {
     ];
     return next.isEmpty
         ? Cart.empty
-        : Cart(
-            kitchenId: kitchenId,
-            kitchenName: kitchenName,
-            deliveryFeeLkr: deliveryFeeLkr,
-            lines: next,
-          );
+        : Cart(kitchenId: kitchenId, kitchenName: kitchenName, deliveryFeeLkr: deliveryFeeLkr, lines: next);
   }
 
   /// Request body for the place_order database function.

@@ -71,9 +71,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
                   const BrandLockup(size: 32, color: Colors.white),
                   const Spacer(),
                   TextButton(
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.white70,
-                    ),
+                    style: TextButton.styleFrom(foregroundColor: Colors.white70),
                     onPressed: () => _finish(Routes.signIn),
                     child: const Text('Skip'),
                   ),
@@ -100,25 +98,12 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
                             color: AppColors.primary.withValues(alpha: 0.14),
                             borderRadius: BorderRadius.circular(26),
                           ),
-                          child: Icon(
-                            s.icon,
-                            color: AppColors.primary,
-                            size: 46,
-                          ),
+                          child: Icon(s.icon, color: AppColors.primary, size: 46),
                         ),
                         const SizedBox(height: 36),
-                        Text(
-                          s.title,
-                          style: t.displaySmall?.copyWith(color: Colors.white),
-                        ),
+                        Text(s.title, style: t.displaySmall?.copyWith(color: Colors.white)),
                         const SizedBox(height: 14),
-                        Text(
-                          s.text,
-                          style: t.bodyLarge?.copyWith(
-                            color: Colors.white70,
-                            fontSize: 17,
-                          ),
-                        ),
+                        Text(s.text, style: t.bodyLarge?.copyWith(color: Colors.white70, fontSize: 17)),
                       ],
                     ),
                   );
@@ -138,9 +123,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
                           width: i == _index ? 24 : 8,
                           height: 8,
                           decoration: BoxDecoration(
-                            color: i == _index
-                                ? AppColors.primary
-                                : Colors.white24,
+                            color: i == _index ? AppColors.primary : Colors.white24,
                             borderRadius: BorderRadius.circular(999),
                           ),
                         ),
@@ -148,16 +131,10 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
                   ),
                   const SizedBox(height: 24),
                   FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: AppColors.ink,
-                    ),
+                    style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: AppColors.ink),
                     onPressed: last
                         ? () => _finish(Routes.signUp)
-                        : () => _pages.nextPage(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeOut,
-                          ),
+                        : () => _pages.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeOut),
                     child: Text(last ? 'Create an account' : 'Next'),
                   ),
                   const SizedBox(height: 8),

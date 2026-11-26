@@ -5,13 +5,7 @@ import '../theme/app_colors.dart';
 
 /// Loading / error / data for an AsyncValue, with a retry button on errors.
 class AsyncView<T> extends StatelessWidget {
-  const AsyncView({
-    super.key,
-    required this.value,
-    required this.data,
-    required this.onRetry,
-    this.loading,
-  });
+  const AsyncView({super.key, required this.value, required this.data, required this.onRetry, this.loading});
 
   final AsyncValue<T> value;
   final Widget Function(T data) data;
@@ -27,10 +21,7 @@ class AsyncView<T> extends StatelessWidget {
       loading: () =>
           loading ??
           const Center(
-            child: Padding(
-              padding: EdgeInsets.all(32),
-              child: CircularProgressIndicator(),
-            ),
+            child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator()),
           ),
       error: (error, _) => ErrorState(onRetry: onRetry),
     );
@@ -52,11 +43,7 @@ class ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.wifi_off_rounded,
-              size: 40,
-              color: AppColors.textMuted,
-            ),
+            const Icon(Icons.wifi_off_rounded, size: 40, color: AppColors.textMuted),
             const SizedBox(height: 12),
             Text("Couldn't load this", style: t.titleMedium),
             const SizedBox(height: 4),
@@ -79,13 +66,7 @@ class ErrorState extends StatelessWidget {
 }
 
 class EmptyState extends StatelessWidget {
-  const EmptyState({
-    super.key,
-    required this.icon,
-    required this.title,
-    required this.message,
-    this.action,
-  });
+  const EmptyState({super.key, required this.icon, required this.title, required this.message, this.action});
 
   final IconData icon;
   final String title;
@@ -104,10 +85,7 @@ class EmptyState extends StatelessWidget {
             Container(
               width: 72,
               height: 72,
-              decoration: const BoxDecoration(
-                color: AppColors.fill,
-                shape: BoxShape.circle,
-              ),
+              decoration: const BoxDecoration(color: AppColors.fill, shape: BoxShape.circle),
               child: Icon(icon, size: 32, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 16),

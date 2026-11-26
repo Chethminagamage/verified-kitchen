@@ -32,10 +32,7 @@ class HelpPage extends StatelessWidget {
       'Can I cancel an order?',
       'Yes, until the kitchen accepts it. Open the order and tap Cancel order. After that, contact the kitchen.',
     ),
-    (
-      'How do I pay?',
-      'Cash on delivery. Pay the rider when your order arrives.',
-    ),
+    ('How do I pay?', 'Cash on delivery. Pay the rider when your order arrives.'),
     (
       'Something was wrong with my order',
       'Open the delivered order and tap "Report a problem". The kitchen sees your report privately.',
@@ -52,8 +49,7 @@ class HelpPage extends StatelessWidget {
         children: [
           for (final (q, a) in _faqs)
             Theme(
-              data: Theme.of(context)
-                  .copyWith(dividerColor: Colors.transparent),
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
               child: ExpansionTile(
                 tilePadding: EdgeInsets.zero,
                 childrenPadding: const EdgeInsets.only(bottom: 14),
@@ -61,28 +57,17 @@ class HelpPage extends StatelessWidget {
                 children: [
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: Text(
-                      a,
-                      style: t.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
+                    child: Text(a, style: t.bodyMedium?.copyWith(color: AppColors.textSecondary)),
                   ),
                 ],
               ),
             ),
           const SizedBox(height: 16),
-          OutlinedButton(
-            onPressed: () => showHygieneExplainer(context),
-            child: const Text('How hygiene grades work'),
-          ),
+          OutlinedButton(onPressed: () => showHygieneExplainer(context), child: const Text('How hygiene grades work')),
           const SizedBox(height: 24),
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.fill,
-              borderRadius: BorderRadius.circular(16),
-            ),
+            decoration: BoxDecoration(color: AppColors.fill, borderRadius: BorderRadius.circular(16)),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -92,9 +77,7 @@ class HelpPage extends StatelessWidget {
                   child: Text(
                     'For a problem with an order, open it under Orders and tap "Report a problem". '
                     'The kitchen receives it straight away.',
-                    style: t.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                    style: t.bodyMedium?.copyWith(color: AppColors.textSecondary),
                   ),
                 ),
               ],
@@ -120,13 +103,7 @@ class LegalPage extends StatelessWidget {
         children: [
           Text(title, style: t.titleMedium),
           const SizedBox(height: 6),
-          Text(
-            body,
-            style: t.bodyMedium?.copyWith(
-              color: AppColors.textSecondary,
-              height: 1.5,
-            ),
-          ),
+          Text(body, style: t.bodyMedium?.copyWith(color: AppColors.textSecondary, height: 1.5)),
         ],
       ),
     );
@@ -230,40 +207,23 @@ class _DeleteAccountPageState extends ConsumerState<DeleteAccountPage> {
           const SizedBox(height: 12),
           Text('Deleted straight away:', style: t.titleSmall),
           const SizedBox(height: 4),
-          Text(
-            '• Your login, name and phone number\n• Saved addresses\n• Favourite kitchens',
-            style: muted,
-          ),
+          Text('• Your login, name and phone number\n• Saved addresses\n• Favourite kitchens', style: muted),
           const SizedBox(height: 12),
-          Text(
-            'Kept by the kitchen, without your name or account:',
-            style: t.titleSmall,
-          ),
+          Text('Kept by the kitchen, without your name or account:', style: t.titleSmall),
           const SizedBox(height: 4),
-          Text(
-            '• Past orders and any feedback you gave (for their records)',
-            style: muted,
-          ),
+          Text('• Past orders and any feedback you gave (for their records)', style: muted),
           const SizedBox(height: 12),
-          Text(
-            'You cannot delete your account while an order is in progress.',
-            style: muted,
-          ),
+          Text('You cannot delete your account while an order is in progress.', style: muted),
           const SizedBox(height: 24),
           TextField(
             controller: _confirm,
             textCapitalization: TextCapitalization.characters,
-            decoration: const InputDecoration(
-              labelText: 'Type DELETE to confirm',
-            ),
+            decoration: const InputDecoration(labelText: 'Type DELETE to confirm'),
             onChanged: (_) => setState(() {}),
           ),
           if (_error != null) ...[
             const SizedBox(height: 12),
-            Text(
-              _error!,
-              style: t.bodyMedium?.copyWith(color: AppColors.danger),
-            ),
+            Text(_error!, style: t.bodyMedium?.copyWith(color: AppColors.danger)),
           ],
         ],
       ),
@@ -275,16 +235,11 @@ class _DeleteAccountPageState extends ConsumerState<DeleteAccountPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.danger,
-                ),
+                style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
                 onPressed: ready && !_busy ? _delete : null,
                 child: Text(_busy ? 'Deleting…' : 'Delete my account'),
               ),
-              TextButton(
-                onPressed: () => context.go(Routes.profile),
-                child: const Text('Keep my account'),
-              ),
+              TextButton(onPressed: () => context.go(Routes.profile), child: const Text('Keep my account')),
             ],
           ),
         ),

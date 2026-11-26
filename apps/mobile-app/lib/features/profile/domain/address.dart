@@ -14,9 +14,8 @@ class SavedAddress {
   final bool isDefault;
 
   /// Text sent with an order: the address plus any delivery instructions.
-  String get forDelivery => instructions == null || instructions!.trim().isEmpty
-      ? addressLine
-      : '$addressLine (${instructions!.trim()})';
+  String get forDelivery =>
+      instructions == null || instructions!.trim().isEmpty ? addressLine : '$addressLine (${instructions!.trim()})';
 
   factory SavedAddress.fromJson(Map<String, dynamic> json) => SavedAddress(
     id: json['id'] as String,
@@ -29,11 +28,7 @@ class SavedAddress {
 
 /// The signed-in customer's profile (public.profiles).
 class CustomerProfile {
-  const CustomerProfile({
-    required this.fullName,
-    required this.phone,
-    required this.email,
-  });
+  const CustomerProfile({required this.fullName, required this.phone, required this.email});
 
   final String? fullName;
   final String? phone;
