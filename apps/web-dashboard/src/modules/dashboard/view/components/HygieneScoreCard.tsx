@@ -1,32 +1,23 @@
-import {
-  Clock,
-  Lock,
-  ShieldAlert,
-  ShieldCheck,
-  ShieldX,
-  type LucideIcon,
-} from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Clock, Lock, Minus, ShieldQuestion } from "lucide-react";
 
+import AnimatedNumber from "@/shared/components/ui/AnimatedNumber";
+import EmptyState from "@/shared/components/ui/EmptyState";
+import Notice from "@/shared/components/ui/Notice";
+import { Panel } from "@/shared/components/ui/Panel";
+import StatusPill from "@/shared/components/ui/StatusPill";
+import { toneForScore } from "@/shared/components/ui/tone";
 import { formatClock, formatRelative } from "@/shared/utils/time";
 
-import type {
-  OverallScore,
-  ScoreBand,
-} from "../../model/dashboard.model";
+import type { OverallScore } from "../../model/dashboard.model";
 import type { Grade } from "../../model/score-details";
 
-// H-800 grade -> the same visual language as the bands.
-const GRADE_BAND: Record<Grade, ScoreBand> = { A: "Excellent", B: "Moderate", C: "Poor", D: "Poor" };
-const GRADE_LABEL: Record<Grade, string> = { A: "Good", B: "Satisfactory", C: "Unsatisfactory", D: "Very unsatisfactory" };
+import GradeRing from "./GradeRing";
 
-const BAND_STYLES: Record<
-  ScoreBand,
-  { pill: string; tile: string; icon: LucideIcon }
-> = {
-  Excellent: { pill: "bg-emerald-50 text-emerald-700", tile: "bg-emerald-500", icon: ShieldCheck },
-  Good: { pill: "bg-emerald-50 text-emerald-700", tile: "bg-emerald-500", icon: ShieldCheck },
-  Moderate: { pill: "bg-amber-50 text-amber-700", tile: "bg-amber-500", icon: ShieldAlert },
-  Poor: { pill: "bg-red-50 text-red-700", tile: "bg-red-500", icon: ShieldX },
+const GRADE_LABEL: Record<Grade, string> = {
+  A: "Good",
+  B: "Satisfactory",
+  C: "Unsatisfactory",
+  D: "Very unsatisfactory",
 };
 
 const PILLAR_NAMES = {
@@ -37,95 +28,78 @@ const PILLAR_NAMES = {
 
 interface HygieneScoreCardProps {
   score: OverallScore | null;
+  /** Change since the start of the 24-hour trend; null when there is nothing to compare. */
+  change: number | null;
   timezone: string;
   generatedAt: string;
 }
 
-export default function HygieneScoreCard({
-  score,
-  timezone,
-  generatedAt,
-}: HygieneScoreCardProps) {
+function ChangeChip({ change }: { change: number }) {
+  const Icon = change > 0 ? ArrowUpRight : change < 0 ? ArrowDownRight : Minus;
+  const color = change > 0 ? "text-emerald-700" : change < 0 ? "text-red-700" : "text-slate-500";
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs font-medium ${color}`}>
+      <Icon className="h-3.5 w-3.5" aria-hidden />
+      {change > 0 ? `+${change}` : change} in 24 h
+    </span>
+  );
+}
+
+/** The Overview's hero: grade ring, live score, what limits it and what to fix first. */
+export default function HygieneScoreCard({ score, change, timezone, generatedAt }: HygieneScoreCardProps) {
   if (!score) {
     return (
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium text-slate-500">
-          Overall Hygiene Score
-        </p>
-
-        <p className="mt-4 text-5xl font-bold tracking-tight text-slate-300">
-          —
-        </p>
-
-        <p className="mt-4 text-sm text-slate-500">
-          No scores yet. Start the edge service to begin monitoring.
-        </p>
-      </section>
+      <Panel className="flex items-center justify-center">
+        <EmptyState icon={ShieldQuestion} title="No hygiene score yet">
+          The score appears once the camera and sensors start reporting.
+        </EmptyState>
+      </Panel>
     );
   }
 
   const { grade, caps, uncapped, issues } = score.explanation;
-  const style = BAND_STYLES[grade ? GRADE_BAND[grade] : score.band];
-  const Icon = style.icon;
+  const tone = score.isStale ? "neutral" : toneForScore(score.value);
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm font-medium text-slate-500">
-            Overall Hygiene Score
+    <Panel>
+      <p className="text-sm font-medium text-slate-500">Overall hygiene score</p>
+
+      <div className="mt-4 flex items-center gap-6">
+        <GradeRing score={score.value} grade={grade} tone={tone} />
+        <div className="min-w-0">
+          <p className="flex items-baseline gap-1">
+            <AnimatedNumber
+              value={Math.round(score.value)}
+              className={`text-5xl font-semibold tracking-tight ${score.isStale ? "text-slate-400" : "text-slate-950"}`}
+            />
+            <span className="text-lg font-medium text-slate-400">/ 100</span>
           </p>
-
-          <div className="mt-4 flex items-end gap-2">
-            <span
-              className={`text-5xl font-bold tracking-tight ${
-                score.isStale ? "text-slate-400" : "text-slate-950"
-              }`}
-            >
-              {Math.round(score.value)}
-            </span>
-
-            <span className="pb-1 text-lg font-medium text-slate-400">
-              / 100
-            </span>
-          </div>
-
-          <div
-            className={`mt-4 inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold ${style.pill}`}
-          >
-            <Icon className="h-4 w-4" />
-            {grade ? `Grade ${grade} · ${GRADE_LABEL[grade]}` : score.band}
-          </div>
-        </div>
-
-        <div
-          className={`flex h-14 w-14 items-center justify-center rounded-2xl ${style.tile}`}
-        >
-          <Icon className="h-7 w-7 text-white" />
+          {grade && (
+            <StatusPill tone={tone} className="mt-3">
+              {GRADE_LABEL[grade]}
+            </StatusPill>
+          )}
+          {change !== null && !score.isStale && (
+            <p className="mt-2">
+              <ChangeChip change={change} />
+            </p>
+          )}
         </div>
       </div>
 
       {caps.length > 0 && (
-        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-          <p className="flex items-center gap-1.5 font-semibold">
-            <Lock className="h-3.5 w-3.5" />
-            Capped at {Math.round(Math.min(...caps.map((c) => c.cap)))}
-            {uncapped !== null && <span className="font-normal">(would be {Math.round(uncapped)})</span>}
-          </p>
-          <ul className="mt-1 list-disc pl-5">
-            {caps.map((c) => (
-              <li key={c.key}>{c.reason}</li>
-            ))}
-          </ul>
-        </div>
+        <Notice tone="warning" icon={Lock} className="mt-5" title={`Limited to ${Math.round(Math.min(...caps.map((c) => c.cap)))}`}>
+          {uncapped !== null && <>Would be {Math.round(uncapped)} without this rule. </>}
+          {caps.map((c) => c.reason).join(" · ")}
+        </Notice>
       )}
 
       {issues.length > 0 && (
-        <div className="mt-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Fix first</p>
-          <ul className="mt-2 space-y-1.5">
+        <div className="mt-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Fix first</p>
+          <ul className="mt-2 divide-y divide-slate-100">
             {issues.slice(0, 3).map((i) => (
-              <li key={i.item} className="flex items-center justify-between gap-3 text-sm">
+              <li key={i.item} className="flex items-center justify-between gap-3 py-2 text-sm">
                 <span className="text-slate-700">{i.label}</span>
                 <span className="font-semibold tabular-nums text-red-700">−{Math.round(i.points)} pts</span>
               </li>
@@ -135,28 +109,23 @@ export default function HygieneScoreCard({
       )}
 
       {score.missingPillars.length > 0 && (
-        <p className="mt-4 text-xs text-slate-500">
-          No current evidence for{" "}
-          {score.missingPillars.map((p) => PILLAR_NAMES[p]).join(" and ")};
-          score uses the remaining pillars.
+        <p className="mt-4 text-xs leading-5 text-slate-500">
+          No current data for {score.missingPillars.map((p) => PILLAR_NAMES[p]).join(" and ")}; the score uses the
+          remaining pillars.
         </p>
       )}
 
-      <div className="mt-6 border-t border-slate-100 pt-4">
+      <div className="mt-5 border-t border-slate-100 pt-4">
         {score.isStale ? (
           <p className="flex items-center gap-1.5 text-xs font-medium text-amber-700">
-            <Clock className="h-3.5 w-3.5" />
-            No new data since {formatClock(score.computedAt, timezone)} (
-            {formatRelative(score.computedAt, generatedAt)}). Is the edge
-            service running?
+            <Clock className="h-3.5 w-3.5" aria-hidden />
+            No new data since {formatClock(score.computedAt, timezone)} ({formatRelative(score.computedAt, generatedAt)}).
+            Check that the monitoring system is running.
           </p>
         ) : (
-          <p className="text-xs text-slate-500">
-            Updated {formatRelative(score.computedAt, generatedAt)}
-            {score.configVersion && ` · scoring ${score.configVersion}`}
-          </p>
+          <p className="text-xs text-slate-500">Updated {formatRelative(score.computedAt, generatedAt)}</p>
         )}
       </div>
-    </section>
+    </Panel>
   );
 }

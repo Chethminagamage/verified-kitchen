@@ -59,7 +59,7 @@ export default function LoginView({
         </div>
 
         <p className="text-xs text-slate-600">
-          Verified Kitchen Prototype
+          © {new Date().getFullYear()} Verified Kitchen
         </p>
       </section>
 

@@ -11,7 +11,6 @@ import {
 import type { AccountsRepository } from "@/modules/admin-accounts/repository/accounts.repository";
 import { AccountsService } from "@/modules/admin-accounts/service/accounts.service";
 import {
-  deviceSetup,
   formatHours,
   isReporting,
   parseListingForm,
@@ -153,15 +152,6 @@ describe("devices and go-live", () => {
     expect(isReporting(null, now)).toBe(false);
   });
 
-  it("gives the technician the exact IDs and topics", () => {
-    const env = deviceSetup("kitchen-002", { id: "vk-env-02", type: "env_node" });
-    expect(env.topics).toEqual(["vk/kitchen-002/vk-env-02/telemetry", "vk/kitchen-002/vk-env-02/status"]);
-    expect(env.files[0].lines).toContain('#define KITCHEN_CODE "kitchen-002"');
-    expect(env.files[1].lines).toContain("ENV_DEVICE_ID=vk-env-02");
-    const cam = deviceSetup("kitchen-002", { id: "vk-cam-02", type: "camera" });
-    expect(cam.files).toHaveLength(1);
-    expect(cam.files[0].lines).toEqual(["KITCHEN_CODE=kitchen-002", "CAMERA_DEVICE_ID=vk-cam-02"]);
-  });
 
   it("is ready only when every blocking check passes (warnings do not block)", () => {
     const item = (ok: boolean, blocking: boolean) => ({ item: "x", label: "x", ok, blocking, detail: "" });

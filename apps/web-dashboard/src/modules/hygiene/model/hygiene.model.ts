@@ -63,14 +63,14 @@ export const INDICATORS: ReadonlyArray<{ id: IndicatorId; name: string; pillar: 
 ];
 
 export const PILLAR_INFO: Record<PillarId, { name: string; description: string }> = {
-  personal: { name: "Personal Hygiene", description: "AI checks of hairnet, mask and gloves at the workstation." },
+  personal: { name: "Personal Hygiene", description: "Camera checks of hairnets, masks and gloves at the workstation." },
   food_prep: {
     name: "Food Preparation Hygiene",
-    description: "AI checks of the preparation surface for cleanliness, spills and waste.",
+    description: "Camera checks of the preparation surface for cleanliness and food waste.",
   },
   environmental: {
     name: "Environmental Hygiene",
-    description: "ESP32 sensing of kitchen temperature, humidity and refrigerator temperature.",
+    description: "Sensor readings of kitchen temperature, humidity and refrigerator temperature.",
   },
 };
 

@@ -8,7 +8,11 @@ export const metadata: Metadata = {
   title: "AI Monitoring",
 };
 
-export default async function AIMonitoringPage() {
+interface AIMonitoringPageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function AIMonitoringPage({ searchParams }: AIMonitoringPageProps) {
   const session = await getCurrentSession();
   const kitchen = session?.kitchen;
 
@@ -17,7 +21,7 @@ export default async function AIMonitoringPage() {
     return null;
   }
 
-  const data = await getAIMonitoringPage(kitchen);
+  const data = await getAIMonitoringPage(kitchen, await searchParams);
 
   return <AIMonitoringView data={data} kitchenId={kitchen.id} />;
 }

@@ -1,93 +1,67 @@
 "use client";
 
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { BarChart3 } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis, type TooltipContentProps } from "recharts";
 
-import type {
-  PillarPerformance,
-} from "../../model/reports.model";
+import { ChartTooltipCard, SeriesRow } from "@/shared/components/charts/ChartTooltipCard";
+import { AXIS_TICK, BAR_CURSOR, BAR_RADIUS, CHART_MARGIN, GRID_STROKE, SERIES_COLORS } from "@/shared/components/charts/chart-theme";
+import EmptyState from "@/shared/components/ui/EmptyState";
+import { Panel, PanelHeader } from "@/shared/components/ui/Panel";
 
-interface PillarPerformanceChartProps {
-  data: PillarPerformance[];
+import type { PillarPerformance } from "../../model/reports.model";
+
+function PillarTooltip({ active, payload }: Partial<TooltipContentProps<number, string>>) {
+  const row = payload?.[0]?.payload as PillarPerformance | undefined;
+  if (!active || !row) return null;
+  return (
+    <ChartTooltipCard title={row.pillar}>
+      <SeriesRow
+        color={SERIES_COLORS[row.pillarId]}
+        label="Average score"
+        value={row.averageScore === null ? "No evidence" : `${row.averageScore}%`}
+      />
+    </ChartTooltipCard>
+  );
 }
 
-export default function PillarPerformanceChart({
-  data,
-}: PillarPerformanceChartProps) {
+/** Average score per pillar. Each pillar keeps its colour from the trend chart; values are labelled on the bars. */
+export default function PillarPerformanceChart({ data }: { data: PillarPerformance[] }) {
+  const hasData = data.some((d) => d.averageScore !== null);
+
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div>
-        <h3 className="text-lg font-semibold text-slate-950">
-          Pillar Performance
-        </h3>
+    <Panel>
+      <PanelHeader
+        title="Pillar performance"
+        description="Average pillar scores over the period. A pillar without evidence has no bar."
+      />
 
-        <p className="mt-1 text-sm text-slate-500">
-          Average pillar scores over the period. A pillar without evidence has no bar.
-        </p>
-      </div>
-
-      <div className="mt-6 h-72">
-        <ResponsiveContainer
-          width="100%"
-          height="100%"
-        >
-          <BarChart
-            data={data}
-            margin={{
-              top: 5,
-              right: 10,
-              left: -15,
-              bottom: 10,
-            }}
-          >
-            <CartesianGrid
-              strokeDasharray="3 3"
-              vertical={false}
-              stroke="#e2e8f0"
-            />
-
-            <XAxis
-              dataKey="pillar"
-              tick={{
-                fontSize: 11,
-                fill: "#64748b",
-              }}
-              tickLine={false}
-              axisLine={false}
-            />
-
-            <YAxis
-              domain={[0, 100]}
-              tick={{
-                fontSize: 12,
-                fill: "#64748b",
-              }}
-              tickLine={false}
-              axisLine={false}
-            />
-
-            <Tooltip
-              formatter={(value) => [
-                value === null || value === undefined ? "No evidence" : `${value}%`,
-                "Average Score",
-              ]}
-            />
-
-            <Bar
-              dataKey="averageScore"
-              fill="#10b981"
-              radius={[6, 6, 0, 0]}
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </section>
+      {hasData ? (
+        <div className="mt-6 h-72">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ ...CHART_MARGIN, top: 20 }} barCategoryGap="30%">
+              <CartesianGrid vertical={false} stroke={GRID_STROKE} />
+              <XAxis dataKey="pillar" tick={AXIS_TICK} tickLine={false} axisLine={false} />
+              <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tick={AXIS_TICK} tickLine={false} axisLine={false} />
+              <Tooltip cursor={BAR_CURSOR} content={<PillarTooltip />} />
+              <Bar dataKey="averageScore" radius={BAR_RADIUS} maxBarSize={64} isAnimationActive={false}>
+                {data.map((d) => (
+                  <Cell key={d.pillarId} fill={SERIES_COLORS[d.pillarId]} />
+                ))}
+                <LabelList
+                  dataKey="averageScore"
+                  position="top"
+                  formatter={(v: unknown) => (typeof v === "number" ? `${v}%` : "")}
+                  className="fill-slate-700 text-xs font-semibold"
+                />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      ) : (
+        <EmptyState icon={BarChart3} title="No pillar scores in this period" className="mt-4">
+          Pillar averages appear once monitoring has run during the period.
+        </EmptyState>
+      )}
+    </Panel>
   );
 }

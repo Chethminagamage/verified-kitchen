@@ -3,6 +3,8 @@
 import { useActionState, useState } from "react";
 import { LoaderCircle } from "lucide-react";
 
+import { useActionToast } from "@/shared/components/feedback/Toaster";
+
 import { changeOrderStatusAction } from "../../controller/orders.actions";
 import { nextActions, type OrderActionState, type OrderStatus } from "../../model/orders.model";
 
@@ -15,6 +17,7 @@ interface OrderActionsProps {
 export default function OrderActions({ id, reference, status }: OrderActionsProps) {
   const [state, formAction, pending] = useActionState<OrderActionState, FormData>(changeOrderStatusAction, null);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  useActionToast(state);
   const actions = nextActions(status);
   if (actions.length === 0) return null;
 

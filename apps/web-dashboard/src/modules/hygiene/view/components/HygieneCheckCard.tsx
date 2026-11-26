@@ -1,105 +1,76 @@
-import {
-  BrainCircuit,
-  CircleAlert,
-  CircleCheck,
-  CircleDashed,
-  CircleX,
-  RadioTower,
-  WifiOff,
-  type LucideIcon,
-} from "lucide-react";
+import { Camera, RadioTower, WifiOff } from "lucide-react";
 
 import LiveAge from "@/shared/components/feedback/LiveAge";
+import Meter from "@/shared/components/ui/Meter";
+import StatusPill from "@/shared/components/ui/StatusPill";
+import { toneForStatus } from "@/shared/components/ui/tone";
 
-import type { CheckStatus, HygieneCheck } from "../../model/hygiene.model";
+import type { HygieneCheck } from "../../model/hygiene.model";
 
-const STATUS: Record<CheckStatus, { className: string; icon: LucideIcon }> = {
-  Compliant: { className: "bg-emerald-50 text-emerald-700", icon: CircleCheck },
-  Safe: { className: "bg-emerald-50 text-emerald-700", icon: CircleCheck },
-  Warning: { className: "bg-amber-50 text-amber-700", icon: CircleAlert },
-  "Non-Compliant": { className: "bg-red-50 text-red-700", icon: CircleX },
-  Critical: { className: "bg-red-50 text-red-700", icon: CircleX },
-  "No evidence": { className: "bg-slate-100 text-slate-500", icon: CircleDashed },
-  "No data": { className: "bg-slate-100 text-slate-500", icon: CircleDashed },
-  Offline: { className: "bg-slate-100 text-slate-600", icon: WifiOff },
-};
-
-interface HygieneCheckCardProps {
-  check: HygieneCheck;
-  generatedAt: string;
+function formatRange(range: NonNullable<HygieneCheck["safeRange"]>, unit: string | null): string {
+  const u = unit ? ` ${unit}` : "";
+  if (range.min !== null && range.max !== null) return `${range.min}–${range.max}${u}`;
+  return range.max !== null ? `≤ ${range.max}${u}` : `≥ ${range.min}${u}`;
 }
 
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-xs text-slate-500">{label}</span>
-      <span className="text-sm font-semibold tabular-nums text-slate-900">{value}</span>
-    </div>
-  );
+/** What to show instead of a number when a check has nothing to report. */
+function quietReason(check: HygieneCheck): string {
+  if (check.status === "Offline") return "Sensor offline";
+  return check.source === "AI" ? "Not seen by the camera recently" : "No recent reading";
 }
 
-export default function HygieneCheckCard({ check, generatedAt }: HygieneCheckCardProps) {
-  const status = STATUS[check.status];
-  const StatusIcon = status.icon;
-  const range = check.safeRange;
+/** One hygiene item (e.g. Gloves, Fridge temperature) with its live state. */
+export default function HygieneCheckCard({ check, generatedAt }: { check: HygieneCheck; generatedAt: string }) {
+  const tone = toneForStatus(check.status);
+  const quiet = check.source === "AI" ? check.compliancePct === null : check.value === null;
 
   return (
-    <article className="rounded-xl border border-slate-200 bg-white p-4">
+    <article className="flex flex-col rounded-xl border border-slate-200/80 bg-white p-4 transition hover:border-slate-300">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-medium text-slate-900">{check.name}</p>
-          <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
-            {check.source === "AI" ? <BrainCircuit className="h-4 w-4" /> : <RadioTower className="h-4 w-4" />}
-            {check.source === "AI" ? "AI (camera)" : "Sensor (ESP32)"}
-          </div>
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
+            {check.source === "AI" ? <Camera className="h-3.5 w-3.5" aria-hidden /> : <RadioTower className="h-3.5 w-3.5" aria-hidden />}
+            {check.source === "AI" ? "Camera" : "Sensor"}
+          </p>
         </div>
-
-        <span
-          className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${status.className}`}
-        >
-          <StatusIcon className="h-3.5 w-3.5" />
+        <StatusPill tone={tone} icon={check.status === "Offline" ? WifiOff : undefined}>
           {check.status}
-        </span>
+        </StatusPill>
       </div>
 
-      <div className="mt-4 space-y-2 border-t border-slate-100 pt-4">
-        {check.source === "AI" ? (
+      <div className="mt-4 flex-1 border-t border-slate-100 pt-4">
+        {quiet ? (
+          <p className="text-sm text-slate-500">{quietReason(check)}</p>
+        ) : check.source === "AI" ? (
           <>
-            <Row
-              label="Compliance (last minute)"
-              value={check.compliancePct === null ? "—" : `${Math.round(check.compliancePct)}%`}
-            />
-            <Row
-              label="Model confidence"
-              value={check.confidence === null ? "—" : `${Math.round(check.confidence * 100)}%`}
-            />
+            <div className="flex items-baseline justify-between">
+              <span className="text-xs text-slate-500">Compliance, last minute</span>
+              <span className="text-sm font-semibold tabular-nums text-slate-900">{Math.round(check.compliancePct ?? 0)}%</span>
+            </div>
+            <Meter value={check.compliancePct} tone={tone} label={`${check.name} compliance`} className="mt-2" />
           </>
         ) : (
-          <>
-            <Row
-              label="Current reading"
-              value={check.value === null ? "—" : `${check.value.toFixed(check.decimals)} ${check.unit ?? ""}`}
-            />
-            {range && (
-              <Row
-                label="Safe range"
-                value={
-                  range.min !== null && range.max !== null
-                    ? `${range.min}–${range.max} ${check.unit ?? ""}`
-                    : range.max !== null
-                      ? `≤ ${range.max} ${check.unit ?? ""}`
-                      : `≥ ${range.min} ${check.unit ?? ""}`
-                }
-              />
+          <div className="space-y-1.5">
+            <div className="flex items-baseline justify-between">
+              <span className="text-xs text-slate-500">Current reading</span>
+              <span className="text-sm font-semibold tabular-nums text-slate-900">
+                {check.value?.toFixed(check.decimals)} {check.unit}
+              </span>
+            </div>
+            {check.safeRange && (
+              <div className="flex items-baseline justify-between">
+                <span className="text-xs text-slate-500">Safe range</span>
+                <span className="text-sm tabular-nums text-slate-700">{formatRange(check.safeRange, check.unit)}</span>
+              </div>
             )}
-          </>
+          </div>
         )}
-
-        <p className="pt-1 text-xs text-slate-400">
-          Last checked:{" "}
-          {check.lastChecked ? <LiveAge iso={check.lastChecked} serverNow={generatedAt} /> : "never"}
-        </p>
       </div>
+
+      <p className="mt-3 text-xs text-slate-400">
+        Last checked {check.lastChecked ? <LiveAge iso={check.lastChecked} serverNow={generatedAt} /> : "never"}
+      </p>
     </article>
   );
 }

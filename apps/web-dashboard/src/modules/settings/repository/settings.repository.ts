@@ -37,27 +37,4 @@ export class SettingsRepository {
     if (error) fail("latest reading", error.message);
     return data?.device_ts ?? null;
   }
-
-  async pendingAuditRecords(kitchenId: string): Promise<number> {
-    const supabase = await createClient();
-    const { count, error } = await supabase
-      .from("audit_records")
-      .select("id", { count: "exact", head: true })
-      .eq("kitchen_id", kitchenId)
-      .eq("status", "pending");
-    if (error) fail("audit records", error.message);
-    return count ?? 0;
-  }
-
-  async activeConfigVersion(): Promise<string | null> {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("scoring_configs")
-      .select("version")
-      .eq("is_active", true)
-      .limit(1)
-      .maybeSingle();
-    if (error) fail("scoring config", error.message);
-    return data?.version ?? null;
-  }
 }

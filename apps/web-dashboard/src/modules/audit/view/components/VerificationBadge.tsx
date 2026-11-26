@@ -1,26 +1,22 @@
 import { CircleCheck, CircleX, Clock3, type LucideIcon } from "lucide-react";
 
+import StatusPill from "@/shared/components/ui/StatusPill";
+import type { Tone } from "@/shared/components/ui/tone";
+
 import { AUDIT_STATUS_LABELS, type AuditStatus } from "../../model/audit.model";
 
-const STYLES: Record<AuditStatus, { className: string; icon: LucideIcon }> = {
-  verified: { className: "bg-emerald-50 text-emerald-700", icon: CircleCheck },
-  pending: { className: "bg-amber-50 text-amber-700", icon: Clock3 },
-  failed: { className: "bg-red-50 text-red-700", icon: CircleX },
+/** "Waiting to be secured" is normal until the independent ledger is connected, so it is neutral. */
+const STYLES: Record<AuditStatus, { tone: Tone; icon: LucideIcon }> = {
+  verified: { tone: "positive", icon: CircleCheck },
+  pending: { tone: "neutral", icon: Clock3 },
+  failed: { tone: "critical", icon: CircleX },
 };
 
-interface VerificationBadgeProps {
-  status: AuditStatus;
-}
-
-export default function VerificationBadge({ status }: VerificationBadgeProps) {
+export default function VerificationBadge({ status }: { status: AuditStatus }) {
   const style = STYLES[status];
-  const Icon = style.icon;
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${style.className}`}
-    >
-      <Icon className="h-3.5 w-3.5" />
+    <StatusPill tone={style.tone} icon={style.icon}>
       {AUDIT_STATUS_LABELS[status]}
-    </span>
+    </StatusPill>
   );
 }

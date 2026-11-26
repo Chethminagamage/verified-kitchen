@@ -1,88 +1,55 @@
 "use client";
 
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { ShieldCheck } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis, type TooltipContentProps } from "recharts";
 
-import type {
-  ViolationBreakdown,
-} from "../../model/reports.model";
+import { ChartTooltipCard, SeriesRow } from "@/shared/components/charts/ChartTooltipCard";
+import { AXIS_TICK, BAR_CURSOR, BAR_RADIUS, CHART_MARGIN, GRID_STROKE, SERIES_COLORS } from "@/shared/components/charts/chart-theme";
+import EmptyState from "@/shared/components/ui/EmptyState";
+import { Panel, PanelHeader } from "@/shared/components/ui/Panel";
 
-interface ViolationBreakdownChartProps {
-  data: ViolationBreakdown[];
+import type { ViolationBreakdown } from "../../model/reports.model";
+
+function BreakdownTooltip({ active, payload }: Partial<TooltipContentProps<number, string>>) {
+  const row = payload?.[0]?.payload as ViolationBreakdown | undefined;
+  if (!active || !row) return null;
+  return (
+    <ChartTooltipCard title={row.category}>
+      <SeriesRow color={SERIES_COLORS[row.pillarId]} label="Violations" value={row.count} />
+    </ChartTooltipCard>
+  );
 }
 
-export default function ViolationBreakdownChart({
-  data,
-}: ViolationBreakdownChartProps) {
+/** Violations per pillar, in each pillar's colour, with the count on each bar. */
+export default function ViolationBreakdownChart({ data }: { data: ViolationBreakdown[] }) {
+  const total = data.reduce((sum, d) => sum + d.count, 0);
+
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div>
-        <h3 className="text-lg font-semibold text-slate-950">
-          Violation Distribution
-        </h3>
+    <Panel>
+      <PanelHeader title="Violations by pillar" description="Problems recorded during the period, grouped by hygiene pillar." />
 
-        <p className="mt-1 text-sm text-slate-500">
-          Recorded violations grouped by hygiene pillar.
-        </p>
-      </div>
-
-      <div className="mt-6 h-72">
-        <ResponsiveContainer
-          width="100%"
-          height="100%"
-        >
-          <BarChart
-            data={data}
-            margin={{
-              top: 5,
-              right: 10,
-              left: -15,
-              bottom: 10,
-            }}
-          >
-            <CartesianGrid
-              strokeDasharray="3 3"
-              vertical={false}
-              stroke="#e2e8f0"
-            />
-
-            <XAxis
-              dataKey="category"
-              tick={{
-                fontSize: 11,
-                fill: "#64748b",
-              }}
-              tickLine={false}
-              axisLine={false}
-            />
-
-            <YAxis
-              allowDecimals={false}
-              tick={{
-                fontSize: 12,
-                fill: "#64748b",
-              }}
-              tickLine={false}
-              axisLine={false}
-            />
-
-            <Tooltip />
-
-            <Bar
-              dataKey="count"
-              fill="#64748b"
-              radius={[6, 6, 0, 0]}
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </section>
+      {total > 0 ? (
+        <div className="mt-6 h-72">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ ...CHART_MARGIN, top: 20 }} barCategoryGap="30%">
+              <CartesianGrid vertical={false} stroke={GRID_STROKE} />
+              <XAxis dataKey="category" tick={AXIS_TICK} tickLine={false} axisLine={false} />
+              <YAxis allowDecimals={false} tick={AXIS_TICK} tickLine={false} axisLine={false} />
+              <Tooltip cursor={BAR_CURSOR} content={<BreakdownTooltip />} />
+              <Bar dataKey="count" radius={BAR_RADIUS} maxBarSize={64} isAnimationActive={false}>
+                {data.map((d) => (
+                  <Cell key={d.pillarId} fill={SERIES_COLORS[d.pillarId]} />
+                ))}
+                <LabelList dataKey="count" position="top" className="fill-slate-700 text-xs font-semibold" />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      ) : (
+        <EmptyState icon={ShieldCheck} tone="positive" title="No violations in this period" className="mt-4">
+          Nothing was recorded against any hygiene pillar.
+        </EmptyState>
+      )}
+    </Panel>
   );
 }

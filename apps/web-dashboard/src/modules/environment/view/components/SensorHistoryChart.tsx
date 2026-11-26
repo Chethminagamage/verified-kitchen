@@ -13,13 +13,23 @@ import {
   type TooltipContentProps,
 } from "recharts";
 
+import { ChartTooltipCard } from "@/shared/components/charts/ChartTooltipCard";
+import {
+  ACTIVE_DOT,
+  AXIS_TICK,
+  CURSOR,
+  GRID_STROKE,
+  LINE_WIDTH,
+  SAFE_BAND_COLOR,
+  SINGLE_SERIES_COLOR,
+} from "@/shared/components/charts/chart-theme";
+import { PANEL_CLASS } from "@/shared/components/ui/Panel";
 import { formatClock, formatDateTime } from "@/shared/utils/time";
 
 import type { ChartPoint, MetricSummary, RangeId } from "../../model/environment.model";
 
-const LINE = "#2a78d6"; // categorical slot 1 (single series per chart)
-const SAFE_FILL = "#10b981";
-const AXIS_TEXT = { fontSize: 12, fill: "#64748b" };
+const LINE = SINGLE_SERIES_COLOR; // one series per chart
+const SAFE_FILL = SAFE_BAND_COLOR;
 
 interface Datum extends ChartPoint {
   band: [number, number] | null;
@@ -49,19 +59,18 @@ function HistoryTooltip({
   const f = (v: number) => `${v.toFixed(metric.decimals + (raw ? 1 : 0))} ${metric.unit}`;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs shadow-sm">
-      <p className="font-medium text-slate-900">{formatDateTime(d.t, timezone)}</p>
+    <ChartTooltipCard title={formatDateTime(d.t, timezone)}>
       {d.avg === null ? (
-        <p className="mt-1 text-slate-500">No reading (sensor error or offline)</p>
+        <p className="text-slate-500">No reading (sensor error or offline)</p>
       ) : raw ? (
-        <p className="mt-1 font-semibold tabular-nums text-slate-900">{f(d.avg)}</p>
+        <p className="font-semibold tabular-nums text-slate-900">{f(d.avg)}</p>
       ) : (
-        <p className="mt-1 tabular-nums text-slate-600">
+        <p className="tabular-nums text-slate-600">
           <span className="font-semibold text-slate-900">{f(d.avg)}</span> average
           {d.min !== null && d.max !== null && ` · ${f(d.min)} – ${f(d.max)}`}
         </p>
       )}
-    </div>
+    </ChartTooltipCard>
   );
 }
 
@@ -82,7 +91,7 @@ export default function SensorHistoryChart({ metric, range, timezone }: SensorHi
   const safe = metric.safeRange;
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section className={`${PANEL_CLASS} p-5`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="font-semibold text-slate-950">
           {metric.name} <span className="font-normal text-slate-500">({metric.unit})</span>
@@ -112,7 +121,7 @@ export default function SensorHistoryChart({ metric, range, timezone }: SensorHi
         <div className="mt-4 h-56 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={data} margin={{ top: 5, right: 8, left: -20, bottom: 0 }}>
-              <CartesianGrid vertical={false} stroke="#e2e8f0" />
+              <CartesianGrid vertical={false} stroke={GRID_STROKE} />
 
               {safe && (
                 <ReferenceArea
@@ -130,15 +139,15 @@ export default function SensorHistoryChart({ metric, range, timezone }: SensorHi
                 tickFormatter={(iso: string) =>
                   range === "7d" ? formatDateTime(iso, timezone).split(" ").slice(0, 2).join(" ") : formatClock(iso, timezone)
                 }
-                tick={AXIS_TEXT}
+                tick={AXIS_TICK}
                 tickLine={false}
                 axisLine={false}
                 minTickGap={32}
               />
-              <YAxis domain={[lo, hi]} tick={AXIS_TEXT} tickLine={false} axisLine={false} allowDecimals={false} />
+              <YAxis domain={[lo, hi]} tick={AXIS_TICK} tickLine={false} axisLine={false} allowDecimals={false} />
 
               <Tooltip
-                cursor={{ stroke: "#94a3b8", strokeWidth: 1 }}
+                cursor={CURSOR}
                 content={<HistoryTooltip metric={metric} timezone={timezone} raw={raw} />}
               />
 
@@ -156,11 +165,11 @@ export default function SensorHistoryChart({ metric, range, timezone }: SensorHi
               <Line
                 dataKey="avg"
                 stroke={LINE}
-                strokeWidth={2}
+                strokeWidth={LINE_WIDTH}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 dot={false}
-                activeDot={{ r: 4, stroke: "#ffffff", strokeWidth: 2 }}
+                activeDot={ACTIVE_DOT}
                 connectNulls={false}
                 isAnimationActive={false}
               />

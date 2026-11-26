@@ -6,8 +6,8 @@ import type { StaffAccount } from "@/modules/admin-accounts/model/accounts.model
 export type DeviceType = Database["public"]["Enums"]["device_type"];
 
 export const DEVICE_TYPE_LABELS: Record<DeviceType, string> = {
-  env_node: "Environmental sensor (ESP32)",
-  camera: "Hygiene camera (AI)",
+  env_node: "Environmental sensor",
+  camera: "Hygiene camera",
 };
 
 /** A device counts as reporting if it was heard from in the last 15 minutes (same rule as the database). */
@@ -170,33 +170,4 @@ export interface KitchenDetail {
 
 export function readyToPublish(readiness: ReadinessItem[]): boolean {
   return readiness.length > 0 && readiness.every((r) => r.ok || !r.blocking);
-}
-
-/** What a technician needs to connect a device to this kitchen (the edge computer runs one kitchen). */
-export function deviceSetup(kitchenCode: string, device: Pick<KitchenDevice, "id" | "type">) {
-  const topicBase = `vk/${kitchenCode}/${device.id}`;
-  const edgeEnv = {
-    file: "services/edge-service/.env",
-    lines: [
-      `KITCHEN_CODE=${kitchenCode}`,
-      device.type === "env_node" ? `ENV_DEVICE_ID=${device.id}` : `CAMERA_DEVICE_ID=${device.id}`,
-    ],
-  };
-  return {
-    brokerAccount: `infrastructure/mosquitto/add-device.sh ${device.id}`,
-    topics:
-      device.type === "env_node"
-        ? [`${topicBase}/telemetry`, `${topicBase}/status`]
-        : [`${topicBase}/detections`, `${topicBase}/status`],
-    files:
-      device.type === "env_node"
-        ? [
-            {
-              file: "iot/esp32/include/config.h",
-              lines: [`#define DEVICE_ID "${device.id}"`, `#define KITCHEN_CODE "${kitchenCode}"`],
-            },
-            edgeEnv,
-          ]
-        : [edgeEnv],
-  };
 }

@@ -1,22 +1,20 @@
 import Link from "next/link";
-import { ArrowRight, Clock } from "lucide-react";
+import { ArrowRight, Clock, ShieldCheck } from "lucide-react";
 
+import ViolationSeverityBadge from "@/modules/violations/view/components/ViolationSeverityBadge";
 import LiveAge from "@/shared/components/feedback/LiveAge";
 import LiveRefresh from "@/shared/components/feedback/LiveRefresh";
+import EmptyState from "@/shared/components/ui/EmptyState";
+import Notice from "@/shared/components/ui/Notice";
+import PageHeader from "@/shared/components/ui/PageHeader";
+import { Panel, PanelHeader } from "@/shared/components/ui/Panel";
 import { formatDateTime } from "@/shared/utils/time";
 
-import { RANGE_CONFIG, RANGES, type EnvironmentPage, type ViolationSeverity } from "../model/environment.model";
+import { RANGE_CONFIG, RANGES, type EnvironmentPage } from "../model/environment.model";
 
 import DeviceHealthPanel from "./components/DeviceHealthPanel";
 import MetricCard from "./components/MetricCard";
 import SensorHistoryChart from "./components/SensorHistoryChart";
-
-const SEVERITY_STYLES: Record<ViolationSeverity, string> = {
-  low: "bg-slate-100 text-slate-700",
-  medium: "bg-amber-50 text-amber-700",
-  high: "bg-orange-50 text-orange-700",
-  critical: "bg-red-50 text-red-700",
-};
 
 interface EnvironmentalMonitoringViewProps {
   data: EnvironmentPage;
@@ -26,39 +24,40 @@ interface EnvironmentalMonitoringViewProps {
 export default function EnvironmentalMonitoringView({ data, kitchenId }: EnvironmentalMonitoringViewProps) {
   return (
     <div className="mx-auto max-w-7xl">
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium text-emerald-600">Pillar 3 · IoT Sensing</p>
-          <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-            Environmental Monitoring
-          </h2>
-          <p className="mt-2 text-sm text-slate-500">
-            {data.latestReadingAt ? (
-              <>
-                Latest ESP32 reading <LiveAge iso={data.latestReadingAt} serverNow={data.generatedAt} />
-                {data.environmentalScore !== null && (
-                  <> · Environmental score {Math.round(data.environmentalScore)}/100</>
-                )}
-              </>
-            ) : (
-              "No readings yet. Start the sensor node and the edge service."
-            )}
-          </p>
-        </div>
-
-        {/* Readings arrive every 30 s; the page refreshes on each one. */}
-        <LiveRefresh kitchenId={kitchenId} tables={["sensor_readings", "devices", "violations"]} minIntervalMs={2000} fallbackMs={30000} />
-      </div>
+      <PageHeader
+        eyebrow="Pillar 3 · Kitchen sensors"
+        title="Environmental Monitoring"
+        description={
+          data.latestReadingAt ? (
+            <>
+              Latest reading <LiveAge iso={data.latestReadingAt} serverNow={data.generatedAt} />
+              {data.environmentalScore !== null && <> · Environmental score {Math.round(data.environmentalScore)}/100</>}
+            </>
+          ) : (
+            "No readings yet. Check that the kitchen sensors are switched on."
+          )
+        }
+        aside={
+          // Readings arrive every 30 s; the page refreshes on each one.
+          <LiveRefresh
+            kitchenId={kitchenId}
+            tables={["sensor_readings", "devices", "violations"]}
+            minIntervalMs={2000}
+            fallbackMs={30000}
+          />
+        }
+      />
 
       {data.readingIsStale && data.latestReadingAt && (
-        <p className="mb-6 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          <Clock className="h-4 w-4 shrink-0" />
-          {data.device && !data.device.online
-            ? "The sensor node is offline. "
-            : "No new reading is arriving. "}
+        <Notice
+          tone="warning"
+          icon={Clock}
+          className="mb-6"
+          title={data.device && !data.device.online ? "The kitchen sensors are offline" : "No new reading is arriving"}
+        >
           The values below are the last ones received, at {formatDateTime(data.latestReadingAt, data.timezone)}. Check
-          that the sensor node is powered and connected, and that the edge service is running.
-        </p>
+          that the sensors are switched on and connected to Wi-Fi, and that the monitoring system is running.
+        </Notice>
       )}
 
       <section className="grid gap-4 md:grid-cols-3">
@@ -68,8 +67,8 @@ export default function EnvironmentalMonitoringView({ data, kitchenId }: Environ
       </section>
 
       <div className="mb-4 mt-8 flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-lg font-semibold text-slate-950">History</h3>
-        <nav aria-label="Time range" className="flex rounded-lg border border-slate-200 bg-white p-1 text-sm">
+        <h3 className="text-lg font-semibold tracking-tight text-slate-950">History</h3>
+        <nav aria-label="Time range" className="flex rounded-lg border border-slate-200 bg-white p-1 text-sm shadow-card">
           {RANGES.map((r) => (
             <Link
               key={r}
@@ -96,29 +95,31 @@ export default function EnvironmentalMonitoringView({ data, kitchenId }: Environ
         <div className="space-y-6">
           <DeviceHealthPanel device={data.device} timezone={data.timezone} generatedAt={data.generatedAt} />
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="font-semibold text-slate-950">Recent Environmental Violations</h3>
-              <Link
-                href="/dashboard/violations?pillar=environmental&status=all"
-                className="flex items-center gap-1 text-sm font-medium text-emerald-700 hover:text-emerald-800"
-              >
-                All <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
+          <Panel>
+            <PanelHeader
+              title="Recent environmental violations"
+              aside={
+                <Link
+                  href="/dashboard/violations?pillar=environmental&status=all"
+                  className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-medium text-emerald-700 transition hover:bg-emerald-50"
+                >
+                  All <ArrowRight className="h-4 w-4" aria-hidden />
+                </Link>
+              }
+            />
 
             {data.violations.length === 0 ? (
-              <p className="mt-3 text-sm text-slate-500">None recorded.</p>
+              <EmptyState icon={ShieldCheck} tone="positive" title="None recorded" compact className="mt-2">
+                The kitchen air and fridge have stayed within their safe ranges.
+              </EmptyState>
             ) : (
               <ul className="mt-3 divide-y divide-slate-100">
                 {data.violations.map((v) => (
-                  <li key={v.id} className="flex items-start gap-3 py-3">
-                    <span
-                      className={`mt-0.5 w-16 shrink-0 rounded-full px-2 py-0.5 text-center text-xs font-semibold capitalize ${SEVERITY_STYLES[v.severity]}`}
-                    >
-                      {v.severity}
-                    </span>
-                    <div className="min-w-0 flex-1 text-sm">
+                  <li key={v.id} className="grid grid-cols-[5.5rem_minmax(0,1fr)] items-start gap-3 py-3">
+                    <div className="pt-0.5">
+                      <ViolationSeverityBadge severity={v.severity} />
+                    </div>
+                    <div className="min-w-0 text-sm">
                       <p className="font-medium text-slate-900">{v.title}</p>
                       <p className="text-xs text-slate-500">
                         {formatDateTime(v.occurredAt, data.timezone)}
@@ -130,7 +131,7 @@ export default function EnvironmentalMonitoringView({ data, kitchenId }: Environ
                 ))}
               </ul>
             )}
-          </section>
+          </Panel>
         </div>
       </div>
     </div>

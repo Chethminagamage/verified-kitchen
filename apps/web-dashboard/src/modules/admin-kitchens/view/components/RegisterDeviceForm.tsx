@@ -26,7 +26,7 @@ export default function RegisterDeviceForm({ kitchenId }: { kitchenId: string })
           className={`${inputClass(errors.name)} sm:flex-1`} />
         <SubmitButton tone="dark" pendingText="Registering...">Register</SubmitButton>
       </div>
-      <p className="text-xs text-slate-500">The device gets a permanent ID, used as its MQTT login and topic.</p>
+      <p className="text-xs text-slate-500">The device gets a permanent ID. Give it to the installer, who uses it to connect the device.</p>
       <FormMessage state={state} />
     </form>
   );

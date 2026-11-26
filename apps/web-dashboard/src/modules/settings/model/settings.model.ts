@@ -5,34 +5,26 @@ export interface KitchenProfile {
   operatorName: string;
 }
 
-export interface MonitoringConfiguration {
-  aiMonitoringEnabled: boolean;
-  environmentalMonitoringEnabled: boolean;
-  auditLoggingEnabled: boolean;
-  scoreRefreshInterval: string;
-  privacyMode: string;
+/** Whether the kitchen's monitoring is running right now (from the devices' latest reports). */
+export interface MonitoringStatus {
+  cameraOnline: boolean;
+  sensorsOnline: boolean;
+  /** Latest sensor reading, in the kitchen's time zone; null before the first one. */
+  lastReadingLabel: string | null;
 }
 
-export interface NotificationSettings {
-  violationAlerts: boolean;
-  criticalAlerts: boolean;
-  sensorWarnings: boolean;
-  dailySummary: boolean;
-}
-
-export interface SystemInformation {
-  applicationVersion: string;
-  aiModel: string;
-  edgeDevice: string;
-  sensorNode: string;
-  database: string;
-  blockchainPlatform: string;
-  lastSync: string;
+/** The signed-in user's own account, shown and edited on the Settings page. */
+export interface AccountSettings {
+  fullName: string | null;
+  email: string;
+  phone: string | null;
+  roleLabel: string;
+  /** When this device signed in, in the kitchen's time zone. */
+  signedInLabel: string;
 }
 
 export interface SettingsData {
   kitchenProfile: KitchenProfile;
-  monitoring: MonitoringConfiguration;
-  notifications: NotificationSettings;
-  system: SystemInformation;
+  monitoring: MonitoringStatus;
+  account: AccountSettings;
 }

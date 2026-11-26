@@ -5,6 +5,12 @@ import { Card } from "@/modules/admin/view/components/ui";
 import type { ReadinessItem } from "../../model/kitchens.model";
 
 /** The database's go-live checklist (public.kitchen_readiness). */
+/** Plain wording for steps whose database text names the hardware. */
+const TODO_DETAIL: Record<string, string> = {
+  env_node: "Register the environmental sensor.",
+  camera: "Register the hygiene camera.",
+};
+
 export default function ReadinessCard({ items, live }: { items: ReadinessItem[]; live: boolean }) {
   const done = items.filter((i) => i.blocking && i.ok).length;
   const total = items.filter((i) => i.blocking).length;
@@ -26,7 +32,7 @@ export default function ReadinessCard({ items, live }: { items: ReadinessItem[];
                   <span className="sr-only">{i.ok ? ": done" : i.blocking ? ": to do" : ": warning"}</span>
                   {!i.blocking && <span className="ml-2 text-xs font-normal text-slate-400">recommended</span>}
                 </p>
-                <p className="text-xs leading-5 text-slate-500">{i.detail}</p>
+                <p className="text-xs leading-5 text-slate-500">{(!i.ok && TODO_DETAIL[i.item]) || i.detail}</p>
               </div>
             </li>
           );

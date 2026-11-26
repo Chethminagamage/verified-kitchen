@@ -10,8 +10,9 @@ export interface CameraRow {
   last_status: Json | null;
 }
 
-export interface PersonalScoreRow {
+export interface PillarScoreRow {
   personal_score: number | null;
+  food_prep_score: number | null;
   computed_at: string;
 }
 
@@ -35,14 +36,14 @@ export class AIMonitoringRepository {
     return data;
   }
 
-  /** Newest first. One hour of 5-s windows is at most 720 per indicator. */
-  async detections(kitchenId: string, since: Date): Promise<DetectionRow[]> {
+  /** Newest first, one pillar at a time. One hour of 5-s windows is at most 720 per indicator. */
+  async detections(kitchenId: string, pillar: "personal" | "food_prep", since: Date): Promise<DetectionRow[]> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("ai_detections")
       .select("detected_at, indicator, compliant, confidence, inference_ms, model_version, metadata")
       .eq("kitchen_id", kitchenId)
-      .eq("pillar", "personal")
+      .eq("pillar", pillar)
       .gte("detected_at", since.toISOString())
       .order("detected_at", { ascending: false })
       .limit(2500);
@@ -50,11 +51,11 @@ export class AIMonitoringRepository {
     return data;
   }
 
-  async latestPersonalScore(kitchenId: string): Promise<PersonalScoreRow | null> {
+  async latestPillarScores(kitchenId: string): Promise<PillarScoreRow | null> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("hygiene_scores")
-      .select("personal_score, computed_at")
+      .select("personal_score, food_prep_score, computed_at")
       .eq("kitchen_id", kitchenId)
       .order("computed_at", { ascending: false })
       .limit(1)

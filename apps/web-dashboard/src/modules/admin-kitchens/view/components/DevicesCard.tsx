@@ -7,7 +7,7 @@ import LiveAge from "@/shared/components/feedback/LiveAge";
 import { formatDateTime } from "@/shared/utils/time";
 
 import { removeDeviceAction } from "../../controller/kitchens.actions";
-import { DEVICE_TYPE_LABELS, deviceSetup, type KitchenDevice } from "../../model/kitchens.model";
+import { DEVICE_TYPE_LABELS, type KitchenDevice } from "../../model/kitchens.model";
 
 import RegisterDeviceForm from "./RegisterDeviceForm";
 import RenameDeviceForm from "./RenameDeviceForm";
@@ -31,7 +31,6 @@ export default function DevicesCard({
         <ul className="divide-y divide-slate-100">
           {devices.map((d) => {
             const Icon = d.type === "camera" ? Camera : Cpu;
-            const setup = deviceSetup(kitchenCode, d);
             return (
               <li key={d.id} className="py-4 first:pt-0">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -62,25 +61,15 @@ export default function DevicesCard({
                 </div>
 
                 <details className="group mt-3 rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-600">
-                  <summary className="cursor-pointer select-none font-medium text-slate-700">Setup details and options</summary>
+                  <summary className="cursor-pointer select-none font-medium text-slate-700">Installation details and options</summary>
                   <div className="mt-3 space-y-3">
-                    <div>
-                      <p className="font-medium text-slate-700">1. Broker account (on the kitchen&apos;s edge computer)</p>
-                      <code className="mt-1 block overflow-x-auto rounded-lg bg-white px-3 py-2 font-mono">{setup.brokerAccount}</code>
-                    </div>
-                    {setup.files.map((f, i) => (
-                      <div key={f.file}>
-                        <p className="font-medium text-slate-700">
-                          {i + 2}. Set in <span className="font-mono">{f.file}</span>
-                        </p>
-                        <code className="mt-1 block overflow-x-auto whitespace-pre rounded-lg bg-white px-3 py-2 font-mono">
-                          {f.lines.join("\n")}
-                        </code>
-                      </div>
-                    ))}
-                    <p>
-                      Publishes to <span className="font-mono">{setup.topics.join(", ")}</span>
-                    </p>
+                    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+                      <dt className="text-slate-500">Device ID</dt>
+                      <dd className="font-mono text-slate-900">{d.id}</dd>
+                      <dt className="text-slate-500">Kitchen code</dt>
+                      <dd className="font-mono text-slate-900">{kitchenCode}</dd>
+                    </dl>
+                    <p>Give these to the installer. The device appears as &ldquo;Reporting&rdquo; once it is connected.</p>
                     <div className="border-t border-slate-200 pt-3">
                       <RenameDeviceForm deviceId={d.id} name={d.name} />
                     </div>

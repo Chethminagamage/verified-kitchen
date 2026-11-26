@@ -94,3 +94,13 @@ export interface DashboardOverview {
 export const SCORE_STALE_AFTER_MS = 5 * 60 * 1000;
 
 export const TREND_HOURS = 24;
+
+/**
+ * Change of the overall score since the oldest hour in the trend that had a
+ * score. Null when there is nothing to compare with (fewer than two values).
+ */
+export function scoreChange(trend: readonly TrendPoint[], current: number): number | null {
+  const scored = trend.filter((p): p is TrendPoint & { overall: number } => p.overall !== null);
+  if (scored.length < 2) return null;
+  return Math.round(current - scored[0].overall);
+}

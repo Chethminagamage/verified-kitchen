@@ -1,7 +1,7 @@
 import type { KitchenSummary } from "@/modules/auth/model/session.model";
 import { formatDateTime } from "@/shared/utils/time";
 
-import { REPORT_PERIOD_DAYS, weightedAverage, type ReportsData } from "../model/reports.model";
+import { REPORT_PERIOD_DAYS, weightedAverage, type PillarPerformance, type ReportsData } from "../model/reports.model";
 import { ReportsRepository } from "../repository/reports.repository";
 
 export class ReportsService {
@@ -36,15 +36,15 @@ export class ReportsService {
         date: formatDateTime(b.bucket, kitchen.timezone),
         score: b.overall === null ? null : Math.round(b.overall * 10) / 10,
       })),
-      pillarPerformance: [
-        { pillar: "Personal", averageScore: weightedAverage(daily, "personal") },
-        { pillar: "Food Prep", averageScore: weightedAverage(daily, "foodPrep") },
-        { pillar: "Environmental", averageScore: weightedAverage(daily, "environmental") },
-      ].map((p) => ({ ...p, averageScore: p.averageScore === null ? null : Math.round(p.averageScore * 10) / 10 })),
+      pillarPerformance: ([
+        { pillarId: "personal", pillar: "Personal", averageScore: weightedAverage(daily, "personal") },
+        { pillarId: "food_prep", pillar: "Food Prep", averageScore: weightedAverage(daily, "foodPrep") },
+        { pillarId: "environmental", pillar: "Environmental", averageScore: weightedAverage(daily, "environmental") },
+      ] satisfies PillarPerformance[]).map((p) => ({ ...p, averageScore: p.averageScore === null ? null : Math.round(p.averageScore * 10) / 10 })),
       violationBreakdown: [
-        { category: "Personal", count: byPillar.personal ?? 0 },
-        { category: "Food Prep", count: byPillar.food_prep ?? 0 },
-        { category: "Environmental", count: byPillar.environmental ?? 0 },
+        { pillarId: "personal", category: "Personal", count: byPillar.personal ?? 0 },
+        { pillarId: "food_prep", category: "Food Prep", count: byPillar.food_prep ?? 0 },
+        { pillarId: "environmental", category: "Environmental", count: byPillar.environmental ?? 0 },
       ],
       environmentalSummary,
     };

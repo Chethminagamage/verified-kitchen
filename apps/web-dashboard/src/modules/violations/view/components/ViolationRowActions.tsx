@@ -3,6 +3,8 @@
 import { useActionState, useState } from "react";
 import { Check, CheckCheck, LoaderCircle } from "lucide-react";
 
+import { useActionToast } from "@/shared/components/feedback/Toaster";
+
 import { changeViolationStatusAction } from "../../controller/violation.actions";
 import {
   allowedTransitions,
@@ -26,6 +28,7 @@ export default function ViolationRowActions({
     null
   );
   const [confirmResolve, setConfirmResolve] = useState(false);
+  useActionToast(state);
   const transitions = allowedTransitions(status);
 
   if (transitions.length === 0) {

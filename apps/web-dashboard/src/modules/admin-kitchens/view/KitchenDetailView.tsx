@@ -97,8 +97,8 @@ export default function KitchenDetailView({
           </Card>
           <Card title="Menu">
             <p className="text-sm leading-6 text-slate-500">
-              Menu editing is not in the admin site yet. Add menu items with SQL in Supabase
-              (see <span className="font-mono text-xs">infrastructure/supabase/demo/marketplace_demo.sql</span> for the format).
+              Menu editing is coming to the admin site soon. Until then, the platform team adds menu items on
+              request.
             </p>
           </Card>
           <Card title="Recent activity">

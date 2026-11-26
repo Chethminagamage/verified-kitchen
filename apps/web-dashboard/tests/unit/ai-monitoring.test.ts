@@ -5,6 +5,7 @@ import {
   cameraStatusFields,
   complianceRate,
   liveState,
+  pooledHistory,
   splitModelVersion,
   windowFrames,
   type DetectionRow,
@@ -64,5 +65,35 @@ describe("camera status and metadata parsing", () => {
     expect(splitModelVersion("ppe_yolo26n_best@ada23a1ecd47")).toEqual({ name: "ppe_yolo26n_best", hash: "ada23a1ecd47" });
     expect(splitModelVersion("simulator-v1")).toEqual({ name: "simulator-v1", hash: null });
     expect(splitModelVersion(null)).toBeNull();
+  });
+});
+
+
+describe("pooledHistory (food-prep surface card)", () => {
+  const at = (secondsAgo: number, indicator: string, compliant: boolean): DetectionRow => ({
+    ...row(secondsAgo, compliant),
+    indicator,
+  });
+
+  it("merges clean- and dirty-surface windows newest first", () => {
+    const byIndicator = new Map([
+      ["clean_surface", [at(5, "clean_surface", true), at(60, "clean_surface", true)]],
+      ["dirty_surface", [at(30, "dirty_surface", false)]],
+    ]);
+    const pooled = pooledHistory(byIndicator, ["clean_surface", "dirty_surface"]);
+    expect(pooled.map((r) => r.indicator)).toEqual(["clean_surface", "dirty_surface", "clean_surface"]);
+    expect(complianceRate(pooled)).toBeCloseTo(66.67, 1);
+  });
+
+  it("shows the breach when one window saw both a clean and a dirty surface", () => {
+    const byIndicator = new Map([
+      ["clean_surface", [at(5, "clean_surface", true)]],
+      ["dirty_surface", [at(5, "dirty_surface", false)]],
+    ]);
+    expect(liveState(pooledHistory(byIndicator, ["clean_surface", "dirty_surface"])[0], NOW)).toBe("Non-Compliant");
+  });
+
+  it("is empty (not in view) without any window", () => {
+    expect(pooledHistory(new Map(), ["food_waste"])).toEqual([]);
   });
 });

@@ -1,6 +1,6 @@
 import { createClient } from "@/infrastructure/supabase/server";
 
-import type { DeviceHeartbeat } from "../model/system-status.model";
+import type { DeviceHeartbeat, NotificationItem } from "../model/system-status.model";
 
 export class SystemStatusRepository {
   async getDevices(
@@ -50,5 +50,31 @@ export class SystemStatusRepository {
     }
 
     return count ?? 0;
+  }
+
+  /** Newest open violations, ordered exactly like the Violations page (occurred_at desc, then id). */
+  async recentOpenViolations(kitchenId: string, limit: number): Promise<NotificationItem[]> {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from("violations")
+      .select("id, title, severity, status, occurred_at")
+      .eq("kitchen_id", kitchenId)
+      .in("status", ["active", "acknowledged"])
+      .order("occurred_at", { ascending: false })
+      .order("id")
+      .limit(limit);
+
+    if (error) {
+      throw new Error(`Could not load notifications: ${error.message}`);
+    }
+
+    return data.map((v) => ({
+      id: v.id,
+      title: v.title,
+      severity: v.severity,
+      status: v.status === "acknowledged" ? "acknowledged" : "active",
+      occurredAt: v.occurred_at,
+    }));
   }
 }

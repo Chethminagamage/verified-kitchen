@@ -1,103 +1,109 @@
 "use client";
 
+import { LineChart as LineChartIcon } from "lucide-react";
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, type TooltipContentProps } from "recharts";
+
+import { ChartTooltipCard, SeriesRow } from "@/shared/components/charts/ChartTooltipCard";
 import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+  ACTIVE_DOT,
+  AXIS_TICK,
+  CHART_MARGIN,
+  CURSOR,
+  GRID_STROKE,
+  LINE_WIDTH,
+  SINGLE_SERIES_COLOR,
+} from "@/shared/components/charts/chart-theme";
+import EmptyState from "@/shared/components/ui/EmptyState";
+import { Panel, PanelHeader } from "@/shared/components/ui/Panel";
 
-import type {
-  HygieneTrendPoint,
-} from "../../model/reports.model";
+import type { HygieneTrendPoint } from "../../model/reports.model";
 
-interface HygieneScoreTrendChartProps {
-  data: HygieneTrendPoint[];
+function TrendTooltip({ active, payload, label }: Partial<TooltipContentProps<number, string>>) {
+  if (!active || !payload?.length) return null;
+  const value = payload[0]?.value;
+  return (
+    <ChartTooltipCard title={label}>
+      <SeriesRow
+        color={SINGLE_SERIES_COLOR}
+        label="Hygiene score"
+        value={typeof value === "number" ? `${value}/100` : "No data"}
+      />
+    </ChartTooltipCard>
+  );
 }
 
-export default function HygieneScoreTrendChart({
-  data,
-}: HygieneScoreTrendChartProps) {
+/** A point with no neighbours would be invisible without a dot; only those get one. */
+function isolatedDot(data: HygieneTrendPoint[]) {
+  return function Dot(props: { cx?: number; cy?: number; index?: number }) {
+    const { cx, cy, index = 0 } = props;
+    const alone = data[index]?.score !== null && data[index - 1]?.score == null && data[index + 1]?.score == null;
+    if (!alone || cx === undefined || cy === undefined) return <g key={index} />;
+    return <circle key={index} cx={cx} cy={cy} r={4} fill={SINGLE_SERIES_COLOR} stroke="#ffffff" strokeWidth={2} />;
+  };
+}
+
+export default function HygieneScoreTrendChart({ data }: { data: HygieneTrendPoint[] }) {
+  const hasData = data.some((d) => d.score !== null);
+
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div>
-        <h3 className="text-lg font-semibold text-slate-950">
-          Hygiene Score Trend
-        </h3>
+    <Panel>
+      <PanelHeader
+        title="Hygiene score trend"
+        description="Overall hygiene score, 6-hour averages. Gaps mean nothing was monitored."
+      />
 
-        <p className="mt-1 text-sm text-slate-500">
-          Overall hygiene score, 6-hour averages. Gaps mean no scores were recorded.
-        </p>
-      </div>
+      {hasData ? (
+        <>
+          <div className="mt-6 h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={data} margin={CHART_MARGIN}>
+                <CartesianGrid vertical={false} stroke={GRID_STROKE} />
+                <XAxis dataKey="date" tick={AXIS_TICK} tickLine={false} axisLine={false} minTickGap={24} />
+                <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tick={AXIS_TICK} tickLine={false} axisLine={false} />
+                <Tooltip cursor={CURSOR} content={<TrendTooltip />} />
+                <Line
+                  type="monotone"
+                  dataKey="score"
+                  name="Hygiene score"
+                  stroke={SINGLE_SERIES_COLOR}
+                  strokeWidth={LINE_WIDTH}
+                  strokeLinecap="round"
+                  dot={isolatedDot(data)}
+                  activeDot={ACTIVE_DOT}
+                  connectNulls={false}
+                  isAnimationActive={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
 
-      <div className="mt-6 h-72 w-full">
-        <ResponsiveContainer
-          width="100%"
-          height="100%"
-        >
-          <LineChart
-            data={data}
-            margin={{
-              top: 5,
-              right: 15,
-              left: -15,
-              bottom: 0,
-            }}
-          >
-            <CartesianGrid
-              strokeDasharray="3 3"
-              vertical={false}
-              stroke="#e2e8f0"
-            />
-
-            <XAxis
-              dataKey="date"
-              tick={{
-                fontSize: 12,
-                fill: "#64748b",
-              }}
-              tickLine={false}
-              axisLine={false}
-            />
-
-            <YAxis
-              domain={[0, 100]}
-              tick={{
-                fontSize: 12,
-                fill: "#64748b",
-              }}
-              tickLine={false}
-              axisLine={false}
-            />
-
-            <Tooltip
-              formatter={(value) => [
-                value === null || value === undefined ? "No data" : `${value}/100`,
-                "Hygiene Score",
-              ]}
-              contentStyle={{
-                borderRadius: "12px",
-                border: "1px solid #e2e8f0",
-              }}
-            />
-
-            <Line
-              type="monotone"
-              dataKey="score"
-              connectNulls={false}
-              stroke="#10b981"
-              strokeWidth={3}
-              dot={{
-                r: 4,
-                fill: "#10b981",
-              }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-    </section>
+          <details className="mt-4 text-sm">
+            <summary className="cursor-pointer text-slate-500 hover:text-slate-700">Show data table</summary>
+            <div className="mt-3 max-h-64 overflow-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="sticky top-0 bg-white text-slate-500">
+                  <tr>
+                    <th className="py-1.5 pr-4 font-medium">Period</th>
+                    <th className="py-1.5 text-right font-medium">Hygiene score</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 tabular-nums text-slate-700">
+                  {data.map((d) => (
+                    <tr key={d.date}>
+                      <td className="py-1.5 pr-4">{d.date}</td>
+                      <td className="py-1.5 text-right">{d.score === null ? "—" : d.score}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </>
+      ) : (
+        <EmptyState icon={LineChartIcon} title="No scores in this period" className="mt-4">
+          The trend appears once the camera and sensors have been running.
+        </EmptyState>
+      )}
+    </Panel>
   );
 }

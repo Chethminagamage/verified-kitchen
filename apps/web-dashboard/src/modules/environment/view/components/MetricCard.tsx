@@ -1,29 +1,16 @@
-import {
-  CircleCheck,
-  CircleDashed,
-  CircleX,
-  Droplets,
-  Refrigerator,
-  Thermometer,
-  TriangleAlert,
-  WifiOff,
-  type LucideIcon,
-} from "lucide-react";
+import { Droplets, Refrigerator, Thermometer, WifiOff, type LucideIcon } from "lucide-react";
 
-import type { MetricId, MetricStatus, MetricSummary, SafeRange } from "../../model/environment.model";
+import AnimatedNumber from "@/shared/components/ui/AnimatedNumber";
+import { IconTile, Panel } from "@/shared/components/ui/Panel";
+import StatusPill from "@/shared/components/ui/StatusPill";
+import { toneForStatus } from "@/shared/components/ui/tone";
+
+import type { MetricId, MetricSummary, SafeRange } from "../../model/environment.model";
 
 const METRIC_ICONS: Record<MetricId, LucideIcon> = {
   ambient_temp_c: Thermometer,
   humidity_pct: Droplets,
   fridge_temp_c: Refrigerator,
-};
-
-const STATUS: Record<MetricStatus, { className: string; icon: LucideIcon }> = {
-  Safe: { className: "bg-emerald-50 text-emerald-700", icon: CircleCheck },
-  Warning: { className: "bg-amber-50 text-amber-700", icon: TriangleAlert },
-  Critical: { className: "bg-red-50 text-red-700", icon: CircleX },
-  "No data": { className: "bg-slate-100 text-slate-500", icon: CircleDashed },
-  Offline: { className: "bg-slate-100 text-slate-600", icon: WifiOff },
 };
 
 function rangeText(range: SafeRange, unit: string): string {
@@ -34,47 +21,40 @@ function rangeText(range: SafeRange, unit: string): string {
 
 interface MetricCardProps {
   metric: MetricSummary;
+  /** The values are the last ones received (no new reading is arriving). */
   stale: boolean;
 }
 
+/** Live value of one environmental measurement with its 24-hour range. */
 export default function MetricCard({ metric, stale }: MetricCardProps) {
-  const Icon = METRIC_ICONS[metric.id];
-  const status = STATUS[metric.status];
-  const StatusIcon = status.icon;
   const fmt = (v: number) => v.toFixed(metric.decimals);
 
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <Panel as="article" interactive>
       <div className="flex items-start justify-between gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-50">
-          <Icon className="h-6 w-6 text-sky-600" />
-        </div>
-
-        <span
-          className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${status.className}`}
-        >
-          <StatusIcon className="h-3.5 w-3.5" />
+        <IconTile icon={METRIC_ICONS[metric.id]} tone="info" size="lg" />
+        <StatusPill tone={toneForStatus(metric.status)} icon={metric.status === "Offline" ? WifiOff : undefined}>
           {metric.status}
-        </span>
+        </StatusPill>
       </div>
 
       <p className="mt-4 text-sm font-medium text-slate-500">{metric.name}</p>
 
-      <p
-        className={`mt-1 text-3xl font-bold tabular-nums tracking-tight ${
-          stale ? "text-slate-400" : "text-slate-950"
-        }`}
-      >
-        {metric.value === null ? "—" : fmt(metric.value)}
-        {metric.value !== null && (
-          <span className="ml-1 text-base font-medium text-slate-500">{metric.unit}</span>
-        )}
-      </p>
+      {metric.value === null ? (
+        <p className="mt-2 text-sm text-slate-500">No reading right now.</p>
+      ) : (
+        <p className="mt-1 flex items-baseline gap-1">
+          <AnimatedNumber
+            value={metric.value}
+            decimals={metric.decimals}
+            className={`text-3xl font-semibold tracking-tight ${stale ? "text-slate-400" : "text-slate-950"}`}
+          />
+          <span className="text-base font-medium text-slate-500">{metric.unit}</span>
+        </p>
+      )}
 
       {metric.sensorOk === false && !stale && (
-        <p className="mt-1 text-xs font-medium text-red-600">
-          {metric.sensor.toUpperCase()} sensor reports an error
-        </p>
+        <p className="mt-1 text-xs font-medium text-red-600">The sensor reports an error.</p>
       )}
 
       <dl className="mt-4 grid grid-cols-3 gap-2 border-t border-slate-100 pt-4 text-xs">
@@ -89,10 +69,8 @@ export default function MetricCard({ metric, stale }: MetricCardProps) {
       </dl>
 
       {metric.safeRange && (
-        <p className="mt-3 text-xs text-slate-500">
-          Safe range {rangeText(metric.safeRange, metric.unit)}
-        </p>
+        <p className="mt-3 text-xs text-slate-500">Safe range {rangeText(metric.safeRange, metric.unit)}</p>
       )}
-    </article>
+    </Panel>
   );
 }

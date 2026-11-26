@@ -1,5 +1,6 @@
 "use client";
 
+import { LineChart as LineChartIcon } from "lucide-react";
 import {
   CartesianGrid,
   Line,
@@ -11,31 +12,31 @@ import {
   type TooltipContentProps,
 } from "recharts";
 
+import { ChartTooltipCard, SeriesKey as LineKey, SeriesRow } from "@/shared/components/charts/ChartTooltipCard";
+import {
+  ACTIVE_DOT,
+  AXIS_TICK,
+  CHART_MARGIN,
+  CURSOR,
+  GRID_STROKE,
+  LINE_WIDTH,
+  SERIES_COLORS,
+} from "@/shared/components/charts/chart-theme";
+import EmptyState from "@/shared/components/ui/EmptyState";
+import { Panel, PanelHeader } from "@/shared/components/ui/Panel";
 import { formatClock, formatDateTime } from "@/shared/utils/time";
 
 import type { TrendPoint } from "../../model/dashboard.model";
 
 type SeriesKey = "overall" | "personal" | "foodPrep" | "environmental";
 
-// Categorical palette in fixed order (validated set: blue, orange, aqua, yellow).
+// Shared categorical colours (chart-theme.ts): each pillar has the same colour on every chart.
 const SERIES: ReadonlyArray<{ key: SeriesKey; label: string; color: string }> = [
-  { key: "overall", label: "Overall", color: "#2a78d6" },
-  { key: "personal", label: "Personal", color: "#eb6834" },
-  { key: "foodPrep", label: "Food preparation", color: "#1baf7a" },
-  { key: "environmental", label: "Environment", color: "#eda100" },
+  { key: "overall", label: "Overall", color: SERIES_COLORS.overall },
+  { key: "personal", label: "Personal", color: SERIES_COLORS.personal },
+  { key: "foodPrep", label: "Food preparation", color: SERIES_COLORS.food_prep },
+  { key: "environmental", label: "Environment", color: SERIES_COLORS.environmental },
 ];
-
-const AXIS_TEXT = { fontSize: 12, fill: "#64748b" };
-
-function LineKey({ color }: { color: string }) {
-  return (
-    <span
-      aria-hidden
-      className="inline-block h-0.5 w-4 rounded-full"
-      style={{ backgroundColor: color }}
-    />
-  );
-}
 
 function fmt(value: number | null | undefined): string {
   return typeof value === "number" ? value.toFixed(1) : "—";
@@ -53,23 +54,13 @@ function TrendTooltip({
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs shadow-sm">
-      <p className="mb-1.5 font-medium text-slate-900">
-        {formatDateTime(point.bucket, timezone)} (hourly average)
-      </p>
-
-      <ul className="space-y-1">
+    <ChartTooltipCard title={`${formatDateTime(point.bucket, timezone)} (hourly average)`}>
+      <div className="space-y-1">
         {SERIES.map((s) => (
-          <li key={s.key} className="flex items-center gap-2 text-slate-600">
-            <LineKey color={s.color} />
-            <span className="flex-1">{s.label}</span>
-            <span className="font-semibold tabular-nums text-slate-900">
-              {fmt(point[s.key])}
-            </span>
-          </li>
+          <SeriesRow key={s.key} color={s.color} label={s.label} value={fmt(point[s.key])} />
         ))}
-      </ul>
-    </div>
+      </div>
+    </ChartTooltipCard>
   );
 }
 
@@ -83,48 +74,40 @@ export default function ScoreTrendChart({
   timezone,
 }: ScoreTrendChartProps) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-semibold text-slate-950">
-            Hygiene Score Trend
-          </h3>
-
-          <p className="mt-1 text-sm text-slate-500">
-            Hourly averages over the last 24 hours.
-          </p>
-        </div>
-
-        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
-          {SERIES.map((s) => (
-            <li key={s.key} className="flex items-center gap-1.5">
-              <LineKey color={s.color} />
-              {s.label}
-            </li>
-          ))}
-        </ul>
-      </div>
+    <Panel>
+      <PanelHeader
+        title="Hygiene score trend"
+        description="Hourly averages over the last 24 hours."
+        aside={
+          <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
+            {SERIES.map((s) => (
+              <li key={s.key} className="flex items-center gap-1.5">
+                <LineKey color={s.color} />
+                {s.label}
+              </li>
+            ))}
+          </ul>
+        }
+      />
 
       {data.length === 0 ? (
-        <div className="mt-6 flex h-72 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50">
-          <p className="text-sm text-slate-400">
-            No scores in the last 24 hours.
-          </p>
-        </div>
+        <EmptyState icon={LineChartIcon} title="No scores in the last 24 hours" className="mt-4">
+          The trend appears once the camera and sensors have been running for a while.
+        </EmptyState>
       ) : (
         <>
           <div className="mt-6 h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 data={data}
-                margin={{ top: 5, right: 12, left: -18, bottom: 0 }}
+                margin={CHART_MARGIN}
               >
-                <CartesianGrid vertical={false} stroke="#e2e8f0" />
+                <CartesianGrid vertical={false} stroke={GRID_STROKE} />
 
                 <XAxis
                   dataKey="bucket"
                   tickFormatter={(iso: string) => formatClock(iso, timezone)}
-                  tick={AXIS_TEXT}
+                  tick={AXIS_TICK}
                   tickLine={false}
                   axisLine={false}
                   minTickGap={24}
@@ -133,13 +116,13 @@ export default function ScoreTrendChart({
                 <YAxis
                   domain={[0, 100]}
                   ticks={[0, 25, 50, 75, 100]}
-                  tick={AXIS_TEXT}
+                  tick={AXIS_TICK}
                   tickLine={false}
                   axisLine={false}
                 />
 
                 <Tooltip
-                  cursor={{ stroke: "#94a3b8", strokeWidth: 1 }}
+                  cursor={CURSOR}
                   content={<TrendTooltip timezone={timezone} />}
                 />
 
@@ -150,11 +133,11 @@ export default function ScoreTrendChart({
                     dataKey={s.key}
                     name={s.label}
                     stroke={s.color}
-                    strokeWidth={2}
+                    strokeWidth={LINE_WIDTH}
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     dot={false}
-                    activeDot={{ r: 4, stroke: "#ffffff", strokeWidth: 2 }}
+                    activeDot={ACTIVE_DOT}
                     connectNulls={false}
                     isAnimationActive={false}
                   />
@@ -198,6 +181,6 @@ export default function ScoreTrendChart({
           </details>
         </>
       )}
-    </section>
+    </Panel>
   );
 }

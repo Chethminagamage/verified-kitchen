@@ -1,56 +1,47 @@
-import type {
-  SettingsData,
-} from "../model/settings.model";
+import ChangePasswordForm from "@/modules/account/view/ChangePasswordForm";
+import ProfileForm from "@/modules/account/view/ProfileForm";
+import SecurityCard from "@/modules/account/view/SecurityCard";
+import DesktopAlertsCard from "@/modules/alerts/view/DesktopAlertsCard";
+import PageHeader from "@/shared/components/ui/PageHeader";
+import SectionHeader from "@/shared/components/ui/SectionHeader";
 
-import KitchenProfileCard from "./components/KitchenProfileCard";
-import MonitoringConfigurationCard from "./components/MonitoringConfigurationCard";
-import NotificationPreferences from "./components/NotificationPreferences";
-import SystemInformationCard from "./components/SystemInformationCard";
+import type { SettingsData } from "../model/settings.model";
 
-interface SettingsViewProps {
-  data: SettingsData;
-}
+import KitchenSummaryCard from "./components/KitchenSummaryCard";
 
-export default function SettingsView({
-  data,
-}: SettingsViewProps) {
+export default function SettingsView({ data }: { data: SettingsData }) {
+  const { account } = data;
+
   return (
     <div className="mx-auto max-w-7xl">
-      <div className="mb-8">
-        <p className="text-sm font-medium text-emerald-600">
-          System Configuration
-        </p>
+      <PageHeader
+        eyebrow="Settings"
+        title="Settings"
+        description="Your kitchen, your account and security, and alerts on this device."
+      />
 
-        <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-          Settings
-        </h2>
+      <KitchenSummaryCard profile={data.kitchenProfile} monitoring={data.monitoring} />
 
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-          Review kitchen information, monitoring
-          configuration, notification preferences and system
-          details.
-        </p>
-      </div>
+      <section className="mt-10">
+        <SectionHeader title="Your account" />
+        <div className="grid gap-6 xl:grid-cols-2">
+          <ProfileForm
+            fullName={account.fullName}
+            email={account.email}
+            phone={account.phone}
+            roleLabel={account.roleLabel}
+          />
+          <ChangePasswordForm />
+        </div>
+      </section>
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_2fr]">
-        <KitchenProfileCard
-          profile={data.kitchenProfile}
-        />
-
-        <MonitoringConfigurationCard
-          configuration={data.monitoring}
-        />
-      </div>
-
-      <div className="mt-6 grid gap-6 xl:grid-cols-2">
-        <NotificationPreferences
-          initialSettings={data.notifications}
-        />
-
-        <SystemInformationCard
-          system={data.system}
-        />
-      </div>
+      <section className="mt-10">
+        <SectionHeader title="Security and alerts" />
+        <div className="grid gap-6 xl:grid-cols-2">
+          <SecurityCard signedInLabel={account.signedInLabel} />
+          <DesktopAlertsCard />
+        </div>
+      </section>
     </div>
   );
 }

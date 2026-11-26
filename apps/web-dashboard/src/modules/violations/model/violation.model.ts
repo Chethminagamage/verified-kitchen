@@ -1,4 +1,5 @@
 import type { Database } from "@/shared/types/database.types";
+import { parsePage } from "@/shared/utils/pagination";
 
 type Enums = Database["public"]["Enums"];
 
@@ -110,14 +111,12 @@ function pick<T extends string>(value: string | undefined, allowed: readonly T[]
 
 /** Parses URL search params; anything unknown falls back to the default. */
 export function parseFilters(params: SearchParams): ViolationFilters {
-  const page = Number.parseInt(one(params.page) ?? "1", 10);
-
   return {
     status: pick(one(params.status), STATUS_FILTERS) ?? "open",
     severity: pick(one(params.severity), SEVERITIES),
     source: pick(one(params.source), SOURCES),
     pillar: pick(one(params.pillar), PILLARS),
-    page: Number.isFinite(page) && page > 0 ? Math.min(page, 10_000) : 1,
+    page: parsePage(params.page),
   };
 }
 

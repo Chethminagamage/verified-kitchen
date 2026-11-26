@@ -1,34 +1,25 @@
-import type { OperatorSession } from "@/modules/auth/model/session.model";
+import { AccountService } from "@/modules/account/service/account.service";
+import { ROLE_LABELS, type OperatorSession } from "@/modules/auth/model/session.model";
 import { isDeviceOnline } from "@/modules/system-status/model/connection";
-import type { Json } from "@/shared/types/database.types";
 import { formatDateTime } from "@/shared/utils/time";
 
-import packageJson from "../../../../package.json";
 import type { SettingsData } from "../model/settings.model";
 import { SettingsRepository, type DeviceRow } from "../repository/settings.repository";
 
-function status(row: DeviceRow): Record<string, Json | undefined> {
-  const s = row.last_status;
-  return typeof s === "object" && s !== null && !Array.isArray(s) ? s : {};
-}
-
-function describeNode(row: DeviceRow | undefined, now: number): string {
-  if (!row) return "Not registered";
-  const s = status(row);
-  const online = s.state !== "offline" && isDeviceOnline({ ...row, lastSeenAt: row.last_seen_at }, now);
-  const fw = typeof s.fw === "string" ? ` · firmware ${s.fw}` : "";
-  return `${row.id} (ESP32: BME280 + DS18B20)${fw} · ${online ? "Online" : "Offline"}`;
-}
-
-function describeCamera(row: DeviceRow | undefined, now: number): string {
-  const online = row ? isDeviceOnline({ ...row, lastSeenAt: row.last_seen_at }, now) : false;
-  if (!online) return "YOLOv8n (planned) · camera not connected yet";
-  const model = status(row as DeviceRow).model_version;
-  return `${typeof model === "string" ? model : "unknown model"} · ${row?.id} online`;
+/** A device is running when it reported recently and has not announced that it went offline. */
+function isRunning(row: DeviceRow | undefined, now: number): boolean {
+  if (!row) return false;
+  const status = row.last_status;
+  const reportedOffline =
+    typeof status === "object" && status !== null && !Array.isArray(status) && status.state === "offline";
+  return !reportedOffline && isDeviceOnline({ ...row, lastSeenAt: row.last_seen_at }, now);
 }
 
 export class SettingsService {
-  constructor(private readonly repository = new SettingsRepository()) {}
+  constructor(
+    private readonly repository = new SettingsRepository(),
+    private readonly accountService = new AccountService(),
+  ) {}
 
   async getSettingsData(session: OperatorSession, now = new Date()): Promise<SettingsData> {
     const kitchen = session.kitchen;
@@ -36,17 +27,12 @@ export class SettingsService {
       throw new Error("Settings require a kitchen");
     }
 
-    const [devices, lastReading, pending, configVersion] = await Promise.all([
+    const [devices, lastReading, phone] = await Promise.all([
       this.repository.devices(kitchen.id),
       this.repository.latestReadingAt(kitchen.id),
-      this.repository.pendingAuditRecords(kitchen.id),
-      this.repository.activeConfigVersion(),
+      this.accountService.phone(session),
     ]);
     const t = now.getTime();
-    const camera = devices.find((d) => d.type === "camera");
-    const node = devices.find((d) => d.type === "env_node");
-    const online = (row: DeviceRow | undefined) =>
-      !!row && status(row).state !== "offline" && isDeviceOnline({ ...row, lastSeenAt: row.last_seen_at }, t);
 
     return {
       kitchenProfile: {
@@ -57,29 +43,18 @@ export class SettingsService {
       },
       // Reflects what is actually running, not a stored preference.
       monitoring: {
-        aiMonitoringEnabled: online(camera),
-        environmentalMonitoringEnabled: online(node),
-        auditLoggingEnabled: true,
-        scoreRefreshInterval: `Live · scoring config ${configVersion ?? "—"}`,
-        privacyMode: "Edge processing; no video stored",
+        cameraOnline: isRunning(devices.find((d) => d.type === "camera"), t),
+        sensorsOnline: isRunning(devices.find((d) => d.type === "env_node"), t),
+        lastReadingLabel: lastReading ? formatDateTime(lastReading, kitchen.timezone) : null,
       },
-      // Notifications are not delivered yet; the UI shows these as planned defaults.
-      notifications: {
-        violationAlerts: true,
-        criticalAlerts: true,
-        sensorWarnings: true,
-        dailySummary: false,
-      },
-      system: {
-        applicationVersion: `${packageJson.version} (prototype)`,
-        aiModel: describeCamera(camera, t),
-        edgeDevice: "MacBook Air M1 · edge service + Mosquitto MQTT broker",
-        sensorNode: describeNode(node, t),
-        database: "PostgreSQL (Supabase) · Row Level Security",
-        blockchainPlatform: `Hyperledger Fabric · not connected yet (${pending} audit record${pending === 1 ? "" : "s"} waiting to be anchored)`,
-        lastSync: lastReading
-          ? `Latest sensor reading ${formatDateTime(lastReading, kitchen.timezone)}`
-          : "No sensor readings yet",
+      account: {
+        fullName: session.fullName,
+        email: session.email,
+        phone,
+        roleLabel: ROLE_LABELS[session.role],
+        signedInLabel: session.signedInAt
+          ? formatDateTime(new Date(session.signedInAt).toISOString(), kitchen.timezone)
+          : "—",
       },
     };
   }

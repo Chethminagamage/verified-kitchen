@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
 
+import type { UserRole } from "@/modules/auth/model/session.model";
+
 import SidebarContent from "./SidebarContent";
 
 /** Menu button + slide-in drawer for screens narrower than the `lg` breakpoint. */
-export default function MobileNav() {
+export default function MobileNav({ role }: { role: UserRole }) {
   const [open, setOpen] = useState(false);
   const openButton = useRef<HTMLButtonElement>(null);
   const drawer = useRef<HTMLDivElement>(null);
@@ -74,7 +76,7 @@ export default function MobileNav() {
               <X className="h-5 w-5" />
             </button>
 
-            <SidebarContent onNavigate={() => setOpen(false)} />
+            <SidebarContent role={role} onNavigate={() => setOpen(false)} />
           </div>
         </div>
       )}

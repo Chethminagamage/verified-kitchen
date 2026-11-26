@@ -3,9 +3,9 @@ import type { Database, Json } from "@/shared/types/database.types";
 export type AuditStatus = Database["public"]["Enums"]["audit_status"];
 
 export const AUDIT_STATUS_LABELS: Record<AuditStatus, string> = {
-  verified: "Anchored",
-  pending: "Pending anchor",
-  failed: "Anchor failed",
+  verified: "Secured",
+  pending: "Waiting to be secured",
+  failed: "Securing failed",
 };
 
 export interface AuditRecordView {

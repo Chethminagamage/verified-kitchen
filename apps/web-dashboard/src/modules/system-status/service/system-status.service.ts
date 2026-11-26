@@ -1,5 +1,5 @@
 import { connectionState, installedDevices, isDeviceOnline } from "../model/connection";
-import type { SystemStatus } from "../model/system-status.model";
+import { NOTIFICATIONS_SHOWN, type SystemStatus } from "../model/system-status.model";
 import { SystemStatusRepository } from "../repository/system-status.repository";
 
 export class SystemStatusService {
@@ -10,10 +10,11 @@ export class SystemStatusService {
   async getStatus(
     kitchenId: string
   ): Promise<SystemStatus> {
-    const [devices, activeViolations] =
+    const [devices, activeViolations, notifications] =
       await Promise.all([
         this.repository.getDevices(kitchenId),
         this.repository.countActiveViolations(kitchenId),
+        this.repository.recentOpenViolations(kitchenId, NOTIFICATIONS_SHOWN),
       ]);
 
     const now = Date.now();
@@ -30,6 +31,8 @@ export class SystemStatusService {
       onlineDevices,
       totalDevices: installed.length,
       activeViolations,
+      notifications,
+      generatedAt: new Date(now).toISOString(),
     };
   }
 }

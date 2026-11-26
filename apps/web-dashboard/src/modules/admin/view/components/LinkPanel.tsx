@@ -31,9 +31,8 @@ export default function LinkPanel({ link }: { link: Link }) {
         {link.purpose === "setup" ? "Set-up link" : "Password reset link"} for {link.recipient}
       </p>
       <p className="mt-1 text-xs leading-5 text-slate-500">
-        Send it to them privately. It works once and expires (1 hour by default: the &quot;Email OTP
-        expiration&quot; setting of Supabase&apos;s email sign-in). Anyone with the link can set this
-        account&apos;s password.
+        Send it to them privately. It works once and expires after a limited time (normally 1 hour). Anyone
+        with the link can set this account&apos;s password.
       </p>
       <div className="mt-3 flex gap-2">
         <input

@@ -1,15 +1,11 @@
-import {
-  Droplets,
-  Refrigerator,
-  Thermometer,
-  type LucideIcon,
-} from "lucide-react";
+import { Droplets, Refrigerator, Thermometer, WifiOff, type LucideIcon } from "lucide-react";
 
-import type {
-  MetricId,
-  MetricStatus,
-  SensorSummary,
-} from "../../model/dashboard.model";
+import AnimatedNumber from "@/shared/components/ui/AnimatedNumber";
+import { IconTile, Panel } from "@/shared/components/ui/Panel";
+import StatusPill from "@/shared/components/ui/StatusPill";
+import { toneForStatus } from "@/shared/components/ui/tone";
+
+import type { MetricId, SensorSummary } from "../../model/dashboard.model";
 
 const SENSOR_ICONS: Record<MetricId, LucideIcon> = {
   ambient_temp_c: Thermometer,
@@ -17,53 +13,33 @@ const SENSOR_ICONS: Record<MetricId, LucideIcon> = {
   fridge_temp_c: Refrigerator,
 };
 
-const STATUS_STYLES: Record<MetricStatus, string> = {
-  Safe: "bg-emerald-50 text-emerald-700",
-  Warning: "bg-amber-50 text-amber-700",
-  Critical: "bg-red-50 text-red-700",
-  "No data": "bg-slate-100 text-slate-500",
-  Offline: "bg-slate-100 text-slate-600",
-};
-
-interface SensorCardProps {
-  sensor: SensorSummary;
-}
-
-export default function SensorCard({
-  sensor,
-}: SensorCardProps) {
-  const Icon = SENSOR_ICONS[sensor.id];
+export default function SensorCard({ sensor }: { sensor: SensorSummary }) {
+  const tone = toneForStatus(sensor.status);
+  const offline = sensor.status === "Offline";
 
   return (
-    <article className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-50">
-        <Icon className="h-6 w-6 text-sky-600" />
+    <Panel as="article" interactive className="flex items-center gap-4">
+      <IconTile icon={SENSOR_ICONS[sensor.id]} tone="info" size="lg" />
+
+      <div className="min-w-0 flex-1">
+        <p className="text-sm text-slate-500">{sensor.name}</p>
+        {sensor.value === null ? (
+          <p className="mt-1 text-sm text-slate-400">No reading</p>
+        ) : (
+          <p className="mt-0.5 flex items-baseline gap-1">
+            <AnimatedNumber
+              value={sensor.value}
+              decimals={1}
+              className={`text-xl font-semibold tracking-tight ${offline ? "text-slate-400" : "text-slate-950"}`}
+            />
+            <span className="text-sm font-medium text-slate-500">{sensor.unit}</span>
+          </p>
+        )}
       </div>
 
-      <div className="flex-1">
-        <p className="text-sm text-slate-500">
-          {sensor.name}
-        </p>
-
-        <p
-          className={`mt-1 text-xl font-bold ${
-            sensor.status === "Offline" ? "text-slate-400" : "text-slate-950"
-          }`}
-        >
-          {sensor.value === null ? "—" : sensor.value.toFixed(1)}
-          {sensor.value !== null && (
-            <span className="ml-1 text-sm font-medium text-slate-500">
-              {sensor.unit}
-            </span>
-          )}
-        </p>
-      </div>
-
-      <span
-        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_STYLES[sensor.status]}`}
-      >
+      <StatusPill tone={tone} icon={offline ? WifiOff : undefined}>
         {sensor.status}
-      </span>
-    </article>
+      </StatusPill>
+    </Panel>
   );
 }

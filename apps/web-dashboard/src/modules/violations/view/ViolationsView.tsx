@@ -5,12 +5,16 @@ import {
   TriangleAlert,
 } from "lucide-react";
 
+import { Lock } from "lucide-react";
+
 import LiveRefresh from "@/shared/components/feedback/LiveRefresh";
+import Notice from "@/shared/components/ui/Notice";
+import PageHeader from "@/shared/components/ui/PageHeader";
+import StatTile from "@/shared/components/ui/StatTile";
 
 import type { ViolationPage } from "../model/violation.model";
 
 import ViolationFiltersBar from "./components/ViolationFiltersBar";
-import ViolationSummaryCard from "./components/ViolationSummaryCard";
 import ViolationTable from "./components/ViolationTable";
 
 interface ViolationsViewProps {
@@ -26,57 +30,48 @@ export default function ViolationsView({
 
   return (
     <div className="mx-auto max-w-7xl">
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium text-emerald-600">
-            Compliance Monitoring
-          </p>
-
-          <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-            Violations
-          </h2>
-
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-            Incidents raised by the edge service from AI and sensor evidence.
-            Every new violation and every status change is written to the
-            tamper-evident audit trail.
-          </p>
-        </div>
-
-        <LiveRefresh kitchenId={kitchenId} tables={["violations"]} />
-      </div>
+      <PageHeader
+        eyebrow="Compliance monitoring"
+        title="Violations"
+        description="Problems detected automatically by the camera and sensors. Every new violation and every status change is written to the tamper-proof record."
+        aside={<LiveRefresh kitchenId={kitchenId} tables={["violations"]} />}
+      />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <ViolationSummaryCard
+        <StatTile
           label="Active"
           value={counts.active}
           icon={TriangleAlert}
+          tone={counts.active > 0 ? "critical" : "neutral"}
           description="Need an operator to acknowledge or resolve them."
         />
-        <ViolationSummaryCard
+        <StatTile
           label="Acknowledged"
           value={counts.acknowledged}
           icon={Eye}
+          tone={counts.acknowledged > 0 ? "warning" : "neutral"}
           description="Seen by an operator, not yet resolved."
         />
-        <ViolationSummaryCard
+        <StatTile
           label="Resolved"
           value={counts.resolved}
           icon={CircleCheckBig}
+          tone="positive"
           description="Closed incidents in the monitoring history."
         />
-        <ViolationSummaryCard
-          label="Open High / Critical"
+        <StatTile
+          label="Open high / critical"
           value={counts.openHighSeverity}
           icon={ShieldAlert}
+          tone={counts.openHighSeverity > 0 ? "serious" : "neutral"}
           description="Open incidents with high or critical severity."
         />
       </section>
 
       {!page.canManage && (
-        <p className="mt-6 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+        <Notice tone="neutral" icon={Lock} className="mt-6">
           You have read-only access to violations.
-        </p>
+        </Notice>
       )}
 
       <div className="mb-4 mt-8">

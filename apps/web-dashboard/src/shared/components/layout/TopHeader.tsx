@@ -1,14 +1,11 @@
-import Link from "next/link";
-import {
-  Bell,
-  CircleUserRound,
-  LogOut,
-} from "lucide-react";
+import { LogOut } from "lucide-react";
 
 import { logoutAction } from "@/modules/auth/controller/auth.controller";
 import { ROLE_LABELS, type OperatorSession } from "@/modules/auth/model/session.model";
 import { SystemStatusService } from "@/modules/system-status/service/system-status.service";
+import NotificationCenter from "@/modules/system-status/view/NotificationCenter";
 import SystemStatusBadge from "@/modules/system-status/view/SystemStatusBadge";
+import { initials } from "@/shared/utils/initials";
 
 import MobileNav from "./MobileNav";
 
@@ -33,9 +30,9 @@ export default async function TopHeader({
   const roleLabel = ROLE_LABELS[session.role];
 
   return (
-    <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-slate-200/80 bg-white px-4 sm:px-6 lg:px-8">
       <div className="flex min-w-0 items-center">
-        <MobileNav />
+        <MobileNav role={session.role} />
 
         <div className="min-w-0">
           <p className="truncate text-sm text-slate-500">
@@ -51,25 +48,23 @@ export default async function TopHeader({
       <div className="flex items-center gap-3">
         {status && <SystemStatusBadge status={status} />}
 
-        {/* Active violations */}
-        <Link
-          href="/dashboard/violations"
-          aria-label={`${activeViolations} active violations`}
-          title={`${activeViolations} active violations`}
-          className="relative flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:bg-slate-50"
-        >
-          <Bell className="h-5 w-5" />
-
-          {activeViolations > 0 && (
-            <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-semibold text-white">
-              {activeViolations > 99 ? "99+" : activeViolations}
-            </span>
-          )}
-        </Link>
+        {/* Notification centre: newest open violations */}
+        {status && (
+          <NotificationCenter
+            items={status.notifications}
+            activeCount={activeViolations}
+            generatedAt={status.generatedAt}
+          />
+        )}
 
         {/* Signed-in user */}
         <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
-          <CircleUserRound className="h-9 w-9 text-slate-400" />
+          <span
+            aria-hidden
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 text-xs font-semibold text-white shadow-sm"
+          >
+            {initials(session.fullName, session.email)}
+          </span>
 
           <div className="hidden sm:block">
             <p className="max-w-48 truncate text-sm font-medium text-slate-900">

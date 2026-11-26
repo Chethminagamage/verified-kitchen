@@ -14,12 +14,16 @@ export interface HygieneTrendPoint {
   score: number | null;
 }
 
+export type ReportPillarId = "personal" | "food_prep" | "environmental";
+
 export interface PillarPerformance {
+  pillarId: ReportPillarId;
   pillar: string;
   averageScore: number | null;
 }
 
 export interface ViolationBreakdown {
+  pillarId: ReportPillarId;
   category: string;
   count: number;
 }

@@ -1,7 +1,8 @@
 import LiveRefresh from "@/shared/components/feedback/LiveRefresh";
+import PageHeader from "@/shared/components/ui/PageHeader";
 import { formatClock } from "@/shared/utils/time";
 
-import type { DashboardOverview } from "../model/dashboard.model";
+import { scoreChange, type DashboardOverview } from "../model/dashboard.model";
 
 import HygieneScoreCard from "./components/HygieneScoreCard";
 import OpenViolationsPanel from "./components/OpenViolationsPanel";
@@ -20,26 +21,16 @@ export default function DashboardView({
 }: DashboardViewProps) {
   return (
     <div className="mx-auto max-w-7xl">
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium text-emerald-600">
-            Live Kitchen Monitoring
-          </p>
-
-          <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-            Overview
-          </h2>
-        </div>
-
-        <LiveRefresh
-          kitchenId={kitchenId}
-          tables={["hygiene_scores", "violations"]}
-        />
-      </div>
+      <PageHeader
+        eyebrow="Live kitchen monitoring"
+        title="Overview"
+        aside={<LiveRefresh kitchenId={kitchenId} tables={["hygiene_scores", "violations"]} />}
+      />
 
       <div className="grid gap-6 xl:grid-cols-[1fr_2fr]">
         <HygieneScoreCard
           score={data.score}
+          change={data.score ? scoreChange(data.trend, data.score.value) : null}
           timezone={data.timezone}
           generatedAt={data.generatedAt}
         />
@@ -53,15 +44,15 @@ export default function DashboardView({
 
       <section className="mt-8">
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-slate-950">
-            Environmental Conditions
+          <h3 className="text-lg font-semibold tracking-tight text-slate-950">
+            Environmental conditions
           </h3>
 
           <p className="mt-1 text-sm text-slate-500">
             {data.sensorsUpdatedAt
               ? data.sensorsLive
-                ? `Latest ESP32 reading at ${formatClock(data.sensorsUpdatedAt, data.timezone)}.`
-                : `Sensor node offline. Last reading at ${formatClock(data.sensorsUpdatedAt, data.timezone)}.`
+                ? `Latest sensor reading at ${formatClock(data.sensorsUpdatedAt, data.timezone)}.`
+                : `Sensors offline. Last reading at ${formatClock(data.sensorsUpdatedAt, data.timezone)}.`
               : "No sensor readings yet."}
           </p>
         </div>
