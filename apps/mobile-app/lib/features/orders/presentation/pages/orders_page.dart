@@ -11,6 +11,7 @@ import '../../../kitchens/domain/kitchen.dart';
 import '../../../kitchens/presentation/kitchen_providers.dart';
 import '../../domain/order.dart';
 import '../order_providers.dart';
+import '../../../../core/widgets/media_image.dart';
 
 class OrdersPage extends ConsumerWidget {
   const OrdersPage({super.key});
@@ -24,7 +25,7 @@ class OrdersPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text('Orders', style: t.headlineMedium), toolbarHeight: 72),
       body: RefreshIndicator(
-        color: AppColors.ink,
+        color: context.colors.ink,
         onRefresh: () async {
           final _ = await ref.refresh(myOrdersProvider.future);
         },
@@ -95,22 +96,23 @@ class _OrderTile extends StatelessWidget {
     final o = order;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-      leading: Container(
+      leading: MediaImage(
+        path: kitchen?.bannerPath,
+        emoji: kitchen?.emoji ?? '🍽️',
+        emojiSize: 24,
         width: 52,
         height: 52,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(color: AppColors.fill, borderRadius: BorderRadius.circular(12)),
-        child: Text(kitchen?.emoji ?? '🍽️', style: const TextStyle(fontSize: 24)),
+        borderRadius: BorderRadius.circular(12),
       ),
       title: Text(kitchen?.name ?? 'Order ${o.reference}', style: t.titleMedium),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 3),
         child: Text(
           '${o.itemCount} items · ${formatLkr(o.totalLkr)} · ${DateFormat('d MMM, h:mm a').format(o.placedAt)}',
-          style: t.bodySmall?.copyWith(color: AppColors.textSecondary),
+          style: t.bodySmall?.copyWith(color: context.colors.textSecondary),
         ),
       ),
-      trailing: Text(o.status.label, style: t.labelMedium?.copyWith(color: o.status.color)),
+      trailing: Text(o.status.label, style: t.labelMedium?.copyWith(color: context.colors.tone(o.status.tone))),
       onTap: () => context.push(Routes.order(o.id)),
     );
   }

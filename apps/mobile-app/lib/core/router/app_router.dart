@@ -21,6 +21,8 @@ import '../../features/profile/domain/address.dart';
 import '../../features/profile/presentation/account_providers.dart';
 import '../../features/profile/presentation/pages/about_page.dart';
 import '../../features/profile/presentation/pages/addresses_page.dart';
+import '../../features/profile/presentation/pages/change_email_page.dart';
+import '../../features/profile/presentation/pages/change_password_page.dart';
 import '../../features/profile/presentation/pages/edit_profile_page.dart';
 import '../../features/profile/presentation/pages/favourites_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
@@ -28,6 +30,8 @@ import '../../features/profile/presentation/pages/support_pages.dart';
 import '../widgets/async_view.dart';
 import '../supabase/supabase_providers.dart';
 import 'routes.dart';
+import '../../features/notifications/presentation/pages/notification_settings_page.dart';
+import '../../features/notifications/presentation/pages/notifications_page.dart';
 
 /// Where a user may go. An account is required for everything except the
 /// welcome, sign-in, sign-up and forgot-password screens (as in ride-hailing
@@ -68,6 +72,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       recoveringPassword: ref.read(passwordRecoveryProvider),
     ),
     routes: [
+      // Email links (confirm account, change email, reset password) open the app at
+      // lk.verifiedkitchen://login-callback; Supabase reads the link, then the app
+      // continues from home (the redirect rules above still apply).
+      GoRoute(path: '/', redirect: (_, _) => Routes.home),
+      GoRoute(path: '/login-callback', redirect: (_, _) => Routes.home),
       GoRoute(path: Routes.signIn, builder: (_, _) => const SignInPage()),
       GoRoute(path: Routes.signUp, builder: (_, _) => const SignUpPage()),
       GoRoute(path: Routes.welcome, builder: (_, _) => const WelcomePage()),
@@ -95,6 +104,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) => OrderPage(orderId: state.pathParameters['id']!),
       ),
       GoRoute(path: Routes.editProfile, builder: (_, _) => const EditProfilePage()),
+      GoRoute(path: Routes.changePassword, builder: (_, _) => const ChangePasswordPage()),
+      GoRoute(path: Routes.changeEmail, builder: (_, _) => const ChangeEmailPage()),
+      GoRoute(path: Routes.notifications, builder: (_, _) => const NotificationsPage()),
+      GoRoute(path: Routes.notificationSettings, builder: (_, _) => const NotificationSettingsPage()),
       GoRoute(path: Routes.addresses, builder: (_, _) => const AddressesPage()),
       GoRoute(path: Routes.newAddress, builder: (_, _) => const AddressFormPage()),
       GoRoute(

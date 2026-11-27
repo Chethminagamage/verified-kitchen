@@ -142,6 +142,9 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
             TextFormField(
               controller: _password,
               obscureText: _hidden,
+              keyboardType: TextInputType.visiblePassword,
+              autocorrect: false,
+              enableSuggestions: false,
               autofillHints: const [AutofillHints.newPassword],
               decoration: InputDecoration(
                 hintText: 'New password (8+ characters)',
@@ -157,6 +160,9 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
             TextFormField(
               controller: _confirm,
               obscureText: _hidden,
+              keyboardType: TextInputType.visiblePassword,
+              autocorrect: false,
+              enableSuggestions: false,
               decoration: const InputDecoration(hintText: 'Repeat new password'),
               validator: (v) => v != _password.text ? 'The passwords do not match' : null,
             ),
@@ -166,7 +172,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
             const SizedBox(height: 12),
             Text(
               'For your security, other devices stay signed in until their session expires.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: context.colors.textMuted),
               textAlign: TextAlign.center,
             ),
           ],

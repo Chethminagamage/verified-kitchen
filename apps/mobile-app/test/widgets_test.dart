@@ -8,6 +8,7 @@ import 'package:verified_kitchen_app/features/kitchens/domain/kitchen.dart';
 import 'package:verified_kitchen_app/features/kitchens/presentation/widgets/hygiene_badge.dart';
 import 'package:verified_kitchen_app/features/kitchens/presentation/widgets/hygiene_panel.dart';
 import 'package:verified_kitchen_app/features/kitchens/presentation/widgets/kitchen_card.dart';
+import 'package:verified_kitchen_app/features/kitchens/presentation/widgets/score_ring.dart';
 
 import 'domain_test.dart' show row;
 
@@ -71,6 +72,24 @@ void main() {
     expect(find.text('Not verified'), findsOneWidget);
     expect(find.textContaining('does not use Verified Kitchen monitoring'), findsOneWidget);
     expect(find.text('Personal hygiene'), findsNothing);
+  });
+
+  testWidgets('the score ring shows the score in the grade colour; no score shows no number', (tester) async {
+    final k = Kitchen.fromJson(row('K', status: 'verified', grade: 'A'));
+    await tester.pumpWidget(wrap(HygienePanel(kitchen: k, history: const [], now: DateTime.utc(2026, 11, 15))));
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel('Hygiene score 88 out of 100'), findsOneWidget);
+    expect(find.textContaining('Lowered mainly'), findsNothing); // an A needs no reason
+
+    await tester.pumpWidget(wrap(const ScoreRing(score: null, grade: null)));
+    expect(find.bySemanticsLabel('No hygiene score yet'), findsOneWidget);
+    expect(find.byIcon(Icons.shield_outlined), findsOneWidget);
+  });
+
+  testWidgets('a grade below A says which area lowered it', (tester) async {
+    final k = Kitchen.fromJson({...row('K', status: 'verified', grade: 'B'), 'food_prep_score': 58});
+    await tester.pumpWidget(wrap(HygienePanel(kitchen: k, history: const [], now: DateTime.utc(2026, 11, 15))));
+    expect(find.text('Lowered mainly by food preparation.'), findsOneWidget);
   });
 
   testWidgets('sign-in form validates before contacting the server', (tester) async {

@@ -102,6 +102,9 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
               TextFormField(
                 controller: _password,
                 obscureText: _hidden,
+                keyboardType: TextInputType.visiblePassword,
+                autocorrect: false,
+                enableSuggestions: false,
                 autofillHints: const [AutofillHints.newPassword],
                 textInputAction: TextInputAction.done,
                 onFieldSubmitted: (_) => _submit(),
@@ -120,17 +123,17 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
               FilledButton(
                 onPressed: _busy ? null : _submit,
                 child: _busy
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 22,
                         height: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                        child: CircularProgressIndicator(strokeWidth: 2.5, color: context.colors.onInk),
                       )
                     : const Text('Create account'),
               ),
               const SizedBox(height: 16),
               Text(
                 'Your name and number are used only for your orders.',
-                style: t.bodySmall?.copyWith(color: AppColors.textMuted),
+                style: t.bodySmall?.copyWith(color: context.colors.textMuted),
                 textAlign: TextAlign.center,
               ),
             ],

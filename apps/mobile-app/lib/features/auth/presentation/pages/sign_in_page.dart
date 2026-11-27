@@ -70,6 +70,9 @@ class _SignInPageState extends ConsumerState<SignInPage> {
               TextFormField(
                 controller: _password,
                 obscureText: _hidden,
+                keyboardType: TextInputType.visiblePassword,
+                autocorrect: false,
+                enableSuggestions: false,
                 autofillHints: const [AutofillHints.password],
                 textInputAction: TextInputAction.done,
                 onFieldSubmitted: (_) => _submit(),
@@ -95,10 +98,10 @@ class _SignInPageState extends ConsumerState<SignInPage> {
               FilledButton(
                 onPressed: _busy ? null : _submit,
                 child: _busy
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 22,
                         height: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                        child: CircularProgressIndicator(strokeWidth: 2.5, color: context.colors.onInk),
                       )
                     : const Text('Sign in'),
               ),
@@ -108,7 +111,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                 alignment: WrapAlignment.center,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Text('New to Verified Kitchen?', style: t.bodyMedium?.copyWith(color: AppColors.textSecondary)),
+                  Text('New to Verified Kitchen?', style: t.bodyMedium?.copyWith(color: context.colors.textSecondary)),
                   TextButton(onPressed: () => context.go(Routes.signUp), child: const Text('Create account')),
                 ],
               ),

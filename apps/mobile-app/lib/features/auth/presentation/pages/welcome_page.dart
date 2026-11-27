@@ -60,7 +60,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
     final t = Theme.of(context).textTheme;
     final last = _index == _slides.length - 1;
     return Scaffold(
-      backgroundColor: AppColors.ink,
+      backgroundColor: AppColors.brandNavy, // the welcome slides are dark in both modes
       body: SafeArea(
         child: Column(
           children: [
@@ -68,8 +68,12 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
               padding: const EdgeInsets.fromLTRB(28, 8, 8, 0),
               child: Row(
                 children: [
-                  const BrandLockup(size: 32, color: Colors.white),
-                  const Spacer(),
+                  const Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: BrandLockup(size: 32, color: Colors.white),
+                    ),
+                  ),
                   TextButton(
                     style: TextButton.styleFrom(foregroundColor: Colors.white70),
                     onPressed: () => _finish(Routes.signIn),
@@ -85,26 +89,29 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
                 onPageChanged: (i) => setState(() => _index = i),
                 itemBuilder: (_, i) {
                   final s = _slides[i];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 28),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 88,
-                          height: 88,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.14),
-                            borderRadius: BorderRadius.circular(26),
+                  // Scrolls when large text makes a slide taller than the screen.
+                  return Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 28),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 88,
+                            height: 88,
+                            decoration: BoxDecoration(
+                              color: context.colors.primary.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(26),
+                            ),
+                            child: Icon(s.icon, color: context.colors.primary, size: 46),
                           ),
-                          child: Icon(s.icon, color: AppColors.primary, size: 46),
-                        ),
-                        const SizedBox(height: 36),
-                        Text(s.title, style: t.displaySmall?.copyWith(color: Colors.white)),
-                        const SizedBox(height: 14),
-                        Text(s.text, style: t.bodyLarge?.copyWith(color: Colors.white70, fontSize: 17)),
-                      ],
+                          const SizedBox(height: 36),
+                          Text(s.title, style: t.displaySmall?.copyWith(color: Colors.white)),
+                          const SizedBox(height: 14),
+                          Text(s.text, style: t.bodyLarge?.copyWith(color: Colors.white70, fontSize: 17)),
+                        ],
+                      ),
                     ),
                   );
                 },
@@ -123,7 +130,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
                           width: i == _index ? 24 : 8,
                           height: 8,
                           decoration: BoxDecoration(
-                            color: i == _index ? AppColors.primary : Colors.white24,
+                            color: i == _index ? context.colors.primary : Colors.white24,
                             borderRadius: BorderRadius.circular(999),
                           ),
                         ),
@@ -131,7 +138,7 @@ class _WelcomePageState extends ConsumerState<WelcomePage> {
                   ),
                   const SizedBox(height: 24),
                   FilledButton(
-                    style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: AppColors.ink),
+                    style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: AppColors.brandNavy),
                     onPressed: last
                         ? () => _finish(Routes.signUp)
                         : () => _pages.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeOut),

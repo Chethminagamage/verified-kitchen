@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,6 +17,7 @@ import '../../../profile/domain/address.dart';
 import '../../../profile/presentation/account_providers.dart';
 import '../cart_providers.dart';
 import '../widgets/cart_widgets.dart';
+import '../../../notifications/presentation/notification_providers.dart';
 
 class CheckoutPage extends ConsumerStatefulWidget {
   const CheckoutPage({super.key});
@@ -59,7 +62,14 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
           .place(cart: cart, deliveryAddress: address.forDelivery, contactPhone: _phone.text, note: _note.text);
       ref.read(cartProvider.notifier).clear();
       ref.invalidate(myOrdersProvider);
-      if (mounted) context.go(Routes.order(id));
+      // Alerts are about kitchens you order from: ask now, not at app launch.
+      unawaited(ref.read(pushRegistrationProvider.notifier).askPermission());
+      if (mounted) {
+        // Orders tab underneath the tracking screen, so Back (including Android's
+        // system back) returns to the app instead of closing it.
+        context.go(Routes.orders);
+        context.push(Routes.order(id));
+      }
     } on UserFacingError catch (e) {
       setState(() => _error = e.message);
       // A changed menu or price: show the latest before the customer retries.
@@ -105,7 +115,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                 if (list.isEmpty)
                   Text(
                     'Add a delivery address to continue.',
-                    style: t.bodyMedium?.copyWith(color: AppColors.textSecondary),
+                    style: t.bodyMedium?.copyWith(color: context.colors.textSecondary),
                   ),
                 RadioGroup<String>(
                   groupValue: selected?.id,
@@ -117,7 +127,10 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                           contentPadding: EdgeInsets.zero,
                           value: a.id,
                           title: Text(a.label, style: t.titleSmall),
-                          subtitle: Text(a.forDelivery, style: t.bodySmall?.copyWith(color: AppColors.textSecondary)),
+                          subtitle: Text(
+                            a.forDelivery,
+                            style: t.bodySmall?.copyWith(color: context.colors.textSecondary),
+                          ),
                         ),
                     ],
                   ),
@@ -171,7 +184,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                         ? 'This kitchen is not hygiene-verified.'
                         : 'This kitchen’s hygiene is monitored by sensors and AI.',
                     style: t.bodySmall?.copyWith(
-                      color: kitchen.grade?.needsAlert == true ? AppColors.danger : AppColors.textSecondary,
+                      color: kitchen.grade?.needsAlert == true ? context.colors.danger : context.colors.textSecondary,
                     ),
                   ),
                 ],
@@ -183,8 +196,11 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                   const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: AppColors.dangerSoft, borderRadius: BorderRadius.circular(12)),
-                    child: Text(_error!, style: t.bodyMedium?.copyWith(color: AppColors.danger)),
+                    decoration: BoxDecoration(
+                      color: context.colors.dangerSoft,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(_error!, style: t.bodyMedium?.copyWith(color: context.colors.danger)),
                   ),
                 ],
               ],
@@ -203,10 +219,10 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
               return FilledButton(
                 onPressed: _busy || selected == null || closed ? null : () => _placeOrder(selected),
                 child: _busy
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 22,
                         height: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                        child: CircularProgressIndicator(strokeWidth: 2.5, color: context.colors.onInk),
                       )
                     : Text(closed ? 'Kitchen is closed now' : 'Place order'),
               );

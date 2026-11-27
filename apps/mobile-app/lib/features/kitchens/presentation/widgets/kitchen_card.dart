@@ -7,6 +7,8 @@ import '../../../../core/supabase/errors.dart';
 import '../../../profile/presentation/account_providers.dart';
 import '../../domain/kitchen.dart';
 import 'hygiene_badge.dart';
+import '../../../../core/widgets/media_image.dart';
+import '../../../notifications/presentation/notification_providers.dart';
 
 /// Full-width listing card: image tile, name, hygiene badge and essentials.
 class KitchenCard extends StatelessWidget {
@@ -49,7 +51,7 @@ class KitchenCard extends StatelessWidget {
                 '${formatLkr(k.deliveryFeeLkr)} delivery',
                 if (k.cuisine != null) k.cuisine!,
               ].join('  ·  '),
-              style: t.bodySmall?.copyWith(color: AppColors.textSecondary),
+              style: t.bodySmall?.copyWith(color: context.colors.textSecondary),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -76,9 +78,11 @@ class _ImageTile extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            ColoredBox(
-              color: k.grade?.softColor ?? AppColors.fill,
-              child: Center(child: Text(k.emoji, style: const TextStyle(fontSize: 64))),
+            MediaImage(
+              path: k.bannerPath,
+              emoji: k.emoji,
+              emojiSize: 64,
+              background: k.grade == null ? context.colors.fill : context.colors.toneSoft(k.grade!.tone),
             ),
             if (!k.isOpen)
               ColoredBox(
@@ -107,14 +111,14 @@ class LiveTag extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(999)),
+      decoration: BoxDecoration(color: context.colors.surface, borderRadius: BorderRadius.circular(999)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             width: 7,
             height: 7,
-            decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+            decoration: BoxDecoration(color: context.colors.primary, shape: BoxShape.circle),
           ),
           const SizedBox(width: 5),
           Text('Monitored live', style: Theme.of(context).textTheme.labelSmall),
@@ -133,15 +137,17 @@ class _CardHeart extends ConsumerWidget {
     final favourite = ref.watch(favouritesProvider).value?.contains(kitchenId) ?? false;
     return IconButton(
       tooltip: favourite ? 'Remove from favourites' : 'Save to favourites',
-      style: IconButton.styleFrom(backgroundColor: Colors.white, minimumSize: const Size(40, 40)),
+      style: IconButton.styleFrom(backgroundColor: context.colors.surface, minimumSize: const Size(40, 40)),
       icon: Icon(
         favourite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
         size: 20,
-        color: favourite ? AppColors.danger : AppColors.ink,
+        color: favourite ? context.colors.danger : context.colors.ink,
       ),
       onPressed: () async {
         try {
           await ref.read(favouritesProvider.notifier).toggle(kitchenId);
+          // Just favourited: a good moment to offer hygiene alerts for it.
+          if (!favourite) await ref.read(pushRegistrationProvider.notifier).askPermission();
         } on UserFacingError catch (e) {
           if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
         }

@@ -1,0 +1,7 @@
+# Copy to key.properties (git-ignored) to sign release builds with your own key.
+# Create the keystore once with (you choose the passwords):
+#   keytool -genkey -v -keystore ~/verified-kitchen-release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias verified-kitchen
+storeFile=/Users/you/verified-kitchen-release.jks
+storePassword=
+keyAlias=verified-kitchen
+keyPassword=

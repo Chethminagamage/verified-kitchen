@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 import 'core/config/env.dart';
+import 'core/supabase/timeout_client.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/auth_flow_providers.dart';
 
@@ -17,7 +18,12 @@ Future<void> main() async {
   }
 
   // Sessions are stored on the device and refreshed automatically.
-  await Supabase.initialize(url: Env.supabaseUrl, publishableKey: Env.supabasePublishableKey);
+  await Supabase.initialize(
+    url: Env.supabaseUrl,
+    publishableKey: Env.supabasePublishableKey,
+    // A stalled connection fails after 15 s with a clear message, never loads forever.
+    httpClient: TimeoutClient(),
+  );
   final prefs = await SharedPreferences.getInstance();
   runApp(
     ProviderScope(overrides: [sharedPreferencesProvider.overrideWithValue(prefs)], child: const VerifiedKitchenApp()),

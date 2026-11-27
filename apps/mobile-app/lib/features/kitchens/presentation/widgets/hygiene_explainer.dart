@@ -27,7 +27,7 @@ class _HygieneExplainer extends StatelessWidget {
           Container(
             width: 40,
             height: 40,
-            decoration: const BoxDecoration(color: AppColors.fill, shape: BoxShape.circle),
+            decoration: BoxDecoration(color: context.colors.fill, shape: BoxShape.circle),
             child: Icon(icon, size: 20),
           ),
           const SizedBox(width: 14),
@@ -37,7 +37,7 @@ class _HygieneExplainer extends StatelessWidget {
               children: [
                 Text(title, style: t.titleSmall),
                 const SizedBox(height: 2),
-                Text(text, style: t.bodyMedium?.copyWith(color: AppColors.textSecondary)),
+                Text(text, style: t.bodyMedium?.copyWith(color: context.colors.textSecondary)),
               ],
             ),
           ),
@@ -57,7 +57,7 @@ class _HygieneExplainer extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Grades come from what actually happens in the kitchen, measured continuously, not from a one-off inspection.',
-            style: t.bodyLarge?.copyWith(color: AppColors.textSecondary),
+            style: t.bodyLarge?.copyWith(color: context.colors.textSecondary),
           ),
           const SizedBox(height: 24),
           point(
@@ -107,7 +107,7 @@ class _HygieneExplainer extends StatelessWidget {
                     HygieneGrade.b => '50–74',
                     HygieneGrade.c => '25–49',
                     HygieneGrade.d => '0–24',
-                  }, style: t.bodyMedium?.copyWith(color: AppColors.textSecondary)),
+                  }, style: t.bodyMedium?.copyWith(color: context.colors.textSecondary)),
                 ],
               ),
             ),
@@ -121,7 +121,7 @@ class _HygieneExplainer extends StatelessWidget {
                     TextSpan(text: '${s.label}: ', style: t.titleSmall),
                     TextSpan(
                       text: s.explanation,
-                      style: t.bodyMedium?.copyWith(color: AppColors.textSecondary),
+                      style: t.bodyMedium?.copyWith(color: context.colors.textSecondary),
                     ),
                   ],
                 ),

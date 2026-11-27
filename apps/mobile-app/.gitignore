@@ -52,3 +52,7 @@ env.json
 
 # Android Gradle output
 /android/build/
+
+# Firebase app config (project-specific; download from the Firebase console)
+/android/app/google-services.json
+/ios/Runner/GoogleService-Info.plist

@@ -8,6 +8,8 @@ import '../../../../core/supabase/errors.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatting.dart';
 import '../../../../core/widgets/async_view.dart';
+import '../../../cart/presentation/add_to_cart.dart';
+import '../../../cart/presentation/cart_providers.dart';
 import '../../../cart/presentation/widgets/cart_widgets.dart';
 import '../../../kitchens/presentation/kitchen_providers.dart';
 import '../../../kitchens/presentation/widgets/hygiene_badge.dart';
@@ -28,7 +30,7 @@ class OrderPage extends ConsumerWidget {
         leading: BackButton(onPressed: () => context.canPop() ? context.pop() : context.go(Routes.orders)),
       ),
       body: RefreshIndicator(
-        color: AppColors.ink,
+        color: context.colors.ink,
         onRefresh: () async {
           final _ = await ref.refresh(orderProvider(orderId).future);
         },
@@ -59,6 +61,35 @@ class _OrderContent extends ConsumerStatefulWidget {
 
 class _OrderContentState extends ConsumerState<_OrderContent> {
   bool _cancelling = false;
+  bool _reordering = false;
+
+  /// Puts the same dishes back in the cart at today's prices and opens the cart.
+  Future<void> _reorder() async {
+    final o = widget.order;
+    final messenger = ScaffoldMessenger.of(context);
+    void say(String text) => messenger.showSnackBar(SnackBar(content: Text(text)));
+    setState(() => _reordering = true);
+    try {
+      final kitchen = await ref.read(kitchenProvider(o.kitchenId).future);
+      if (kitchen == null) return say('This kitchen is no longer listed.');
+      if (!kitchen.isOpen) return say('${kitchen.name} is closed. It opens at ${formatClock(kitchen.opensAt)}.');
+      final plan = ReorderPlan.from(o.lines, await ref.refresh(menuProvider(o.kitchenId).future));
+      if (plan.isEmpty) return say('None of these dishes are available right now.');
+
+      final cart = ref.read(cartProvider);
+      if (!mounted) return;
+      if (!cart.isEmpty && !await confirmNewCart(context, currentKitchen: cart.kitchenName ?? 'another kitchen')) {
+        return;
+      }
+      ref.read(cartProvider.notifier).replaceWith(kitchen, plan.items);
+      if (plan.unavailable.isNotEmpty) say('Not available right now: ${plan.unavailable.join(', ')}.');
+      if (mounted) context.push(Routes.cart);
+    } catch (_) {
+      say('Could not load the menu. Check your connection and try again.');
+    } finally {
+      if (mounted) setState(() => _reordering = false);
+    }
+  }
 
   Future<void> _cancel() async {
     final ok = await showDialog<bool>(
@@ -69,7 +100,7 @@ class _OrderContentState extends ConsumerState<_OrderContent> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Keep order')),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.danger, minimumSize: const Size(0, 44)),
+            style: FilledButton.styleFrom(backgroundColor: context.colors.danger, minimumSize: const Size(0, 44)),
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Cancel order'),
           ),
@@ -101,14 +132,19 @@ class _OrderContentState extends ConsumerState<_OrderContent> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
       children: [
-        Text(o.status.label, style: t.headlineMedium?.copyWith(color: o.status.color)),
+        Text(o.status.label, style: t.headlineMedium?.copyWith(color: context.colors.tone(o.status.tone))),
         const SizedBox(height: 4),
-        Text(o.status.description, style: t.bodyLarge?.copyWith(color: AppColors.textSecondary)),
+        Text(o.status.description, style: t.bodyLarge?.copyWith(color: context.colors.textSecondary)),
         const SizedBox(height: 4),
         Text(
           '${kitchen?.name ?? 'Kitchen'} · ${o.reference} · ${DateFormat('d MMM, h:mm a').format(o.placedAt)}',
-          style: t.bodySmall?.copyWith(color: AppColors.textMuted),
+          style: t.bodySmall?.copyWith(color: context.colors.textMuted),
         ),
+        if (kitchen != null)
+          if (o.arrivalWindow(kitchen.prepMinutes) case final window?) ...[
+            const SizedBox(height: 16),
+            _ArrivalCard(from: time.format(window.from), to: time.format(window.to)),
+          ],
         const SizedBox(height: 24),
         if (o.status == OrderStatus.cancelled)
           _Step(
@@ -161,12 +197,20 @@ class _OrderContentState extends ConsumerState<_OrderContent> {
           ],
         ),
         if (o.status == OrderStatus.delivered) ...[const SizedBox(height: 24), FeedbackSection(orderId: o.id)],
+        if (o.canReorder) ...[
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: _reordering ? null : _reorder,
+            icon: const Icon(Icons.replay_rounded, size: 20),
+            label: Text(_reordering ? 'Adding to cart…' : 'Reorder'),
+          ),
+        ],
         if (o.canCancel) ...[
           const SizedBox(height: 28),
           OutlinedButton(
             style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.danger,
-              side: const BorderSide(color: AppColors.dangerSoft),
+              foregroundColor: context.colors.danger,
+              side: BorderSide(color: context.colors.dangerSoft),
             ),
             onPressed: _cancelling ? null : _cancel,
             child: Text(_cancelling ? 'Cancelling…' : 'Cancel order'),
@@ -200,10 +244,10 @@ class _Step extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final (Color dot, Color line) = switch (state) {
-      _StepState.done => (AppColors.ink, AppColors.ink),
-      _StepState.current => (AppColors.primary, AppColors.fillStrong),
-      _StepState.todo => (AppColors.fillStrong, AppColors.fillStrong),
-      _StepState.failed => (AppColors.danger, AppColors.fillStrong),
+      _StepState.done => (context.colors.ink, context.colors.ink),
+      _StepState.current => (context.colors.primary, context.colors.fillStrong),
+      _StepState.todo => (context.colors.fillStrong, context.colors.fillStrong),
+      _StepState.failed => (context.colors.danger, context.colors.fillStrong),
     };
     return IntrinsicHeight(
       child: Row(
@@ -217,7 +261,11 @@ class _Step extends StatelessWidget {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
-                  child: Icon(icon, size: 17, color: state == _StepState.todo ? AppColors.textMuted : Colors.white),
+                  child: Icon(
+                    icon,
+                    size: 17,
+                    color: state == _StepState.todo ? context.colors.textMuted : context.colors.onInk,
+                  ),
                 ),
                 if (!last)
                   Expanded(
@@ -236,12 +284,12 @@ class _Step extends StatelessWidget {
                     child: Text(
                       title,
                       style: state == _StepState.todo
-                          ? t.bodyLarge?.copyWith(color: AppColors.textMuted)
+                          ? t.bodyLarge?.copyWith(color: context.colors.textMuted)
                           : t.titleMedium,
                     ),
                   ),
                   if (time != null)
-                    Text(format.format(time!), style: t.bodySmall?.copyWith(color: AppColors.textSecondary)),
+                    Text(format.format(time!), style: t.bodySmall?.copyWith(color: context.colors.textSecondary)),
                 ],
               ),
             ),
@@ -267,19 +315,56 @@ class _Detail extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: AppColors.textSecondary),
+          Icon(icon, size: 20, color: context.colors.textSecondary),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: t.labelMedium?.copyWith(color: AppColors.textSecondary)),
+                Text(title, style: t.labelMedium?.copyWith(color: context.colors.textSecondary)),
                 const SizedBox(height: 2),
                 Text(text, style: t.bodyMedium),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// "Arriving 12:05 – 12:20" while the order is in progress.
+class _ArrivalCard extends StatelessWidget {
+  const _ArrivalCard({required this.from, required this.to});
+
+  final String from;
+  final String to;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return Semantics(
+      label: 'Estimated arrival between $from and $to',
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(color: context.colors.fill, borderRadius: BorderRadius.circular(16)),
+        child: Row(
+          children: [
+            Icon(Icons.schedule_rounded, color: context.colors.ink),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Estimated arrival', style: t.bodySmall?.copyWith(color: context.colors.textSecondary)),
+                  const SizedBox(height: 2),
+                  Text('$from – $to', style: t.titleLarge),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

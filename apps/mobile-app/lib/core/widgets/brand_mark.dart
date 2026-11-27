@@ -38,7 +38,10 @@ class BrandLockup extends StatelessWidget {
       children: [
         ExcludeSemantics(child: BrandMark(size: size)),
         SizedBox(width: size * 0.28),
-        Text('Verified Kitchen', style: style),
+        // Shrinks with an ellipsis instead of overflowing at very large text sizes.
+        Flexible(
+          child: Text('Verified Kitchen', style: style, maxLines: 1, overflow: TextOverflow.ellipsis),
+        ),
       ],
     );
   }

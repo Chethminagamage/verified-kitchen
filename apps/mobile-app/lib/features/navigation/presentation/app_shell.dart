@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../notifications/presentation/notification_providers.dart';
 import '../../orders/domain/order.dart';
 import '../../orders/presentation/order_providers.dart';
 
@@ -14,19 +15,47 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Links this phone for push while signed in, and opens tapped notifications.
+    ref.watch(pushRegistrationProvider);
+    // A hygiene alert arriving while the app is open: a short banner (the phone
+    // shows its own notification only when the app is in the background).
+    ref.listen(notificationArrivalsProvider, (_, next) {
+      final n = next.value;
+      if (n == null) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(n.title),
+            persist: false,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'View',
+              textColor: context.colors.primary,
+              onPressed: () => context.push(Routes.notifications),
+            ),
+          ),
+        );
+    });
     // Live order updates wherever the customer is in the app.
     ref.listen(orderStatusChangesProvider, (_, next) {
       final change = next.value;
-      if (change == null) return;
+      if (change == null || !change.worthTelling) return;
+      // The tracking screen of that order already updates live.
+      final location = GoRouter.of(context).routerDelegate.currentConfiguration.uri.path;
+      if (location == Routes.order(change.orderId)) return;
       final messenger = ScaffoldMessenger.of(context);
       messenger
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
             content: Text(_message(change.status)),
+            // A snackbar with an action stays until dismissed unless told otherwise.
+            persist: false,
+            duration: const Duration(seconds: 4),
             action: SnackBarAction(
               label: 'View',
-              textColor: AppColors.primary,
+              textColor: context.colors.primary,
               onPressed: () => context.push(Routes.order(change.orderId)),
             ),
           ),
@@ -37,8 +66,8 @@ class AppShell extends ConsumerWidget {
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: DecoratedBox(
-        decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: AppColors.border)),
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: context.colors.border)),
         ),
         child: NavigationBar(
           selectedIndex: navigationShell.currentIndex,
@@ -53,13 +82,13 @@ class AppShell extends ConsumerWidget {
               icon: Badge(
                 isLabelVisible: active > 0,
                 label: Text('$active'),
-                backgroundColor: AppColors.primary,
+                backgroundColor: context.colors.primary,
                 child: const Icon(Icons.receipt_long_outlined),
               ),
               selectedIcon: Badge(
                 isLabelVisible: active > 0,
                 label: Text('$active'),
-                backgroundColor: AppColors.primary,
+                backgroundColor: context.colors.primary,
                 child: const Icon(Icons.receipt_long_rounded),
               ),
               label: 'Orders',

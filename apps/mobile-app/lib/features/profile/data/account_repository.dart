@@ -40,7 +40,7 @@ class AccountRepository {
         .from('customer_addresses')
         .select('id, label, address_line, instructions, is_default')
         .order('is_default', ascending: false)
-        .order('created_at');
+        .order('created_at', ascending: true);
     return [for (final r in rows) SavedAddress.fromJson(r)];
   }
 

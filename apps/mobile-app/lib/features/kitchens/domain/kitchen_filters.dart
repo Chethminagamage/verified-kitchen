@@ -36,12 +36,19 @@ class KitchenQuery {
 
 /// Filter, then order the list the way a hygiene-first marketplace should:
 /// open kitchens first, then verified hygiene evidence, then the better grade.
-List<Kitchen> applyKitchenQuery(Iterable<Kitchen> kitchens, KitchenQuery q) {
+///
+/// [dishMatches] (kitchen id -> matching dish names, from [dishSearchPattern])
+/// lets a search for a dish find the kitchens that serve it.
+List<Kitchen> applyKitchenQuery(
+  Iterable<Kitchen> kitchens,
+  KitchenQuery q, {
+  Map<String, List<String>> dishMatches = const {},
+}) {
   final text = q.text.trim().toLowerCase();
   final out = kitchens.where((k) {
     if (text.isNotEmpty) {
       final hay = '${k.name} ${k.cuisine ?? ''} ${k.location ?? ''}'.toLowerCase();
-      if (!hay.contains(text)) return false;
+      if (!hay.contains(text) && !dishMatches.containsKey(k.id)) return false;
     }
     if (q.category != null && k.category != q.category) return false;
     if (q.onlyGradeA && k.grade != HygieneGrade.a) return false;
@@ -75,4 +82,16 @@ List<String> categoriesOf(Iterable<Kitchen> kitchens) {
     for (final k in kitchens)
       if (k.category != null && seen.add(k.category!)) k.category!,
   ];
+}
+
+/// Shortest search text that also looks through dish names.
+const int minDishSearchLength = 2;
+
+/// SQL ILIKE pattern for a dish-name search, or null when the text is too
+/// short. %, _ and \\ typed by the customer are matched literally.
+String? dishSearchPattern(String text) {
+  final t = text.trim();
+  if (t.length < minDishSearchLength) return null;
+  final escaped = t.replaceAllMapped(RegExp(r'[\\%_]'), (m) => '\\${m[0]}');
+  return '%$escaped%';
 }

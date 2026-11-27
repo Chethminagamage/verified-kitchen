@@ -6,12 +6,16 @@ import '../../../../core/supabase/errors.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatting.dart';
 import '../../../../core/widgets/async_view.dart';
+import '../../../cart/presentation/add_to_cart.dart';
 import '../../../cart/presentation/cart_providers.dart';
 import '../../../cart/presentation/widgets/cart_widgets.dart';
 import '../../../profile/presentation/account_providers.dart';
 import '../../domain/kitchen.dart';
 import '../kitchen_providers.dart';
+import '../widgets/dish_sheet.dart';
 import '../widgets/hygiene_panel.dart';
+import '../../../../core/widgets/media_image.dart';
+import '../../../notifications/presentation/notification_providers.dart';
 
 class KitchenPage extends ConsumerWidget {
   const KitchenPage({super.key, required this.kitchenId});
@@ -54,7 +58,7 @@ class _KitchenContent extends ConsumerWidget {
     final menu = ref.watch(menuProvider(k.id));
 
     return RefreshIndicator(
-      color: AppColors.ink,
+      color: context.colors.ink,
       onRefresh: () async {
         ref.invalidate(hygieneHistoryProvider(k.id));
         ref.invalidate(menuProvider(k.id));
@@ -65,7 +69,7 @@ class _KitchenContent extends ConsumerWidget {
           SliverAppBar(
             pinned: true,
             expandedHeight: 210,
-            backgroundColor: AppColors.surface,
+            backgroundColor: context.colors.surface,
             leading: Padding(
               padding: const EdgeInsets.all(8),
               child: _CircleButton(icon: Icons.arrow_back_rounded, tooltip: 'Back', onTap: () => context.pop()),
@@ -77,11 +81,27 @@ class _KitchenContent extends ConsumerWidget {
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
-              background: ColoredBox(
-                color: k.grade?.softColor ?? AppColors.fill,
-                child: SafeArea(
-                  child: Center(child: Text(k.emoji, style: const TextStyle(fontSize: 84))),
-                ),
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  MediaImage(
+                    path: k.bannerPath,
+                    emoji: k.emoji,
+                    emojiSize: 84,
+                    background: k.grade == null ? context.colors.fill : context.colors.toneSoft(k.grade!.tone),
+                  ),
+                  // A soft shade at the top keeps the status bar readable over a photo.
+                  if (k.bannerPath != null)
+                    const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.center,
+                          colors: [Color(0x66000000), Color(0x00000000)],
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
@@ -93,7 +113,7 @@ class _KitchenContent extends ConsumerWidget {
                 const SizedBox(height: 6),
                 Text(
                   [if (k.cuisine != null) k.cuisine!, if (k.location != null) k.location!].join('  ·  '),
-                  style: t.bodyMedium?.copyWith(color: AppColors.textSecondary),
+                  style: t.bodyMedium?.copyWith(color: context.colors.textSecondary),
                 ),
                 const SizedBox(height: 14),
                 Wrap(
@@ -105,7 +125,7 @@ class _KitchenContent extends ConsumerWidget {
                       text: k.isOpen
                           ? 'Open · until ${formatClock(k.closesAt)}'
                           : 'Closed · opens ${formatClock(k.opensAt)}',
-                      color: k.isOpen ? AppColors.success : AppColors.danger,
+                      color: k.isOpen ? context.colors.success : context.colors.danger,
                     ),
                     _InfoChip(icon: Icons.delivery_dining_outlined, text: '${k.prepMinutes}–${k.prepMinutes + 15} min'),
                     _InfoChip(icon: Icons.payments_outlined, text: '${formatLkr(k.deliveryFeeLkr)} delivery'),
@@ -113,7 +133,7 @@ class _KitchenContent extends ConsumerWidget {
                 ),
                 if (k.description != null) ...[
                   const SizedBox(height: 14),
-                  Text(k.description!, style: t.bodyMedium?.copyWith(color: AppColors.textSecondary)),
+                  Text(k.description!, style: t.bodyMedium?.copyWith(color: context.colors.textSecondary)),
                 ],
                 const SizedBox(height: 20),
                 HygienePanel(kitchen: k, history: history, now: DateTime.now()),
@@ -179,27 +199,7 @@ class _MenuRow extends ConsumerWidget {
   final MenuItem item;
   final Kitchen kitchen;
 
-  Future<void> _add(BuildContext context, WidgetRef ref) async {
-    final cart = ref.read(cartProvider.notifier);
-    if (cart.add(kitchen, item) == AddResult.added) return;
-    final current = ref.read(cartProvider).kitchenName ?? 'another kitchen';
-    final replace = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Start a new cart?'),
-        content: Text('Your cart has items from $current. Starting a new cart removes them.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Keep cart')),
-          FilledButton(
-            style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('New cart'),
-          ),
-        ],
-      ),
-    );
-    if (replace == true) cart.startNewCart(kitchen, item);
-  }
+  Future<void> _add(BuildContext context, WidgetRef ref) => addToCart(context, ref, kitchen, item);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -208,59 +208,65 @@ class _MenuRow extends ConsumerWidget {
     final inCart = ref.watch(cartProvider.select((c) => c.kitchenId == kitchen.id ? c.quantityOf(item.id) : 0));
     return Opacity(
       opacity: item.isAvailable ? 1 : 0.45,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      // Tapping the dish opens its details (quantity, full description), as in delivery apps.
+      child: InkWell(
+        onTap: () => showDishSheet(context, kitchen: kitchen, item: item),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(item.name, style: t.titleMedium),
+                    const SizedBox(height: 4),
+                    Text(formatLkr(item.priceLkr), style: t.bodyMedium),
+                    if (item.description != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        item.description!,
+                        style: t.bodySmall?.copyWith(color: context.colors.textSecondary),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    if (!item.isAvailable) ...[
+                      const SizedBox(height: 4),
+                      Text('Sold out', style: t.labelSmall?.copyWith(color: context.colors.danger)),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 14),
+              Stack(
+                clipBehavior: Clip.none,
                 children: [
-                  Text(item.name, style: t.titleMedium),
-                  const SizedBox(height: 4),
-                  Text(formatLkr(item.priceLkr), style: t.bodyMedium),
-                  if (item.description != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      item.description!,
-                      style: t.bodySmall?.copyWith(color: AppColors.textSecondary),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                  if (!item.isAvailable) ...[
-                    const SizedBox(height: 4),
-                    Text('Sold out', style: t.labelSmall?.copyWith(color: AppColors.danger)),
-                  ],
+                  MediaImage(
+                    path: item.imagePath,
+                    emoji: item.emoji,
+                    emojiSize: 40,
+                    width: 92,
+                    height: 92,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  Positioned(
+                    right: -6,
+                    bottom: -6,
+                    child: inCart > 0
+                        ? _CountButton(count: inCart, onTap: available ? () => _add(context, ref) : null)
+                        : _CircleButton(
+                            icon: Icons.add_rounded,
+                            tooltip: 'Add ${item.name}',
+                            onTap: available ? () => _add(context, ref) : null,
+                          ),
+                  ),
                 ],
               ),
-            ),
-            const SizedBox(width: 14),
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  width: 92,
-                  height: 92,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(color: AppColors.fill, borderRadius: BorderRadius.circular(14)),
-                  child: Text(item.emoji, style: const TextStyle(fontSize: 40)),
-                ),
-                Positioned(
-                  right: -6,
-                  bottom: -6,
-                  child: inCart > 0
-                      ? _CountButton(count: inCart, onTap: available ? () => _add(context, ref) : null)
-                      : _CircleButton(
-                          icon: Icons.add_rounded,
-                          tooltip: 'Add ${item.name}',
-                          onTap: available ? () => _add(context, ref) : null,
-                        ),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -278,11 +284,11 @@ class _InfoChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(color: AppColors.fill, borderRadius: BorderRadius.circular(999)),
+      decoration: BoxDecoration(color: context.colors.fill, borderRadius: BorderRadius.circular(999)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 15, color: color ?? AppColors.ink),
+          Icon(icon, size: 15, color: color ?? context.colors.ink),
           const SizedBox(width: 5),
           Text(text, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: color)),
         ],
@@ -304,7 +310,7 @@ class _CircleButton extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: onTap == null ? AppColors.fillStrong : Colors.white,
+        color: onTap == null ? context.colors.fillStrong : context.colors.surface,
         shape: const CircleBorder(),
         elevation: 2,
         shadowColor: Colors.black26,
@@ -313,7 +319,7 @@ class _CircleButton extends StatelessWidget {
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(8),
-            child: Icon(icon, size: 22, color: iconColor ?? AppColors.ink),
+            child: Icon(icon, size: 22, color: iconColor ?? context.colors.ink),
           ),
         ),
       ),
@@ -331,7 +337,7 @@ class _CountButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.ink,
+      color: context.colors.ink,
       shape: const CircleBorder(),
       elevation: 2,
       child: InkWell(
@@ -343,7 +349,7 @@ class _CountButton extends StatelessWidget {
           child: Center(
             child: Text(
               '$count',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.white),
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(color: context.colors.onInk),
               semanticsLabel: '$count in cart, add one more',
             ),
           ),
@@ -363,11 +369,13 @@ class _FavouriteButton extends ConsumerWidget {
     final favourite = ref.watch(favouritesProvider).value?.contains(kitchenId) ?? false;
     return _CircleButton(
       icon: favourite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-      iconColor: favourite ? AppColors.danger : null,
+      iconColor: favourite ? context.colors.danger : null,
       tooltip: favourite ? 'Remove from favourites' : 'Save to favourites',
       onTap: () async {
         try {
           await ref.read(favouritesProvider.notifier).toggle(kitchenId);
+          // Just favourited: a good moment to offer hygiene alerts for it.
+          if (!favourite) await ref.read(pushRegistrationProvider.notifier).askPermission();
         } on UserFacingError catch (e) {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));

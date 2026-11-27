@@ -43,7 +43,7 @@ class Bone extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     width: width,
     height: height,
-    decoration: BoxDecoration(color: AppColors.fill, borderRadius: BorderRadius.circular(radius)),
+    decoration: BoxDecoration(color: context.colors.fill, borderRadius: BorderRadius.circular(radius)),
   );
 }
 

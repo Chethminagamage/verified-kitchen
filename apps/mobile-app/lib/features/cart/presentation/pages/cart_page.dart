@@ -10,6 +10,7 @@ import '../../../kitchens/presentation/kitchen_providers.dart';
 import '../../../kitchens/presentation/widgets/hygiene_badge.dart';
 import '../cart_providers.dart';
 import '../widgets/cart_widgets.dart';
+import '../../../../core/widgets/media_image.dart';
 
 class CartPage extends ConsumerWidget {
   const CartPage({super.key});
@@ -51,12 +52,13 @@ class CartPage extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Row(
                 children: [
-                  Container(
+                  MediaImage(
+                    path: kitchen?.bannerPath,
+                    emoji: kitchen?.emoji ?? '🍽️',
+                    emojiSize: 24,
                     width: 48,
                     height: 48,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(color: AppColors.fill, borderRadius: BorderRadius.circular(12)),
-                    child: Text(kitchen?.emoji ?? '🍽️', style: const TextStyle(fontSize: 24)),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -81,7 +83,14 @@ class CartPage extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Row(
                 children: [
-                  Text(line.item.emoji, style: const TextStyle(fontSize: 28)),
+                  MediaImage(
+                    path: line.item.imagePath,
+                    emoji: line.item.emoji,
+                    emojiSize: 26,
+                    width: 48,
+                    height: 48,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -89,7 +98,7 @@ class CartPage extends ConsumerWidget {
                       children: [
                         Text(line.item.name, style: t.titleSmall),
                         const SizedBox(height: 2),
-                        Text(formatLkr(line.total), style: t.bodySmall?.copyWith(color: AppColors.textSecondary)),
+                        Text(formatLkr(line.total), style: t.bodySmall?.copyWith(color: context.colors.textSecondary)),
                       ],
                     ),
                   ),
@@ -108,7 +117,7 @@ class CartPage extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(
             'Prices are confirmed by the kitchen when you place the order.',
-            style: t.bodySmall?.copyWith(color: AppColors.textMuted),
+            style: t.bodySmall?.copyWith(color: context.colors.textMuted),
           ),
         ],
       ),

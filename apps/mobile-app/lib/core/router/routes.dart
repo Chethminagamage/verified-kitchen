@@ -11,6 +11,10 @@ abstract final class Routes {
   static const String cart = '/cart';
   static const String checkout = '/checkout';
   static const String editProfile = '/profile/edit';
+  static const String changePassword = '/profile/password';
+  static const String changeEmail = '/profile/email';
+  static const String notifications = '/notifications';
+  static const String notificationSettings = '/profile/notifications';
   static const String addresses = '/profile/addresses';
   static const String newAddress = '/profile/addresses/new';
   static const String favourites = '/profile/favourites';

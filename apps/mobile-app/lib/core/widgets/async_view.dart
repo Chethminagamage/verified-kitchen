@@ -43,13 +43,13 @@ class ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.wifi_off_rounded, size: 40, color: AppColors.textMuted),
+            Icon(Icons.wifi_off_rounded, size: 40, color: context.colors.textMuted),
             const SizedBox(height: 12),
             Text("Couldn't load this", style: t.titleMedium),
             const SizedBox(height: 4),
             Text(
               message ?? 'Check your internet connection and try again.',
-              style: t.bodyMedium?.copyWith(color: AppColors.textSecondary),
+              style: t.bodyMedium?.copyWith(color: context.colors.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -85,15 +85,15 @@ class EmptyState extends StatelessWidget {
             Container(
               width: 72,
               height: 72,
-              decoration: const BoxDecoration(color: AppColors.fill, shape: BoxShape.circle),
-              child: Icon(icon, size: 32, color: AppColors.textSecondary),
+              decoration: BoxDecoration(color: context.colors.fill, shape: BoxShape.circle),
+              child: Icon(icon, size: 32, color: context.colors.textSecondary),
             ),
             const SizedBox(height: 16),
             Text(title, style: t.titleLarge, textAlign: TextAlign.center),
             const SizedBox(height: 6),
             Text(
               message,
-              style: t.bodyMedium?.copyWith(color: AppColors.textSecondary),
+              style: t.bodyMedium?.copyWith(color: context.colors.textSecondary),
               textAlign: TextAlign.center,
             ),
             if (action != null) ...[const SizedBox(height: 20), action!],

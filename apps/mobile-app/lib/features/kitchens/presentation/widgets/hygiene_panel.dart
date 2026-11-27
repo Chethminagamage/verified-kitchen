@@ -4,10 +4,11 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatting.dart';
 import '../../domain/hygiene.dart';
 import '../../domain/kitchen.dart';
-import 'hygiene_badge.dart';
 import 'hygiene_explainer.dart';
+import 'score_ring.dart';
 
-/// The hygiene layer of a kitchen page: grade, status, pillars and 7-day trend.
+/// The hygiene layer of a kitchen page: score ring, grade, status, the reason
+/// for a grade below A, the three areas and the 7-day trend.
 class HygienePanel extends StatelessWidget {
   const HygienePanel({super.key, required this.kitchen, required this.history, required this.now});
 
@@ -20,28 +21,29 @@ class HygienePanel extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final k = kitchen;
     final g = k.grade;
+    final reason = k.gradeReasonText;
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              GradeDisc(grade: g, size: 58),
-              const SizedBox(width: 14),
+              ScoreRing(score: k.rating, grade: g),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(g != null ? 'Hygiene ${g.letter} · ${g.meaning}' : k.status.label, style: t.titleLarge),
                     const SizedBox(height: 2),
-                    Text(_subtitle(k, now), style: t.bodySmall?.copyWith(color: AppColors.textSecondary)),
+                    Text(_subtitle(k, now), style: t.bodySmall?.copyWith(color: context.colors.textSecondary)),
                   ],
                 ),
               ),
@@ -50,16 +52,16 @@ class HygienePanel extends StatelessWidget {
           if (g != null && g.needsAlert) ...[
             const SizedBox(height: 14),
             _Notice(
-              color: AppColors.danger,
-              background: AppColors.dangerSoft,
+              color: context.colors.danger,
+              background: context.colors.dangerSoft,
               icon: Icons.warning_amber_rounded,
               text: 'Hygiene alert: this kitchen has been below standard over the past week.',
             ),
           ] else if (k.status != HygieneStatus.verified) ...[
             const SizedBox(height: 14),
             _Notice(
-              color: AppColors.textSecondary,
-              background: AppColors.fill,
+              color: context.colors.textSecondary,
+              background: context.colors.fill,
               icon: Icons.info_outline_rounded,
               text: k.status.explanation,
             ),
@@ -67,10 +69,12 @@ class HygienePanel extends StatelessWidget {
           if (k.rating != null) ...[
             const SizedBox(height: 18),
             Text('Why this grade', style: t.titleSmall),
-            const SizedBox(height: 10),
-            _PillarBar(label: 'Personal hygiene', icon: Icons.back_hand_outlined, score: k.personalScore),
-            _PillarBar(label: 'Food preparation', icon: Icons.countertops_outlined, score: k.foodPrepScore),
-            _PillarBar(label: 'Environment', icon: Icons.thermostat_outlined, score: k.environmentalScore),
+            if (reason != null && g != null) ...[
+              const SizedBox(height: 6),
+              _Reason(text: reason, color: context.colors.tone(g.tone)),
+            ],
+            const SizedBox(height: 12),
+            for (final (area, score) in k.areaScores) _PillarBar(area: area, score: score),
           ],
           if (history.where((d) => d.overall != null).length >= 2) ...[
             const SizedBox(height: 14),
@@ -130,43 +134,89 @@ class _Notice extends StatelessWidget {
   }
 }
 
+/// The short public reason for a grade below A, in the grade's colour.
+class _Reason extends StatelessWidget {
+  const _Reason({required this.text, required this.color});
+
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(Icons.trending_down_rounded, size: 18, color: color),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            text,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: color, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 /// One hygiene area in plain words ("Strong", "Needs improvement"): customers
 /// get the meaning, not raw numbers or the kitchen's internal records.
 class _PillarBar extends StatelessWidget {
-  const _PillarBar({required this.label, required this.icon, required this.score});
+  const _PillarBar({required this.area, required this.score});
 
-  final String label;
-  final IconData icon;
+  final HygieneArea area;
   final double? score;
+
+  static IconData _icon(HygieneArea area) => switch (area) {
+    HygieneArea.personal => Icons.back_hand_outlined,
+    HygieneArea.foodPrep => Icons.countertops_outlined,
+    HygieneArea.environment => Icons.thermostat_outlined,
+  };
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final level = PillarLevel.of(score);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
           Container(
-            width: 36,
-            height: 36,
-            decoration: const BoxDecoration(color: AppColors.fill, shape: BoxShape.circle),
-            child: Icon(icon, size: 18, color: AppColors.ink),
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(color: context.colors.fill, shape: BoxShape.circle),
+            child: Icon(_icon(area), size: 18, color: context.colors.ink),
           ),
           const SizedBox(width: 12),
-          Expanded(child: Text(label, style: t.bodyLarge)),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (level != PillarLevel.notMonitored)
-                Container(
-                  width: 8,
-                  height: 8,
-                  margin: const EdgeInsets.only(right: 6),
-                  decoration: BoxDecoration(color: level.color, shape: BoxShape.circle),
+          // The level sits under the name, so long levels ("Needs improvement")
+          // fit on any phone width without cutting off the area name.
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(area.label, style: t.bodyLarge?.copyWith(fontWeight: FontWeight.w500)),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    if (level != PillarLevel.notMonitored)
+                      Container(
+                        width: 7,
+                        height: 7,
+                        margin: const EdgeInsets.only(right: 6),
+                        decoration: BoxDecoration(color: context.colors.tone(level.tone), shape: BoxShape.circle),
+                      ),
+                    Flexible(
+                      child: Text(
+                        level.label,
+                        style: t.bodySmall?.copyWith(
+                          color: context.colors.tone(level.tone),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              Text(level.label, style: t.titleSmall?.copyWith(color: level.color)),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -200,13 +250,15 @@ class _Trend extends StatelessWidget {
                       child: Container(
                         height: 56 * ((d.overall ?? 0) / 100).clamp(0.05, 1.0),
                         decoration: BoxDecoration(
-                          color: d.overall == null ? AppColors.fillStrong : PillarLevel.of(d.overall).color,
+                          color: d.overall == null
+                              ? context.colors.fillStrong
+                              : context.colors.tone(PillarLevel.of(d.overall).tone),
                           borderRadius: BorderRadius.circular(6),
                         ),
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Text(weekday[d.day.weekday - 1], style: t.labelSmall?.copyWith(color: AppColors.textMuted)),
+                    Text(weekday[d.day.weekday - 1], style: t.labelSmall?.copyWith(color: context.colors.textMuted)),
                   ],
                 ),
               ),
