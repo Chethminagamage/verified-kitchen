@@ -4,11 +4,11 @@
 -- Purpose: see every hygiene state of the consumer app before the real
 -- kitchen has enough monitoring for a verified grade.
 --
---   Kandy Kottu House (demo)  -> A, verified, monitored live
---   Lakeside Burgers (demo)   -> B, verified
---   Hill Country Pizza (demo) -> C, verified (hygiene alert)
---   Green Bowl (demo)         -> monitoring incomplete, grade limited to B
---   Sweet Corner (demo)       -> rating pending
+--   Kandy Kottu House  -> A, verified, monitored live
+--   Lakeside Burgers   -> B, verified
+--   Hill Country Pizza -> C, verified (hygiene alert)
+--   Green Bowl         -> monitoring incomplete, grade limited to B
+--   Hill Capital Hoppers -> rating pending (monitoring just started)
 --
 -- The real kitchen (kitchen-001) is NOT touched: it only ever shows what the
 -- edge service measures. Demo kitchens have no devices, so the edge service
@@ -36,7 +36,7 @@ select k.id, p.status, p.rating, p.grade, p.personal, p.food_prep, p.environment
     ('demo-burger',  'verified',   67.8, 'B', 72.0, 61.0, 70.0, 0.88, 80.0,  91.0, false),
     ('demo-pizza',   'verified',   41.2, 'C', 38.0, 45.0, 40.0, 0.91, 70.0,  77.0, false),
     ('demo-healthy', 'incomplete', 86.0, 'B', 90.0, null, 82.0, 0.62, 52.0,  84.0, false),
-    ('demo-dessert', 'pending',    null, null, null, null, null, 0.30,  3.5,  11.5, false)
+    ('demo-hoppers', 'pending',    null, null, null, null, null, 0.30,  3.5,  11.5, false)
   ) as p(code, status, rating, grade, personal, food_prep, environmental, coverage, monitored, expected, live)
     on p.code = k.code
 on conflict (kitchen_id) do update

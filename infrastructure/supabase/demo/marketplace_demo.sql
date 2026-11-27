@@ -22,11 +22,10 @@ update public.kitchens
 
 insert into public.kitchens (code, name, location, is_public, cuisine, description, emoji, delivery_fee_lkr, prep_minutes, opens_at, closes_at)
 values
-  ('demo-kottu',   'Kandy Kottu House (demo)',   'Kandy',       true, 'Kottu · Street food',  'Demo listing — not a real kitchen.', '🥘', 250, 30, '11:00', '23:30'),
-  ('demo-burger',  'Lakeside Burgers (demo)',    'Kandy',       true, 'Burgers · Fast food',  'Demo listing — not a real kitchen.', '🍔', 300, 20, '10:00', '23:00'),
-  ('demo-pizza',   'Hill Country Pizza (demo)',  'Peradeniya',  true, 'Pizza · Italian',      'Demo listing — not a real kitchen.', '🍕', 350, 35, '12:00', '23:00'),
-  ('demo-healthy', 'Green Bowl (demo)',          'Kandy',       true, 'Healthy · Salads',     'Demo listing — not a real kitchen.', '🥗', 250, 20, '08:00', '20:00'),
-  ('demo-dessert', 'Sweet Corner (demo)',        'Katugastota', true, 'Desserts · Bakery',    'Demo listing — not a real kitchen.', '🍰', 200, 15, '09:00', '22:00')
+  ('demo-kottu',   'Kandy Kottu House',   'Kandy',       true, 'Kottu · Street food',  'Demo listing — not a real kitchen.', '🥘', 250, 30, '11:00', '23:30'),
+  ('demo-burger',  'Lakeside Burgers',    'Kandy',       true, 'Burgers · Fast food',  'Demo listing — not a real kitchen.', '🍔', 300, 20, '10:00', '23:00'),
+  ('demo-pizza',   'Hill Country Pizza',  'Peradeniya',  true, 'Pizza · Italian',      'Demo listing — not a real kitchen.', '🍕', 350, 35, '12:00', '23:00'),
+  ('demo-healthy', 'Green Bowl',          'Kandy',       true, 'Healthy · Salads',     'Demo listing — not a real kitchen.', '🥗', 250, 20, '08:00', '20:00')
 on conflict (code) do nothing;
 
 insert into public.menu_items (kitchen_id, name, description, category, price_lkr, emoji, sort_order)
@@ -47,8 +46,6 @@ select k.id, m.name, m.description, m.category, m.price, m.emoji, m.sort_order
     ('demo-pizza',  'Margherita (medium)',  'Tomato, mozzarella, basil',                                'Pizza',       2200, '🍕', 1),
     ('demo-pizza',  'Devilled chicken (medium)', 'Sri Lankan devilled chicken, onion, capsicum',       'Pizza',       2600, '🌶️', 2),
     ('demo-healthy','Grilled chicken salad','Greens, grilled chicken, honey-lime dressing',             'Salads',      1350, '🥗', 1),
-    ('demo-healthy','Fruit bowl',           'Seasonal fruit',                                           'Bowls',        800, '🍉', 2),
-    ('demo-dessert','Watalappan',           'Jaggery and coconut custard',                              'Desserts',     450, '🍮', 1),
-    ('demo-dessert','Chocolate cake slice', NULL,                                                       'Cakes',        550, '🍰', 2)
+    ('demo-healthy','Fruit bowl',           'Seasonal fruit',                                           'Bowls',        800, '🍉', 2)
   ) as m(code, name, description, category, price, emoji, sort_order) on m.code = k.code
 on conflict (kitchen_id, name) do nothing;
