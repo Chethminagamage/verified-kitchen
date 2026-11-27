@@ -1,6 +1,4 @@
-import 'package:flutter/material.dart';
-
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/tone.dart';
 
 /// Public hygiene status of a kitchen, as published by the Verified Kitchen
 /// scoring service (marketplace_kitchens.rating_status). The app only
@@ -42,17 +40,18 @@ enum HygieneStatus {
 
 /// Grade A-D (Sri Lanka PHI H-800 bands: A >= 75, B >= 50, C >= 25, else D).
 enum HygieneGrade {
-  a('A', 'Good', AppColors.success, AppColors.successSoft),
-  b('B', 'Satisfactory', Color(0xFF4D7C0F), Color(0xFFECFCCB)),
-  c('C', 'Below standard', AppColors.warning, AppColors.warningSoft),
-  d('D', 'Poor', AppColors.danger, AppColors.dangerSoft);
+  a('A', 'Good', Tone.positive),
+  b('B', 'Satisfactory', Tone.good),
+  c('C', 'Below standard', Tone.warning),
+  d('D', 'Poor', Tone.critical);
 
-  const HygieneGrade(this.letter, this.meaning, this.color, this.softColor);
+  const HygieneGrade(this.letter, this.meaning, this.tone);
 
   final String letter;
   final String meaning;
-  final Color color;
-  final Color softColor;
+
+  /// Shown in the active palette with `context.colors.tone(grade.tone)`.
+  final Tone tone;
 
   static HygieneGrade? parse(String? value) => switch (value) {
     'A' => a,
@@ -66,18 +65,48 @@ enum HygieneGrade {
   bool get needsAlert => this == c || this == d;
 }
 
-/// Plain-language level of one hygiene area (what customers see instead of a number).
-enum PillarLevel {
-  strong('Strong', AppColors.success),
-  good('Good', Color(0xFF4D7C0F)),
-  needsImprovement('Needs improvement', AppColors.warning),
-  poor('Poor', AppColors.danger),
-  notMonitored('Not monitored yet', AppColors.textMuted);
+/// The three public hygiene areas, in display order.
+enum HygieneArea {
+  personal('Personal hygiene', 'personal hygiene'),
+  foodPrep('Food preparation', 'food preparation'),
+  environment('Environment', 'the kitchen environment');
 
-  const PillarLevel(this.label, this.color);
+  const HygieneArea(this.label, this.inSentence);
 
   final String label;
-  final Color color;
+
+  /// How the area reads inside a sentence ("Lowered mainly by ...").
+  final String inSentence;
+}
+
+/// One-line public reason for a grade below A: the weakest monitored area.
+///
+/// It names an area only, never an incident or a time. Returns null for an A,
+/// for no grade, and when no area is below the A band (the grade is then
+/// limited by incomplete monitoring, which the status notice already explains).
+/// Ties go to the area listed first.
+String? gradeReason(HygieneGrade? grade, List<(HygieneArea, double?)> areaScores) {
+  if (grade == null || grade == HygieneGrade.a) return null;
+  (HygieneArea, double)? weakest;
+  for (final (area, score) in areaScores) {
+    if (score != null && (weakest == null || score < weakest.$2)) weakest = (area, score);
+  }
+  if (weakest == null || weakest.$2 >= 75) return null;
+  return 'Lowered mainly by ${weakest.$1.inSentence}.';
+}
+
+/// Plain-language level of one hygiene area (what customers see instead of a number).
+enum PillarLevel {
+  strong('Strong', Tone.positive),
+  good('Good', Tone.good),
+  needsImprovement('Needs improvement', Tone.warning),
+  poor('Poor', Tone.critical),
+  notMonitored('Not monitored yet', Tone.muted);
+
+  const PillarLevel(this.label, this.tone);
+
+  final String label;
+  final Tone tone;
 
   /// Same bands as the grade (A/B/C/D), so the words always agree with it.
   static PillarLevel of(double? score) {

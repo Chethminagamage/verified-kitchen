@@ -10,10 +10,20 @@ import '../cart_providers.dart';
 
 /// − 2 + control.
 class QuantityStepper extends StatelessWidget {
-  const QuantityStepper({super.key, required this.quantity, required this.onChanged});
+  const QuantityStepper({
+    super.key,
+    required this.quantity,
+    required this.onChanged,
+    this.min = 0,
+    this.max = maxQuantity,
+  });
 
   final int quantity;
   final ValueChanged<int> onChanged;
+
+  /// 0 (in the cart): the minus becomes "Remove" at 1. 1 (choosing a quantity): minus stops at 1.
+  final int min;
+  final int max;
 
   @override
   Widget build(BuildContext context) {
@@ -25,20 +35,23 @@ class QuantityStepper extends StatelessWidget {
       icon: Icon(icon),
     );
     return Container(
-      decoration: BoxDecoration(color: AppColors.fill, borderRadius: BorderRadius.circular(999)),
+      decoration: BoxDecoration(color: context.colors.fill, borderRadius: BorderRadius.circular(999)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          button(
-            quantity <= 1 ? Icons.delete_outline_rounded : Icons.remove_rounded,
-            quantity <= 1 ? 'Remove' : 'Less',
-            () => onChanged(quantity - 1),
-          ),
+          if (min == 0)
+            button(
+              quantity <= 1 ? Icons.delete_outline_rounded : Icons.remove_rounded,
+              quantity <= 1 ? 'Remove' : 'Less',
+              () => onChanged(quantity - 1),
+            )
+          else
+            button(Icons.remove_rounded, 'Less', quantity <= min ? null : () => onChanged(quantity - 1)),
           SizedBox(
             width: 22,
             child: Text('$quantity', textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleSmall),
           ),
-          button(Icons.add_rounded, 'More', quantity >= maxQuantity ? null : () => onChanged(quantity + 1)),
+          button(Icons.add_rounded, 'More', quantity >= max ? null : () => onChanged(quantity + 1)),
         ],
       ),
     );
@@ -56,7 +69,7 @@ class PriceRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    final style = bold ? t.titleMedium : t.bodyMedium?.copyWith(color: AppColors.textSecondary);
+    final style = bold ? t.titleMedium : t.bodyMedium?.copyWith(color: context.colors.textSecondary);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -90,8 +103,11 @@ class ViewCartBar extends ConsumerWidget {
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(999)),
-                child: Text('${cart.itemCount}', style: t.labelLarge?.copyWith(color: Colors.white)),
+                decoration: BoxDecoration(
+                  color: context.colors.onInk.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text('${cart.itemCount}', style: t.labelLarge?.copyWith(color: context.colors.onInk)),
               ),
               const SizedBox(width: 12),
               const Expanded(child: Text('View cart')),

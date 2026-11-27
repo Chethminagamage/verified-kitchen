@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/tone.dart';
 import '../../kitchens/domain/hygiene.dart';
+import '../../kitchens/domain/kitchen.dart';
 
 /// Order lifecycle (database enum public.order_status).
 enum OrderStatus {
@@ -33,22 +34,31 @@ enum OrderStatus {
 
   bool get isActive => this != delivered && this != cancelled;
 
-  Color get color => switch (this) {
-    delivered => AppColors.success,
-    cancelled => AppColors.danger,
-    _ => AppColors.ink,
+  Tone get tone => switch (this) {
+    delivered => Tone.positive,
+    cancelled => Tone.critical,
+    _ => Tone.ink,
   };
 }
 
 class OrderLine {
-  const OrderLine({required this.name, required this.unitPriceLkr, required this.quantity, required this.lineTotalLkr});
+  const OrderLine({
+    required this.name,
+    required this.unitPriceLkr,
+    required this.quantity,
+    required this.lineTotalLkr,
+    this.menuItemId,
+  });
 
+  /// The dish on the menu; null if the kitchen has since removed it.
+  final String? menuItemId;
   final String name;
   final double unitPriceLkr;
   final int quantity;
   final double lineTotalLkr;
 
   factory OrderLine.fromJson(Map<String, dynamic> json) => OrderLine(
+    menuItemId: json['menu_item_id'] as String?,
     name: json['name'] as String,
     unitPriceLkr: (json['unit_price_lkr'] as num).toDouble(),
     quantity: (json['quantity'] as num).toInt(),
@@ -97,6 +107,17 @@ class CustomerOrder {
   bool get canCancel => status == OrderStatus.placed;
 
   int get itemCount => lines.fold(0, (n, l) => n + l.quantity);
+
+  /// Expected delivery window while the order is in progress, using the same
+  /// estimate the kitchen card shows ("prep to prep + 15 min" from placing).
+  /// Null once delivered or cancelled.
+  ({DateTime from, DateTime to})? arrivalWindow(int prepMinutes) {
+    if (!status.isActive) return null;
+    return (from: placedAt.add(Duration(minutes: prepMinutes)), to: placedAt.add(Duration(minutes: prepMinutes + 15)));
+  }
+
+  /// Reorder is offered once an order is finished (delivered or cancelled).
+  bool get canReorder => !status.isActive;
 
   /// Short reference shown to the customer and the kitchen (#A1B2C3).
   String get reference => '#${id.replaceAll('-', '').substring(0, 6).toUpperCase()}';
@@ -166,4 +187,46 @@ class OrderFeedback {
     problem: OrderProblem.parse(json['problem'] as String?),
     comment: json['comment'] as String?,
   );
+}
+
+/// What "Reorder" can put back in the cart: the same dishes at today's menu
+/// prices, leaving out anything removed or sold out.
+class ReorderPlan {
+  const ReorderPlan({required this.items, required this.unavailable});
+
+  final List<(MenuItem, int)> items;
+
+  /// Names of dishes that could not be added.
+  final List<String> unavailable;
+
+  bool get isEmpty => items.isEmpty;
+
+  factory ReorderPlan.from(List<OrderLine> lines, List<MenuItem> menu) {
+    final byId = {for (final m in menu) m.id: m};
+    final items = <(MenuItem, int)>[];
+    final unavailable = <String>[];
+    for (final line in lines) {
+      final item = line.menuItemId == null ? null : byId[line.menuItemId];
+      if (item != null && item.isAvailable) {
+        items.add((item, line.quantity));
+      } else {
+        unavailable.add(line.name);
+      }
+    }
+    return ReorderPlan(items: items, unavailable: unavailable);
+  }
+}
+
+/// A live change to one of the customer's orders (from Supabase Realtime).
+class OrderStatusChange {
+  const OrderStatusChange({required this.orderId, required this.status, this.cancelledBy});
+
+  final String orderId;
+  final OrderStatus status;
+  final String? cancelledBy;
+
+  /// Whether to tell the customer: not the order they just placed themselves,
+  /// and not a cancellation they made themselves; everything the kitchen does.
+  bool get worthTelling =>
+      status != OrderStatus.placed && !(status == OrderStatus.cancelled && cancelledBy == 'customer');
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:verified_kitchen_app/core/supabase/errors.dart';
+import 'package:verified_kitchen_app/core/supabase/supabase_providers.dart';
 import 'package:verified_kitchen_app/core/theme/app_theme.dart';
 import 'package:verified_kitchen_app/features/cart/domain/cart.dart';
 import 'package:verified_kitchen_app/features/cart/presentation/cart_providers.dart';
@@ -62,7 +63,8 @@ void main() {
     });
 
     test('the notifier asks before mixing kitchens, then can start a new cart', () {
-      final container = ProviderContainer();
+      // Signed out: the cart works in memory and nothing is saved.
+      final container = ProviderContainer(overrides: [currentUserProvider.overrideWithValue(null)]);
       addTearDown(container.dispose);
       final cart = container.read(cartProvider.notifier);
       expect(cart.add(kitchenA, dish('1', 650)), AddResult.added);
@@ -153,7 +155,12 @@ void main() {
   });
 
   testWidgets('cart page: lines, steppers and totals; removing the last item empties it', (tester) async {
-    final container = ProviderContainer(overrides: [kitchenProvider.overrideWith((ref, id) async => kitchenA)]);
+    final container = ProviderContainer(
+      overrides: [
+        currentUserProvider.overrideWithValue(null),
+        kitchenProvider.overrideWith((ref, id) async => kitchenA),
+      ],
+    );
     addTearDown(container.dispose);
     container.read(cartProvider.notifier)
       ..add(kitchenA, dish('1', 650))

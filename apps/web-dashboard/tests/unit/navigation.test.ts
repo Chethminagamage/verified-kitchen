@@ -4,7 +4,8 @@ import {
   MONITORING_NAV,
   ORDERS_NAV,
   SETTINGS_NAV,
-  canSeeOrders,
+  canSeeKitchenPages,
+  MENU_NAV,
   isActive,
   navGroupsFor,
 } from "@/shared/components/layout/navigation";
@@ -42,17 +43,18 @@ describe("isActive", () => {
 });
 
 describe("navGroupsFor", () => {
-  it("shows operators the monitoring pages and Orders in a separate Kitchen group", () => {
+  it("shows operators the monitoring pages, then Menu and Orders in a separate Kitchen group", () => {
     const groups = navGroupsFor("operator");
     expect(groups.map((g) => g.label)).toEqual(["Monitoring", "Kitchen"]);
     expect(groups[0].items.map((i) => i.name)).not.toContain("Orders");
-    expect(groups[1].items).toEqual([ORDERS_NAV]);
+    expect(groups[1].items).toEqual([MENU_NAV, ORDERS_NAV]);
   });
 
-  it("never shows customer orders to an inspector (PHI)", () => {
-    expect(canSeeOrders("phi")).toBe(false);
+  it("never shows the menu or customer orders to an inspector (PHI)", () => {
+    expect(canSeeKitchenPages("phi")).toBe(false);
     const items = navGroupsFor("phi").flatMap((g) => g.items);
     expect(items.map((i) => i.href)).not.toContain(ORDERS_NAV.href);
+    expect(items.map((i) => i.href)).not.toContain(MENU_NAV.href);
     expect(items).toHaveLength(MONITORING_NAV.length);
   });
 });

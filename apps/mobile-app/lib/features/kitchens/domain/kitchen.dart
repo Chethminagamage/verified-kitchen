@@ -23,6 +23,7 @@ class Kitchen {
     required this.coverage,
     required this.ratingUpdatedAt,
     required this.monitoredNow,
+    this.bannerPath,
   });
 
   final String id;
@@ -46,8 +47,21 @@ class Kitchen {
   final DateTime? ratingUpdatedAt;
   final bool monitoredNow;
 
+  /// Banner photo in the kitchen-media bucket; null = show the emoji.
+  final String? bannerPath;
+
   /// Has hygiene evidence (verified, incomplete or pending).
   bool get isMonitored => status != HygieneStatus.notMonitored;
+
+  /// The public score of each hygiene area (null = no evidence), in display order.
+  List<(HygieneArea, double?)> get areaScores => [
+    (HygieneArea.personal, personalScore),
+    (HygieneArea.foodPrep, foodPrepScore),
+    (HygieneArea.environment, environmentalScore),
+  ];
+
+  /// "Lowered mainly by food preparation." for grades below A, otherwise null.
+  String? get gradeReasonText => gradeReason(grade, areaScores);
 
   /// First part of the cuisine ("Kottu · Street food" -> "Kottu"), used as a category.
   String? get category {
@@ -78,6 +92,7 @@ class Kitchen {
       coverage: d(json['coverage']),
       ratingUpdatedAt: json['rating_updated_at'] == null ? null : DateTime.parse(json['rating_updated_at'] as String),
       monitoredNow: (json['monitored_now'] as bool?) ?? false,
+      bannerPath: json['banner_path'] as String?,
     );
   }
 }
@@ -103,6 +118,7 @@ class MenuItem {
     required this.priceLkr,
     required this.emoji,
     required this.isAvailable,
+    this.imagePath,
   });
 
   final String id;
@@ -113,6 +129,9 @@ class MenuItem {
   final String emoji;
   final bool isAvailable;
 
+  /// Dish photo in the kitchen-media bucket; null = show the emoji.
+  final String? imagePath;
+
   factory MenuItem.fromJson(Map<String, dynamic> json) => MenuItem(
     id: json['id'] as String,
     name: json['name'] as String,
@@ -121,5 +140,18 @@ class MenuItem {
     priceLkr: (json['price_lkr'] as num).toDouble(),
     emoji: (json['emoji'] as String?) ?? '🍽️',
     isAvailable: (json['is_available'] as bool?) ?? true,
+    imagePath: json['image_path'] as String?,
   );
+
+  /// Same keys as [MenuItem.fromJson] (used to keep the cart on the device).
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'name': name,
+    'description': description,
+    'category': category,
+    'price_lkr': priceLkr,
+    'emoji': emoji,
+    'is_available': isAvailable,
+    'image_path': imagePath,
+  };
 }

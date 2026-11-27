@@ -1,0 +1,39 @@
+kitchen_code,category,name,description,price_lkr,emoji,image_file,available
+demo-burger,Burgers,Classic chicken burger,"Crispy chicken, lettuce, mayo",1250,🍔,,yes
+demo-burger,Burgers,Beef burger,"Grilled beef, cheese, pickles",1450,🍔,,yes
+demo-burger,Sides,Fries,,500,🍟,,yes
+demo-burger,Burgers,Double smash burger,"Two smashed beef patties, cheese, burger sauce",1850,🍔,,yes
+demo-burger,Sides,Chicken nuggets (6 pcs),With barbecue dip,750,🍗,,yes
+demo-healthy,Salads,Grilled chicken salad,"Greens, grilled chicken, honey-lime dressing",1350,🥗,,yes
+demo-healthy,Bowls,Fruit bowl,Seasonal fruit,800,🍉,,yes
+demo-healthy,Salads,Tuna salad,"Tuna, greens, egg, olives, lemon dressing",1400,🐟,,yes
+demo-healthy,Bowls,Chicken rice bowl,"Brown rice, grilled chicken, vegetables",1300,🍚,,yes
+demo-healthy,Bowls,Tofu teriyaki bowl,"Brown rice, tofu, teriyaki glaze, greens",1150,🍱,,yes
+demo-kottu,Kottu,Chicken kottu,"Godamba roti, chicken, egg, vegetables",950,🥘,,yes
+demo-kottu,Kottu,Cheese kottu,With mozzarella,1150,🧀,,yes
+demo-kottu,Kottu,Vegetable kottu,"Cabbage, carrot, leeks and egg-free roti",700,🥕,,yes
+demo-kottu,Sides,Chicken curry (extra),A bowl of spicy chicken gravy,350,🍲,,yes
+demo-kottu,Drinks,Faluda,"Rose syrup, milk, basil seeds and ice cream",450,🥤,,yes
+demo-pizza,Pizza,Devilled chicken (medium),"Sri Lankan devilled chicken, onion, capsicum",2600,🌶️,,yes
+demo-pizza,Pizza,Pepperoni (medium),Beef pepperoni and mozzarella,2800,🍕,,yes
+demo-pizza,Pizza,Four cheese (medium),"Mozzarella, cheddar, parmesan, cream cheese",2900,🧀,,yes
+demo-pizza,Sides,Garlic bread,Toasted with garlic butter and herbs,650,🥖,,yes
+demo-pizza,Sides,Chicken wings (6 pcs),Hot and spicy,1100,🍗,,yes
+demo-seafood,Grill,Grilled seer fish,Seer fish steak with garlic butter,2200,🐟,,yes
+demo-seafood,Grill,Grilled prawns,"Jumbo prawns, chilli-lime glaze",2600,🦐,,yes
+demo-seafood,Curries,Crab curry,Jaffna-style crab curry,3200,🦀,,yes
+demo-seafood,Curries,Fish ambul thiyal,Sour fish curry with goraka,1300,🐟,,yes
+demo-seafood,Starters,Hot butter cuttlefish,Crispy cuttlefish with chilli and butter,1500,🦑,,yes
+demo-seafood,Sides,Garlic rice,Fragrant rice with roasted garlic,450,🍚,,yes
+kitchen-001,Rice & curry,Chicken rice & curry,"Red rice, chicken curry, dhal, two vegetables, papadam",750,🍛,,yes
+kitchen-001,Rice & curry,Fish rice & curry,"Red rice, fish ambul thiyal, dhal, two vegetables",800,🐟,,yes
+kitchen-001,Rice & curry,Vegetable rice & curry,"Red rice, five vegetable curries, papadam",550,🥬,,yes
+kitchen-001,Drinks,Lime juice,"Fresh, lightly sweetened",250,🍋,,yes
+kitchen-001,Rice & curry,Egg rice & curry,"Red rice, egg curry, dhal, two vegetables, papadam",600,🥚,,yes
+kitchen-001,Fried rice,Chicken fried rice,"Basmati fried rice with chicken, egg and chilli paste",850,🍗,,yes
+kitchen-001,Sides,Devilled chicken,"Wok-tossed with onion, capsicum and chilli",900,🌶️,,yes
+demo-hoppers,Hoppers,Plain hoppers (2 pcs),Crispy-edged rice flour hoppers,200,🥞,,yes
+demo-hoppers,Hoppers,Egg hopper,Hopper with an egg baked in,220,🍳,,yes
+demo-hoppers,Hoppers,Milk hopper,Hopper with a sweet coconut milk centre,200,🥛,,yes
+demo-hoppers,String hoppers,String hopper set,"String hoppers, dhal, pol sambol and egg curry",650,🍛,,yes
+demo-hoppers,Curries,Chicken curry,Spicy Sri Lankan chicken curry,550,🍲,,yes

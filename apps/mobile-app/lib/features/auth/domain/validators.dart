@@ -18,6 +18,15 @@ abstract final class Validators {
     return null;
   }
 
+  /// A new password: the usual rules, and not the same as the current one.
+  static String? newPassword(String? v, {required String current}) {
+    if (v == null || v.isEmpty) return 'Enter a new password';
+    final problem = password(v);
+    if (problem != null) return problem;
+    if (v == current) return 'Choose a password different from your current one';
+    return null;
+  }
+
   static String? name(String? v) {
     final s = v?.trim() ?? '';
     if (s.length < 2) return 'Enter your name';

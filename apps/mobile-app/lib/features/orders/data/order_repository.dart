@@ -16,7 +16,7 @@ class OrderRepository {
   static const _select =
       'id, kitchen_id, status, delivery_address, contact_phone, note, subtotal_lkr, delivery_fee_lkr, total_lkr, '
       'hygiene_grade_at_order, hygiene_status_at_order, placed_at, accepted_at, preparing_at, on_the_way_at, '
-      'delivered_at, cancelled_at, cancelled_by, order_items(name, unit_price_lkr, quantity, line_total_lkr)';
+      'delivered_at, cancelled_at, cancelled_by, order_items(menu_item_id, name, unit_price_lkr, quantity, line_total_lkr)';
 
   Future<List<CustomerOrder>> myOrders() async {
     final rows = await _client.from('orders').select(_select).order('placed_at', ascending: false).limit(50);
@@ -89,11 +89,9 @@ class OrderRepository {
 
   /// Emits the new status whenever one of the customer's orders changes
   /// (Supabase Realtime; Row Level Security limits it to their own orders).
-  Stream<({String orderId, OrderStatus status})> statusChanges(String customerId) {
+  Stream<OrderStatusChange> statusChanges(String customerId) {
     late final RealtimeChannel channel;
-    final controller = StreamController<({String orderId, OrderStatus status})>(
-      onCancel: () => _client.removeChannel(channel),
-    );
+    final controller = StreamController<OrderStatusChange>(onCancel: () => _client.removeChannel(channel));
     channel = _client
         .channel('orders-$customerId')
         .onPostgresChanges(
@@ -105,7 +103,13 @@ class OrderRepository {
             final row = payload.newRecord;
             final status = row['status'];
             if (row['id'] is String && status is String) {
-              controller.add((orderId: row['id'] as String, status: OrderStatus.parse(status)));
+              controller.add(
+                OrderStatusChange(
+                  orderId: row['id'] as String,
+                  status: OrderStatus.parse(status),
+                  cancelledBy: row['cancelled_by'] as String?,
+                ),
+              );
             }
           },
         )

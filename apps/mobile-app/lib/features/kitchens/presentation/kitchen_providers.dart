@@ -27,6 +27,13 @@ final menuProvider = FutureProvider.family<List<MenuItem>, String>(
   (ref, id) => ref.watch(kitchenRepositoryProvider).menu(id),
 );
 
+/// Kitchens serving a dish that matches the search text (kitchen id -> dish names).
+final dishMatchesProvider = FutureProvider.autoDispose.family<Map<String, List<String>>, String>((ref, text) {
+  final pattern = dishSearchPattern(text);
+  if (pattern == null) return const {};
+  return ref.watch(kitchenRepositoryProvider).searchDishes(pattern);
+});
+
 final hygieneHistoryProvider = FutureProvider.family<List<HygieneDay>, String>(
   (ref, id) => ref.watch(kitchenRepositoryProvider).history(id),
 );

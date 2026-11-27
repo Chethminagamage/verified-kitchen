@@ -15,6 +15,7 @@ import '../../../profile/presentation/account_providers.dart';
 import '../kitchen_providers.dart';
 import '../widgets/hygiene_explainer.dart';
 import '../widgets/kitchen_card.dart';
+import '../../../notifications/presentation/notification_providers.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -28,7 +29,7 @@ class HomePage extends ConsumerWidget {
       body: SafeArea(
         bottom: false,
         child: RefreshIndicator(
-          color: AppColors.ink,
+          color: context.colors.ink,
           onRefresh: () => ref.refresh(kitchensProvider.future),
           child: AsyncView<List<Kitchen>>(
             value: kitchens,
@@ -55,7 +56,7 @@ class _HomeContent extends ConsumerWidget {
     final name = (profileName?.isNotEmpty == true)
         ? profileName
         : (ref.watch(currentUserProvider)?.userMetadata?['full_name'] as String?)?.split(' ').first;
-    final activeOrders = ref.watch(activeOrderCountProvider);
+    final unread = ref.watch(unreadCountProvider);
     final byId = {for (final k in all) k.id: k};
     // Kitchens of past delivered orders, most recent first.
     final orderAgain = <Kitchen>[
@@ -90,20 +91,20 @@ class _HomeContent extends ConsumerWidget {
                         const SizedBox(height: 4),
                         Text(
                           'Order from kitchens you can trust.',
-                          style: t.bodyLarge?.copyWith(color: AppColors.textSecondary),
+                          style: t.bodyLarge?.copyWith(color: context.colors.textSecondary),
                         ),
                       ],
                     ),
                   ),
                   IconButton.filledTonal(
-                    tooltip: activeOrders > 0 ? '$activeOrders orders in progress' : 'Order updates',
-                    style: IconButton.styleFrom(backgroundColor: AppColors.fill),
-                    onPressed: () => context.go(Routes.orders),
+                    tooltip: unread > 0 ? '$unread unread notifications' : 'Notifications',
+                    style: IconButton.styleFrom(backgroundColor: context.colors.fill),
+                    onPressed: () => context.push(Routes.notifications),
                     icon: Badge(
-                      isLabelVisible: activeOrders > 0,
-                      label: Text('$activeOrders'),
-                      backgroundColor: AppColors.primary,
-                      child: const Icon(Icons.notifications_none_rounded, color: AppColors.ink),
+                      isLabelVisible: unread > 0,
+                      label: Text('$unread'),
+                      backgroundColor: context.colors.primary,
+                      child: Icon(Icons.notifications_none_rounded, color: context.colors.ink),
                     ),
                   ),
                 ],
@@ -217,7 +218,7 @@ class _SearchPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.fill,
+      color: context.colors.fill,
       borderRadius: BorderRadius.circular(999),
       child: InkWell(
         borderRadius: BorderRadius.circular(999),
@@ -226,11 +227,11 @@ class _SearchPill extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
           child: Row(
             children: [
-              const Icon(Icons.search_rounded, color: AppColors.ink),
+              Icon(Icons.search_rounded, color: context.colors.ink),
               const SizedBox(width: 10),
               Text(
                 'Search kitchens or food',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: context.colors.textSecondary),
               ),
             ],
           ),
@@ -271,7 +272,7 @@ class _FilterChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChoiceChip(
       label: Text(label),
-      avatar: icon == null ? null : Icon(icon, size: 16, color: selected ? Colors.white : AppColors.ink),
+      avatar: icon == null ? null : Icon(icon, size: 16, color: selected ? context.colors.onInk : context.colors.ink),
       selected: selected,
       onSelected: (_) => onTap(),
     );
@@ -309,8 +310,9 @@ class _TrustBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    // Always a dark card with white text; in dark mode a lifted surface so it still stands out.
     return Material(
-      color: AppColors.ink,
+      color: Theme.of(context).brightness == Brightness.dark ? context.colors.fill : AppColors.brandNavy,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
@@ -325,11 +327,11 @@ class _TrustBanner extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.verified_rounded, color: AppColors.primary, size: 18),
+                        Icon(Icons.verified_rounded, color: context.colors.primary, size: 18),
                         const SizedBox(width: 6),
                         Text(
                           'HYGIENE VERIFIED',
-                          style: t.labelSmall?.copyWith(color: AppColors.primary, letterSpacing: 1.2),
+                          style: t.labelSmall?.copyWith(color: context.colors.primary, letterSpacing: 1.2),
                         ),
                       ],
                     ),

@@ -14,7 +14,9 @@ class HygieneBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final g = grade;
-    final (Color fg, Color bg) = g != null ? (g.color, g.softColor) : (AppColors.textSecondary, AppColors.fill);
+    final (Color fg, Color bg) = g != null
+        ? (context.colors.tone(g.tone), context.colors.toneSoft(g.tone))
+        : (context.colors.textSecondary, context.colors.fill);
     final text = Theme.of(context).textTheme.labelSmall!;
     final label = switch ((g, status)) {
       (final HygieneGrade grade, HygieneStatus.verified) => 'Hygiene ${grade.letter}',
@@ -58,18 +60,21 @@ class GradeDisc extends StatelessWidget {
       width: size,
       height: size,
       alignment: Alignment.center,
-      decoration: BoxDecoration(color: g?.color ?? AppColors.fill, shape: BoxShape.circle),
+      decoration: BoxDecoration(
+        color: (g == null ? context.colors.fill : context.colors.tone(g.tone)),
+        shape: BoxShape.circle,
+      ),
       child: g != null
           ? Text(
               g.letter,
               style: TextStyle(
-                color: Colors.white,
+                color: context.colors.onInk,
                 fontSize: size * 0.5,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -1,
               ),
             )
-          : Icon(Icons.shield_outlined, color: AppColors.textMuted, size: size * 0.45),
+          : Icon(Icons.shield_outlined, color: context.colors.textMuted, size: size * 0.45),
     );
   }
 }

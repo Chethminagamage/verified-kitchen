@@ -57,7 +57,7 @@ class HelpPage extends StatelessWidget {
                 children: [
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: Text(a, style: t.bodyMedium?.copyWith(color: AppColors.textSecondary)),
+                    child: Text(a, style: t.bodyMedium?.copyWith(color: context.colors.textSecondary)),
                   ),
                 ],
               ),
@@ -67,7 +67,7 @@ class HelpPage extends StatelessWidget {
           const SizedBox(height: 24),
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: AppColors.fill, borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(color: context.colors.fill, borderRadius: BorderRadius.circular(16)),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -77,7 +77,7 @@ class HelpPage extends StatelessWidget {
                   child: Text(
                     'For a problem with an order, open it under Orders and tap "Report a problem". '
                     'The kitchen receives it straight away.',
-                    style: t.bodyMedium?.copyWith(color: AppColors.textSecondary),
+                    style: t.bodyMedium?.copyWith(color: context.colors.textSecondary),
                   ),
                 ),
               ],
@@ -103,7 +103,7 @@ class LegalPage extends StatelessWidget {
         children: [
           Text(title, style: t.titleMedium),
           const SizedBox(height: 6),
-          Text(body, style: t.bodyMedium?.copyWith(color: AppColors.textSecondary, height: 1.5)),
+          Text(body, style: t.bodyMedium?.copyWith(color: context.colors.textSecondary, height: 1.5)),
         ],
       ),
     );
@@ -148,9 +148,9 @@ class LegalPage extends StatelessWidget {
                 'until the kitchen accepts your order.',
           ),
           section(
-            'Prototype',
-            'Verified Kitchen is a final-year project prototype. Kitchens marked "demo" are sample listings, not '
-                'real businesses.',
+            'Sample listings',
+            'Some kitchens in this version are sample listings, not real businesses. They show how the app works; orders '
+                'placed with them are not prepared or delivered.',
           ),
         ],
       ),
@@ -196,7 +196,7 @@ class _DeleteAccountPageState extends ConsumerState<DeleteAccountPage> {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    final muted = t.bodyMedium?.copyWith(color: AppColors.textSecondary);
+    final muted = t.bodyMedium?.copyWith(color: context.colors.textSecondary);
     final ready = _confirm.text.trim().toUpperCase() == 'DELETE';
     return Scaffold(
       appBar: AppBar(title: const Text('Delete account')),
@@ -223,7 +223,7 @@ class _DeleteAccountPageState extends ConsumerState<DeleteAccountPage> {
           ),
           if (_error != null) ...[
             const SizedBox(height: 12),
-            Text(_error!, style: t.bodyMedium?.copyWith(color: AppColors.danger)),
+            Text(_error!, style: t.bodyMedium?.copyWith(color: context.colors.danger)),
           ],
         ],
       ),
@@ -235,7 +235,7 @@ class _DeleteAccountPageState extends ConsumerState<DeleteAccountPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+                style: FilledButton.styleFrom(backgroundColor: context.colors.danger),
                 onPressed: ready && !_busy ? _delete : null,
                 child: Text(_busy ? 'Deleting…' : 'Delete my account'),
               ),

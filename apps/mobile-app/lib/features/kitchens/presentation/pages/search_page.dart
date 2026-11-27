@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +11,7 @@ import '../../domain/kitchen.dart';
 import '../../domain/kitchen_filters.dart';
 import '../kitchen_providers.dart';
 import '../widgets/hygiene_badge.dart';
+import '../../../../core/widgets/media_image.dart';
 
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});
@@ -21,16 +24,31 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   final _controller = TextEditingController();
   String _text = '';
 
+  /// The text the dish search runs on: it follows [_text] after a short pause,
+  /// so typing does not send a request per letter.
+  String _dishText = '';
+  Timer? _debounce;
+
   @override
   void dispose() {
+    _debounce?.cancel();
     _controller.dispose();
     super.dispose();
+  }
+
+  void _onChanged(String value) {
+    setState(() => _text = value);
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) setState(() => _dishText = value.trim());
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final kitchens = ref.watch(kitchensProvider);
+    final dishMatches = ref.watch(dishMatchesProvider(_dishText)).value ?? const <String, List<String>>{};
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 0,
@@ -51,13 +69,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   ? null
                   : IconButton(
                       icon: const Icon(Icons.close_rounded),
-                      onPressed: () => setState(() {
+                      onPressed: () {
                         _controller.clear();
-                        _text = '';
-                      }),
+                        _onChanged('');
+                      },
                     ),
             ),
-            onChanged: (v) => setState(() => _text = v),
+            onChanged: _onChanged,
           ),
         ),
       ),
@@ -65,7 +83,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         value: kitchens,
         onRetry: () => ref.invalidate(kitchensProvider),
         data: (all) {
-          final results = applyKitchenQuery(all, KitchenQuery(text: _text));
+          final results = applyKitchenQuery(all, KitchenQuery(text: _text), dishMatches: dishMatches);
           if (results.isEmpty) {
             return const EmptyState(
               icon: Icons.search_off_rounded,
@@ -79,29 +97,45 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             separatorBuilder: (_, _) => const Divider(indent: 88),
             itemBuilder: (_, i) {
               final k = results[i];
+              final dishes = dishMatches[k.id];
               return ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                leading: Container(
+                leading: MediaImage(
+                  path: k.bannerPath,
+                  emoji: k.emoji,
+                  emojiSize: 26,
                   width: 52,
                   height: 52,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(color: AppColors.fill, borderRadius: BorderRadius.circular(12)),
-                  child: Text(k.emoji, style: const TextStyle(fontSize: 26)),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 title: Text(k.name, style: t.titleMedium),
                 subtitle: Padding(
                   padding: const EdgeInsets.only(top: 4),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      HygieneBadge(status: k.status, grade: k.grade, dense: true),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          k.isOpen ? (k.cuisine ?? '') : 'Closed',
-                          style: t.bodySmall?.copyWith(color: AppColors.textSecondary),
+                      Row(
+                        children: [
+                          HygieneBadge(status: k.status, grade: k.grade, dense: true),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              k.isOpen ? (k.cuisine ?? '') : 'Closed',
+                              style: t.bodySmall?.copyWith(color: context.colors.textSecondary),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (dishes != null && dishes.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          'Serves ${dishes.take(2).join(', ')}${dishes.length > 2 ? ' and ${dishes.length - 2} more' : ''}',
+                          style: t.bodySmall?.copyWith(color: context.colors.ink, fontWeight: FontWeight.w500),
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),

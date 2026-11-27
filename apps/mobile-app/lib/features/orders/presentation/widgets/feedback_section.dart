@@ -24,10 +24,10 @@ class FeedbackSection extends ConsumerWidget {
         if (f != null) {
           return Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: AppColors.fill, borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(color: context.colors.fill, borderRadius: BorderRadius.circular(16)),
             child: Row(
               children: [
-                const Icon(Icons.check_circle_rounded, color: AppColors.success),
+                Icon(Icons.check_circle_rounded, color: context.colors.success),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -39,7 +39,7 @@ class FeedbackSection extends ConsumerWidget {
                           if (f.rating != null) 'You rated it ${f.rating}/5',
                           if (f.problem != null) f.problem!.label,
                         ].join(' · '),
-                        style: t.bodySmall?.copyWith(color: AppColors.textSecondary),
+                        style: t.bodySmall?.copyWith(color: context.colors.textSecondary),
                       ),
                     ],
                   ),
@@ -52,7 +52,7 @@ class FeedbackSection extends ConsumerWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: context.colors.border),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -61,7 +61,7 @@ class FeedbackSection extends ConsumerWidget {
               const SizedBox(height: 4),
               Text(
                 'Your feedback goes privately to the kitchen.',
-                style: t.bodySmall?.copyWith(color: AppColors.textSecondary),
+                style: t.bodySmall?.copyWith(color: context.colors.textSecondary),
               ),
               const SizedBox(height: 12),
               Row(
@@ -171,7 +171,7 @@ class _FeedbackSheetState extends ConsumerState<_FeedbackSheet> {
                     onPressed: () => setState(() => _rating = i),
                     icon: Icon(
                       (_rating ?? 0) >= i ? Icons.star_rounded : Icons.star_outline_rounded,
-                      color: (_rating ?? 0) >= i ? const Color(0xFFF59E0B) : AppColors.textMuted,
+                      color: (_rating ?? 0) >= i ? AppColors.star : context.colors.textMuted,
                     ),
                   ),
               ],
@@ -205,13 +205,13 @@ class _FeedbackSheetState extends ConsumerState<_FeedbackSheet> {
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
                 'Hygiene concerns are flagged to the kitchen so it can act on them.',
-                style: t.bodySmall?.copyWith(color: AppColors.textSecondary),
+                style: t.bodySmall?.copyWith(color: context.colors.textSecondary),
               ),
             ),
           if (_error != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Text(_error!, style: t.bodyMedium?.copyWith(color: AppColors.danger)),
+              child: Text(_error!, style: t.bodyMedium?.copyWith(color: context.colors.danger)),
             ),
           FilledButton(onPressed: _valid && !_busy ? _send : null, child: Text(_busy ? 'Sending…' : 'Send')),
         ],

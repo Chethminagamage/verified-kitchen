@@ -646,4 +646,155 @@ select pg_temp.check(
 reset role;
 set request.jwt.claim.sub = '';
 
+-- ---------------------------------------------------------------------
+-- Kitchen media (banner and dish photos in Storage)
+-- ---------------------------------------------------------------------
+select pg_temp.check(
+  (select public and file_size_limit = 2097152 and allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp']
+     from storage.buckets where id = 'kitchen-media'),
+  'the kitchen-media bucket is public, images only, at most 2 MB per file');
+
+select pg_temp.check_fails(
+  $$update public.kitchens set banner_path = 'not-my-kitchen/banner.jpg' where code = 'kitchen-001'$$,
+  'a banner path outside the kitchen''s own folder is rejected');
+update public.kitchens set banner_path = id::text || '/banner-1.jpg' where code = 'kitchen-001';
+select pg_temp.check(
+  (select m.banner_path like '%/banner-1.jpg' from public.marketplace_kitchens m
+     join public.kitchens k using (id) where k.code = 'kitchen-001'),
+  'the app''s kitchen list includes the banner path');
+select pg_temp.check_fails(
+  $$insert into public.menu_items (kitchen_id, name, price_lkr, image_path)
+    select id, 'Stray photo', 100, '00000000-0000-0000-0000-000000000000/dishes/x.jpg'
+      from public.kitchens where code = 'kitchen-001'$$,
+  'a dish photo path must be inside its own kitchen''s folder');
+
+select pg_temp.check(
+  (select role = 'operator' from public.profiles where id = '22222222-2222-2222-2222-222222222222'),
+  'fixture: the test operator is an operator');
+-- Kitchen ids looked up here: signed-in users cannot read other kitchens.
+select (select id::text from public.kitchens where code = 'kitchen-001') as k1,
+       (select id::text from public.kitchens where code = 'kitchen-002') as k2 \gset
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select pg_temp.check(public.can_manage_kitchen_media(:'k1' || '/dishes/a.jpg'),
+  'an operator may manage photos in their own kitchen''s folder');
+select pg_temp.check(not public.can_manage_kitchen_media(:'k2' || '/banner.jpg'),
+  'an operator may not touch another kitchen''s photos');
+select pg_temp.check(not public.can_manage_kitchen_media('../../etc/passwd'),
+  'a folder that is not a kitchen id is refused, not an error');
+insert into storage.objects (bucket_id, name) values ('kitchen-media', :'k1' || '/dishes/egg-kottu-1.jpg');
+update public.kitchens set banner_path = :'k1' || '/banner-2.jpg' where id = :'k1'::uuid;
+update public.kitchens set banner_path = :'k1' || '/banner-x.jpg' where id = :'k2'::uuid;
+select pg_temp.check_fails(
+  format('insert into storage.objects (bucket_id, name) values (%L, %L)', 'kitchen-media', :'k2' || '/banner-2.jpg'),
+  'storage refuses an upload into another kitchen''s folder');
+
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select pg_temp.check(not public.can_manage_kitchen_media(:'k1' || '/banner.jpg'),
+  'someone without the kitchen cannot manage its photos');
+-- Row Level Security makes this delete match nothing (checked below).
+delete from storage.objects where name like '%/dishes/egg-kottu-1.jpg';
+reset role;
+set request.jwt.claim.sub = '';
+select pg_temp.check((select banner_path = :'k1' || '/banner-2.jpg' from public.kitchens where id = :'k1'::uuid),
+  'an operator can set their own kitchen''s banner');
+select pg_temp.check((select banner_path is null from public.kitchens where id = :'k2'::uuid),
+  'an operator cannot set another kitchen''s banner');
+select pg_temp.check((select count(*) = 1 from storage.objects where name like '%/dishes/egg-kottu-1.jpg'),
+  'someone without the kitchen cannot delete its photos');
+
+-- ---------------------------------------------------------------------
+-- Hygiene alerts (public rating changes -> customer inbox)
+-- ---------------------------------------------------------------------
+select pg_temp.check(
+  (select kind = 'grade_changed' and title = 'Hygiene grade dropped: Pizza Place'
+          and body = 'Pizza Place went from grade B to C over the past week.'
+     from public.rating_change_message('Pizza Place', 'verified', 'B', 'verified', 'C')),
+  'alert wording: a grade drop');
+select pg_temp.check(
+  (select title = 'Hygiene improved: Pizza Place' from public.rating_change_message('Pizza Place', 'verified', 'C', 'verified', 'B')),
+  'alert wording: improvements are announced too (fair to kitchens)');
+select pg_temp.check(
+  (select kind = 'order_hygiene_changed' and body like '%dropped from B to C. You can still cancel%'
+     from public.rating_change_message('Pizza Place', 'verified', 'B', 'verified', 'C', true, 'placed')),
+  'alert wording: during an order that can still be cancelled');
+select pg_temp.check(
+  (select body not like '%cancel%'
+     from public.rating_change_message('Pizza Place', 'verified', 'B', 'verified', 'C', true, 'preparing')),
+  'alert wording: no cancel advice once the kitchen has accepted');
+select pg_temp.check(
+  (select kind = 'verification_changed' and title = 'Pizza Place is now Verified'
+     from public.rating_change_message('Pizza Place', 'incomplete', 'B', 'verified', 'B')),
+  'alert wording: becoming verified');
+select pg_temp.check(
+  (select title = 'Pizza Place is no longer fully monitored' and body like '%limited to B%'
+     from public.rating_change_message('Pizza Place', 'verified', 'B', 'incomplete', 'B')),
+  'alert wording: losing full monitoring');
+select pg_temp.check(
+  not exists (select 1 from public.rating_change_message('Pizza Place', 'verified', 'B', 'verified', 'B')),
+  'no alert when nothing a customer sees has changed');
+
+-- Fixtures: "other" favourites kitchen-001; the rating starts at a verified B.
+insert into public.favourite_kitchens (customer_id, kitchen_id)
+values ('33333333-3333-3333-3333-333333333333', :'k1'::uuid);
+insert into public.public_ratings (kitchen_id, status, rating, grade, coverage, config_version)
+values (:'k1'::uuid, 'verified', 70, 'B', 0.9, 'v1-live')
+on conflict (kitchen_id) do update set status = 'verified', rating = 70, grade = 'B', coverage = 0.9;
+delete from public.rating_alert_log;
+delete from public.customer_notifications;
+
+update public.public_ratings set rating = 72 where kitchen_id = :'k1'::uuid;
+select pg_temp.check((select count(*) = 0 from public.customer_notifications),
+  'a score moving within the same grade alerts nobody');
+
+update public.public_ratings set rating = 45, grade = 'C' where kitchen_id = :'k1'::uuid;
+select pg_temp.check(
+  (select count(*) = 1 and bool_and(user_id = '33333333-3333-3333-3333-333333333333' and kind = 'grade_changed'
+                                    and kitchen_id = :'k1'::uuid)
+     from public.customer_notifications),
+  'a grade drop reaches the customer who favourited the kitchen');
+select pg_temp.check(
+  (select body !~* '(violation|glove|hairnet|camera|staff|temperature)' from public.customer_notifications),
+  'alerts contain only the public grade, never monitoring details');
+
+update public.public_ratings set rating = 20, grade = 'D' where kitchen_id = :'k1'::uuid;
+select pg_temp.check((select count(*) = 1 from public.customer_notifications),
+  'at most one alert per kitchen per day');
+
+delete from public.rating_alert_log;
+insert into public.notification_settings (user_id, hygiene_alerts)
+values ('33333333-3333-3333-3333-333333333333', false);
+update public.public_ratings set rating = 80, grade = 'A' where kitchen_id = :'k1'::uuid;
+select pg_temp.check((select count(*) = 1 from public.customer_notifications),
+  'a customer who turned hygiene alerts off is not alerted');
+update public.notification_settings set hygiene_alerts = true
+ where user_id = '33333333-3333-3333-3333-333333333333';
+
+-- The customer reads their own inbox and may only mark items read.
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select pg_temp.check((select count(*) = 1 from public.customer_notifications), 'a customer sees their own alerts');
+select public.mark_all_notifications_read();
+select pg_temp.check((select bool_and(read_at is not null) from public.customer_notifications),
+  'a customer can mark their alerts read');
+select pg_temp.check_fails($$update public.customer_notifications set title = 'changed'$$,
+  'a customer cannot rewrite an alert');
+select pg_temp.check_fails($$insert into public.customer_notifications (user_id, kind, title, body)
+    values ('33333333-3333-3333-3333-333333333333', 'grade_changed', 'x', 'y')$$,
+  'a customer cannot create alerts');
+select public.register_push_token('token-of-a-shared-phone-0001', 'android');
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select pg_temp.check((select count(*) = 0 from public.customer_notifications), 'nobody else can read a customer''s alerts');
+select public.register_push_token('token-of-a-shared-phone-0001', 'android');
+select public.unregister_push_token('token-of-a-shared-phone-0001');
+reset role;
+set request.jwt.claim.sub = '';
+select pg_temp.check((select count(*) = 0 from public.push_tokens where token = 'token-of-a-shared-phone-0001'),
+  'a phone''s token moves to whoever signed in last, and is removed on sign-out');
+
+select pg_temp.check((select public.send_weekly_hygiene_summary() = 1), 'the weekly summary goes to customers with favourites');
+select pg_temp.check(
+  (select body = 'Your favourites this week: 1 at A.' from public.customer_notifications where kind = 'weekly_summary'),
+  'the weekly summary counts favourites by grade');
+
 \echo 'ALL DATABASE ASSERTIONS PASSED'

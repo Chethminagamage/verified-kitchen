@@ -1,0 +1,3 @@
+# Photos stay on your computer (they are uploaded to Supabase Storage, not kept in git).
+images/
+photos_needed.txt

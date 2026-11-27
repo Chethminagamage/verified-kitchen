@@ -30,7 +30,7 @@ class AuthScaffold extends StatelessWidget {
                   const SizedBox(height: 36),
                   Text(title, style: t.displaySmall),
                   const SizedBox(height: 8),
-                  Text(subtitle, style: t.bodyLarge?.copyWith(color: AppColors.textSecondary)),
+                  Text(subtitle, style: t.bodyLarge?.copyWith(color: context.colors.textSecondary)),
                   const SizedBox(height: 28),
                   child,
                 ],
@@ -51,13 +51,13 @@ class AuthError extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: AppColors.dangerSoft, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: context.colors.dangerSoft, borderRadius: BorderRadius.circular(12)),
       child: Row(
         children: [
-          const Icon(Icons.error_outline_rounded, size: 18, color: AppColors.danger),
+          Icon(Icons.error_outline_rounded, size: 18, color: context.colors.danger),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(message, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.danger)),
+            child: Text(message, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: context.colors.danger)),
           ),
         ],
       ),

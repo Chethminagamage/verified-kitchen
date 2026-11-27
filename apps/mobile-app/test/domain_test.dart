@@ -63,6 +63,41 @@ void main() {
     });
   });
 
+  group('Short reason for a grade below A', () {
+    const strong = 90.0;
+    List<(HygieneArea, double?)> scores({double? personal = strong, double? food = strong, double? env = strong}) => [
+      (HygieneArea.personal, personal),
+      (HygieneArea.foodPrep, food),
+      (HygieneArea.environment, env),
+    ];
+
+    test('names the weakest area, nothing else', () {
+      expect(gradeReason(HygieneGrade.b, scores(food: 55)), 'Lowered mainly by food preparation.');
+      expect(gradeReason(HygieneGrade.c, scores(personal: 40, env: 30)), 'Lowered mainly by the kitchen environment.');
+    });
+
+    test('no reason for an A, for no grade, or when no area is below the A band', () {
+      expect(gradeReason(HygieneGrade.a, scores(food: 55)), isNull);
+      expect(gradeReason(null, scores(food: 55)), isNull);
+      // A B from incomplete monitoring with every area strong: the status notice explains it instead.
+      expect(gradeReason(HygieneGrade.b, scores()), isNull);
+    });
+
+    test('areas without evidence are ignored; ties go to the first area', () {
+      expect(
+        gradeReason(HygieneGrade.b, scores(personal: null, food: 60, env: 70)),
+        'Lowered mainly by food preparation.',
+      );
+      expect(gradeReason(HygieneGrade.b, scores(personal: 60, food: 60)), 'Lowered mainly by personal hygiene.');
+      expect(gradeReason(HygieneGrade.b, scores(personal: null, food: null, env: null)), isNull);
+    });
+
+    test('the kitchen passes its own area scores', () {
+      final k = Kitchen.fromJson({...row('K', status: 'verified', grade: 'B'), 'environmental_score': 52});
+      expect(k.gradeReasonText, 'Lowered mainly by the kitchen environment.');
+    });
+  });
+
   group('listing and filters', () {
     final kitchens = [
       Kitchen.fromJson(row('Zed demo')),

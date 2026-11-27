@@ -54,15 +54,15 @@ class AddressesPage extends ConsumerWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: AppColors.primarySoft,
+                              color: context.colors.primarySoft,
                               borderRadius: BorderRadius.circular(999),
                             ),
-                            child: Text('Default', style: t.labelSmall?.copyWith(color: AppColors.primaryDark)),
+                            child: Text('Default', style: t.labelSmall?.copyWith(color: context.colors.primaryDark)),
                           ),
                         ],
                       ],
                     ),
-                    subtitle: Text(a.forDelivery, style: t.bodySmall?.copyWith(color: AppColors.textSecondary)),
+                    subtitle: Text(a.forDelivery, style: t.bodySmall?.copyWith(color: context.colors.textSecondary)),
                     onTap: () => context.push(Routes.editAddress(a.id), extra: a),
                     trailing: PopupMenuButton<String>(
                       tooltip: 'More',

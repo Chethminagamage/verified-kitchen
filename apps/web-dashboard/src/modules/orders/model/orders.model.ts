@@ -80,7 +80,4 @@ export interface OrdersPage {
 
 export type OrderActionState = { ok: boolean; message: string } | null;
 
-/** "LKR 2,450" */
-export function formatLkr(amount: number): string {
-  return `LKR ${amount.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
-}
+export { formatLkr } from "@/shared/utils/money";

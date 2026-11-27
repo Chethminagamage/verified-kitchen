@@ -1,0 +1,7 @@
+code,name,location,cuisine,description,emoji,delivery_fee_lkr,prep_minutes,opens_at,closes_at,banner_file
+demo-burger,Lakeside Burgers,Kandy,Burgers · Fast food,Smash burgers and crispy chicken by the lake,🍔,300,20,10:00,23:00,
+demo-healthy,Green Bowl,Kandy,Healthy · Salads,Sample listing (not a real kitchen). Fresh salads and bowls made to order.,🥗,250,20,08:00,20:00,
+demo-hoppers,Hill Capital Hoppers,Kandy,Hoppers · Sri Lankan,"Sample listing (not a real kitchen). Crispy hoppers and string hoppers, morning and evening.",🥞,200,25,07:00,22:30,
+demo-kottu,Kandy Kottu House,Kandy,Kottu · Street food,Kottu chopped to order on the hot plate.,🥘,250,30,11:00,23:30,
+demo-pizza,Hill Country Pizza,Peradeniya,Pizza · Italian,Hand-stretched pizza with Sri Lankan toppings,🍕,350,35,12:00,23:00,
+demo-seafood,Mahaweli Seafood Grill,Peradeniya,Seafood · Grill,Grilled fish and prawns with Sri Lankan spice.,🦐,350,40,12:00,22:30,

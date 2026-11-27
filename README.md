@@ -39,18 +39,18 @@ Only detection metadata leaves the edge device. **No video or images are stored 
 - AI and IoT produce *evidence*; the edge service owns *scoring*. The dashboard only displays results and never applies its own thresholds.
 - PostgreSQL holds operational data. The blockchain stores only audit-record hashes, never raw readings.
 - Every violation and every status change is appended to a per-kitchen SHA-256 hash chain by a database trigger, so no writer can skip the audit.
-- Consumers (no login) can read only two views: the latest score and a 7-day history.
+- Consumers sign in to the app and can read only the marketplace views (published hygiene rating, 7-day history and menus) plus their own orders; all operational data stays private (Row Level Security).
 
 ## Repository layout
 
 | Path | What it is | Status |
 |---|---|---|
-| `apps/web-dashboard` | Next.js 16 operator dashboard (TypeScript, Tailwind, Recharts) | All pages on live data, including AI Monitoring (PPE camera) |
-| `services/edge-service` | Python 3.13 MQTT ingestion, scoring engine, violation rules, Supabase writer, simulator | Live with the real ESP32 and the PPE camera (`edge-service vision`, YOLO on CoreML) |
-| `infrastructure/supabase` | SQL migrations, seed, maintenance scripts, database test suite | 5 migrations, 28 database assertions |
-| `iot/esp32` | ESP32 firmware (BME280 + DS18B20 + PCF8563 → MQTT) | Live (firmware 1.0.1) |
+| `apps/web-dashboard` | Next.js 16 operator console and `/admin` site (TypeScript, Tailwind, Recharts) | All pages on live data: hygiene, environment, AI monitoring (PPE + food preparation), violations, audit, reports, orders, settings |
+| `services/edge-service` | Python 3.13 MQTT ingestion, scoring engine, violation rules, public rating, Supabase writer, simulator | Live with the real ESP32 and the camera (`edge-service vision`: PPE and food-preparation YOLO models on CoreML) |
+| `infrastructure/supabase` | SQL migrations, seed, demo data, maintenance scripts, database test suite | 12 migrations |
+| `iot/esp32` | ESP32 firmware (BME280 + DS18B20 + PCF8563 → MQTT) | Live (firmware 1.1.0, up to three Wi-Fi networks) |
 | `services/blockchain` | Hyperledger Fabric anchoring | Planned |
-| `apps/mobile-app` | Flutter consumer app | Planned |
+| `apps/mobile-app` | Flutter consumer app (Riverpod, go_router): browse and search kitchens and dishes, hygiene grades, cart, cash-on-delivery ordering, live tracking, reorder, feedback | Working (Android; iOS configured) |
 | `docs/` | Architecture, database, API and testing notes | — |
 
 ## Getting started

@@ -7,7 +7,7 @@ import 'app_colors.dart';
 abstract final class AppTheme {
   static const String font = 'Inter';
 
-  static TextTheme get _text => const TextTheme(
+  static TextTheme _textFor(AppColors c) => const TextTheme(
     displaySmall: TextStyle(fontSize: 34, fontWeight: FontWeight.w800, letterSpacing: -1.0, height: 1.1),
     headlineMedium: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: -0.8, height: 1.15),
     headlineSmall: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: -0.5, height: 1.2),
@@ -20,66 +20,73 @@ abstract final class AppTheme {
     labelLarge: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, letterSpacing: -0.1),
     labelMedium: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
     labelSmall: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, letterSpacing: 0.1),
-  ).apply(bodyColor: AppColors.textPrimary, displayColor: AppColors.textPrimary, fontFamily: font);
+  ).apply(bodyColor: c.textPrimary, displayColor: c.textPrimary, fontFamily: font);
 
-  static ThemeData get light {
+  static ThemeData get light => _build(AppColors.light, Brightness.light);
+
+  static ThemeData get dark => _build(AppColors.dark, Brightness.dark);
+
+  static ThemeData _build(AppColors c, Brightness brightness) {
+    final text = _textFor(c);
     final scheme = ColorScheme.fromSeed(
-      seedColor: AppColors.primary,
-      brightness: Brightness.light,
-      primary: AppColors.ink,
-      onPrimary: Colors.white,
-      secondary: AppColors.primary,
-      surface: AppColors.surface,
-      onSurface: AppColors.textPrimary,
-      error: AppColors.danger,
+      seedColor: c.primary,
+      brightness: brightness,
+      primary: c.ink,
+      onPrimary: c.onInk,
+      secondary: c.primary,
+      surface: c.surface,
+      onSurface: c.textPrimary,
+      error: c.danger,
     );
     final pill = RoundedRectangleBorder(borderRadius: BorderRadius.circular(999));
     final input = OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none);
 
     return ThemeData(
       useMaterial3: true,
+      brightness: brightness,
+      extensions: [c],
       colorScheme: scheme,
       fontFamily: font,
-      textTheme: _text,
-      scaffoldBackgroundColor: AppColors.background,
+      textTheme: text,
+      scaffoldBackgroundColor: c.background,
       splashFactory: InkSparkle.splashFactory,
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.background,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: c.background,
+        foregroundColor: c.textPrimary,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0.5,
         centerTitle: false,
-        titleTextStyle: _text.titleLarge,
+        titleTextStyle: text.titleLarge,
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: AppColors.ink,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: AppColors.fillStrong,
+          backgroundColor: c.ink,
+          foregroundColor: c.onInk,
+          disabledBackgroundColor: c.fillStrong,
           minimumSize: const Size.fromHeight(54),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          textStyle: _text.labelLarge?.copyWith(fontSize: 16),
+          textStyle: text.labelLarge?.copyWith(fontSize: 16),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.textPrimary,
+          foregroundColor: c.textPrimary,
           minimumSize: const Size.fromHeight(54),
-          side: const BorderSide(color: AppColors.border),
+          side: BorderSide(color: c.border),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          textStyle: _text.labelLarge,
+          textStyle: text.labelLarge,
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: AppColors.textPrimary, textStyle: _text.labelLarge),
+        style: TextButton.styleFrom(foregroundColor: c.textPrimary, textStyle: text.labelLarge),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: AppColors.fill,
-        selectedColor: AppColors.ink,
-        secondarySelectedColor: AppColors.ink,
-        labelStyle: _text.labelMedium,
-        secondaryLabelStyle: _text.labelMedium?.copyWith(color: Colors.white),
+        backgroundColor: c.fill,
+        selectedColor: c.ink,
+        secondarySelectedColor: c.ink,
+        labelStyle: text.labelMedium,
+        secondaryLabelStyle: text.labelMedium?.copyWith(color: c.onInk),
         side: BorderSide.none,
         shape: pill,
         showCheckmark: false,
@@ -87,48 +94,43 @@ abstract final class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.fill,
-        hintStyle: _text.bodyLarge?.copyWith(color: AppColors.textMuted),
-        labelStyle: _text.bodyMedium?.copyWith(color: AppColors.textSecondary),
+        fillColor: c.fill,
+        hintStyle: text.bodyLarge?.copyWith(color: c.textMuted),
+        labelStyle: text.bodyMedium?.copyWith(color: c.textSecondary),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 17),
         border: input,
         enabledBorder: input,
-        focusedBorder: input.copyWith(borderSide: const BorderSide(color: AppColors.ink, width: 1.5)),
-        errorBorder: input.copyWith(borderSide: const BorderSide(color: AppColors.danger)),
-        focusedErrorBorder: input.copyWith(borderSide: const BorderSide(color: AppColors.danger, width: 1.5)),
+        focusedBorder: input.copyWith(borderSide: BorderSide(color: c.ink, width: 1.5)),
+        errorBorder: input.copyWith(borderSide: BorderSide(color: c.danger)),
+        focusedErrorBorder: input.copyWith(borderSide: BorderSide(color: c.danger, width: 1.5)),
       ),
-      dividerTheme: const DividerThemeData(color: AppColors.border, thickness: 1, space: 1),
-      bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: AppColors.surface,
+      dividerTheme: DividerThemeData(color: c.border, thickness: 1, space: 1),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: c.surface,
         surfaceTintColor: Colors.transparent,
         showDragHandle: true,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: AppColors.surface,
+        backgroundColor: c.surface,
         surfaceTintColor: Colors.transparent,
         indicatorColor: Colors.transparent,
         elevation: 0,
         height: 64,
         labelTextStyle: WidgetStateProperty.resolveWith(
-          (states) => _text.labelSmall?.copyWith(
-            color: states.contains(WidgetState.selected) ? AppColors.ink : AppColors.textMuted,
-          ),
+          (states) => text.labelSmall?.copyWith(color: states.contains(WidgetState.selected) ? c.ink : c.textMuted),
         ),
         iconTheme: WidgetStateProperty.resolveWith(
-          (states) => IconThemeData(
-            color: states.contains(WidgetState.selected) ? AppColors.ink : AppColors.textMuted,
-            size: 26,
-          ),
+          (states) => IconThemeData(color: states.contains(WidgetState.selected) ? c.ink : c.textMuted, size: 26),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.ink,
-        contentTextStyle: _text.bodyMedium?.copyWith(color: Colors.white),
+        backgroundColor: c.ink,
+        contentTextStyle: text.bodyMedium?.copyWith(color: c.onInk),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
-      progressIndicatorTheme: const ProgressIndicatorThemeData(color: AppColors.ink),
+      progressIndicatorTheme: ProgressIndicatorThemeData(color: c.ink),
     );
   }
 }
