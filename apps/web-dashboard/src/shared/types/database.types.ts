@@ -402,6 +402,7 @@ export type Database = {
           opens_at: string
           prep_minutes: number
           timezone: string
+          banner_path: string | null
         }
         Insert: {
           published_at?: string | null
@@ -419,6 +420,7 @@ export type Database = {
           opens_at?: string
           prep_minutes?: number
           timezone?: string
+          banner_path?: string | null
         }
         Update: {
           published_at?: string | null
@@ -436,6 +438,7 @@ export type Database = {
           opens_at?: string
           prep_minutes?: number
           timezone?: string
+          banner_path?: string | null
         }
         Relationships: []
       }
@@ -451,6 +454,7 @@ export type Database = {
           name: string
           price_lkr: number
           sort_order: number
+          image_path: string | null
         }
         Insert: {
           category?: string | null
@@ -463,6 +467,7 @@ export type Database = {
           name: string
           price_lkr: number
           sort_order?: number
+          image_path?: string | null
         }
         Update: {
           category?: string | null
@@ -475,6 +480,7 @@ export type Database = {
           name?: string
           price_lkr?: number
           sort_order?: number
+          image_path?: string | null
         }
         Relationships: [
           {
@@ -1060,6 +1066,7 @@ export type Database = {
           last_score_at: string | null
           location: string | null
           monitored_now: boolean | null
+          banner_path: string | null
           name: string | null
           opens_at: string | null
           personal_score: number | null

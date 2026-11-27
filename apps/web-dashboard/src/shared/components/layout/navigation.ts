@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Thermometer,
   TriangleAlert,
+  UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
 
@@ -33,20 +34,22 @@ export const MONITORING_NAV: readonly NavItem[] = [
   { name: "Reports", href: "/dashboard/reports", icon: FileChartColumn },
 ];
 
+export const MENU_NAV: NavItem = { name: "Menu", href: "/dashboard/menu", icon: UtensilsCrossed };
 export const ORDERS_NAV: NavItem = { name: "Orders", href: "/dashboard/orders", icon: ReceiptText };
 
 /**
- * Whether a role may open the Orders page. Customer orders are not part of a
- * hygiene inspection, so inspectors (PHI) do not see them.
+ * Whether a role may open the kitchen's business pages (Menu, Orders). Menus
+ * and customer orders are not part of a hygiene inspection, so inspectors
+ * (PHI) do not see them.
  */
-export function canSeeOrders(role: UserRole): boolean {
+export function canSeeKitchenPages(role: UserRole): boolean {
   return role === "operator" || role === "admin";
 }
 
 /** Sidebar sections for a role: hygiene monitoring first, kitchen operations apart. */
 export function navGroupsFor(role: UserRole): NavGroup[] {
   const groups: NavGroup[] = [{ label: "Monitoring", items: MONITORING_NAV }];
-  if (canSeeOrders(role)) groups.push({ label: "Kitchen", items: [ORDERS_NAV] });
+  if (canSeeKitchenPages(role)) groups.push({ label: "Kitchen", items: [MENU_NAV, ORDERS_NAV] });
   return groups;
 }
 
